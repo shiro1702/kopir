@@ -1,0 +1,58 @@
+# Kopir — правила для Cursor AI
+
+## Проект
+
+Kopir — SaaS self-service печати. Monorepo: `web/` (Nuxt 3 + Nitro) + `desktop/` (Python агент печати).
+
+**Обязательно читай перед работой:** `doc/PROJECT.md`, `doc/FEATURES.md`, `doc/SPRINTS.md`.
+
+## Стек
+
+- **web/**: Nuxt 3, Vue 3 Composition API + `<script setup>`, Nitro, TypeScript, Prisma, PostgreSQL, Redis, Tailwind
+- **desktop/**: Python 3.11+, PySide6, websockets, pywin32, PyInstaller
+- Платежи: Т-Банк API (СБП)
+- Не использовать Next.js, Express отдельно, MongoDB — только то, что в PROJECT.md
+
+## Структура web/
+
+```
+web/
+  app/           # pages, layouts (Nuxt 3 app dir)
+  components/
+  composables/
+  server/
+    api/         # Nitro routes
+    utils/
+  prisma/
+    schema.prisma
+```
+
+## Соглашения
+
+- API: REST в `server/api/`, WebSocket для агентов печати
+- Имена: `point` (точка), `order` (заказ), `agent` (десктоп-клиент), `partner` (владелец)
+- Типы: общие типы в `web/types/` или auto-import
+- Ошибки API: `{ error: string, code?: string }`
+- Файлы пользователей: удалять после печати, не логировать содержимое
+- Комментарии: только неочевидная бизнес-логика
+
+## desktop/
+
+- GUI на PySide6, не tkinter
+- Печать Windows: SumatraPDF CLI или pdf2printer
+- Конфиг: `.env` или `config.json` — `POINT_TOKEN`, `SERVER_URL`, `USE_SEPARATOR_PAGE`
+- exe через PyInstaller, single-file
+
+## При изменении API
+
+Синхронно обновляй: Prisma schema → Nitro route → desktop client → Mini App composable.
+
+## Текущий фокус (Sprint 0)
+
+Ручной пилот: бот принимает PDF → Python печатает. Без эквайринга.
+
+## Язык
+
+- Код и комментарии: английский
+- UI для пользователей: русский
+- Документация в doc/: русский
