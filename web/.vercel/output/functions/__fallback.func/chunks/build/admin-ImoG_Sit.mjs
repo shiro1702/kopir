@@ -33,7 +33,9 @@ const _sfc_main = {
     function formatUser(user) {
       if (user.username) return `@${user.username}`;
       if (user.firstName) return user.firstName;
-      return user.telegramId;
+      if (user.telegramId) return `TG:${user.telegramId}`;
+      if (user.maxUserId) return `MAX:${user.maxUserId}`;
+      return "\u2014";
     }
     return (_ctx, _push, _parent, _attrs) => {
       _push(`<div${ssrRenderAttrs(mergeProps({ class: "min-h-screen bg-gray-50 p-6" }, _attrs))}><div class="mx-auto max-w-5xl"><div class="mb-6 flex items-center justify-between"><h1 class="text-2xl font-bold text-gray-900"> Kopir Admin </h1><button class="rounded bg-gray-200 px-3 py-1.5 text-sm hover:bg-gray-300 disabled:opacity-50"${ssrIncludeBooleanAttr(unref(loading) || !unref(adminSecret)) ? " disabled" : ""}> \u041E\u0431\u043D\u043E\u0432\u0438\u0442\u044C </button></div>`);
@@ -74,4 +76,4 @@ _sfc_main.setup = (props, ctx) => {
 };
 
 export { _sfc_main as default };
-//# sourceMappingURL=admin-B2OD2FJc.mjs.map
+//# sourceMappingURL=admin-ImoG_Sit.mjs.map

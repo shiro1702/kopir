@@ -1,7 +1,7 @@
 import { OrderStatus } from '@prisma/client'
 import { assertAdminAuth } from '../../../../utils/admin-auth'
 import { prisma } from '../../../../utils/prisma'
-import { notifyPaymentConfirmed } from '../../../../utils/telegram/bot'
+import { notifyPaymentConfirmed } from '../../../../utils/bot/core'
 
 export default defineEventHandler(async (event) => {
   assertAdminAuth(event)
@@ -46,9 +46,9 @@ export default defineEventHandler(async (event) => {
   })
 
   try {
-    await notifyPaymentConfirmed(order.user.telegramId, order.id)
+    await notifyPaymentConfirmed(order.user, order.id)
   } catch (error) {
-    console.error('[admin] telegram notify failed:', error)
+    console.error('[admin] messenger notify failed:', error)
   }
 
   return {

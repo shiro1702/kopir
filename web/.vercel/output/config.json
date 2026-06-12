@@ -57,8 +57,20 @@
       "dest": "/api/telegram/set-webhook"
     },
     {
+      "src": "/api/max/webhook",
+      "dest": "/api/max/webhook"
+    },
+    {
+      "src": "/api/max/set-webhook",
+      "dest": "/api/max/set-webhook"
+    },
+    {
       "src": "/api/health",
       "dest": "/api/health"
+    },
+    {
+      "src": "/api/bots/set-webhooks",
+      "dest": "/api/bots/set-webhooks"
     },
     {
       "src": "/api/agent/queue",

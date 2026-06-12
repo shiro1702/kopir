@@ -2,7 +2,7 @@ import { d as defineEventHandler, a as getRouterParam, c as createError } from '
 import { OrderStatus } from '@prisma/client';
 import { a as assertAdminAuth } from '../../../../../_/admin-auth.mjs';
 import { p as prisma } from '../../../../../_/prisma.mjs';
-import { n as notifyPaymentConfirmed } from '../../../../../_/bot.mjs';
+import { n as notifyPaymentConfirmed } from '../../../../../_/core.mjs';
 import 'node:http';
 import 'node:https';
 import 'node:events';
@@ -10,7 +10,6 @@ import 'node:buffer';
 import 'node:fs';
 import 'node:path';
 import 'node:crypto';
-import 'grammy';
 import '../../../../../_/blob.mjs';
 import '@vercel/blob';
 import '../../../../../_/points.mjs';

@@ -3,9 +3,9 @@
 | | |
 |---|---|
 | **Период** | 11–18 июня 2026 (1 неделя) |
-| **Цель** | Файл из Telegram доезжает до принтера за < 30 сек |
+| **Цель** | Файл из мессенджера (Telegram / MAX) доезжает до принтера за < 30 сек |
 | **Этап roadmap** | [Этап 1 — Ручной пилот](../../ROADMAP.md#этап-1--ручной-пилот-proof-of-concept) |
-| **Feature IDs** | INF-01, WEB-01, WEB-02, WEB-03, WEB-08, AGT-01, AGT-02, PAY-01 |
+| **Feature IDs** | INF-01, WEB-01–03, WEB-08, WEB-14, WEB-15, AGT-01–02, PAY-01 |
 
 ## Definition of Done
 
@@ -17,17 +17,22 @@
 ## Архитектура спринта
 
 ```
-[ Telegram ] ──document──► [ Nuxt/Nitro на Vercel ]
-                                │
-                    ┌───────────┴───────────┐
-                    ▼                       ▼
-              Neon (PostgreSQL)      Vercel Blob (PDF)
-              orders, users          filePath = blob key
-                    │
-         ◄──poll 5s── [ Python agent ]
-                    │
-              [ Принтер ]
+[ Telegram / MAX ] ──PDF──► [ Nuxt/Nitro на Vercel ]
+         │                      │
+         │              bot/core (общая логика)
+         │                      │
+         │          ┌───────────┴───────────┐
+         │          ▼                       ▼
+         │    Neon (PostgreSQL)      Vercel Blob (PDF)
+         │    users.telegramId       filePath = blob url
+         │    users.maxUserId
+         │          │
+         └─◄──poll 5s── [ Python agent ]
+                           │
+                     [ Принтер ]
 ```
+
+Архитектура ботов: [BOT_MESSENGERS.md](../../BOT_MESSENGERS.md).
 
 **Вне скоупа Sprint 0:** Mini App, Т-Банк, WebSocket, GUI, DOCX, карта, Redis.
 
@@ -39,7 +44,7 @@
 |---|--------|--------|------|
 | 01 | Monorepo + Nuxt 3 scaffold | ✅ | [tasks/01-monorepo-web-scaffold.md](./tasks/01-monorepo-web-scaffold.md) |
 | 02 | Prisma: User, Point, Order | ✅ | [tasks/02-prisma-schema.md](./tasks/02-prisma-schema.md) |
-| 03 | Telegram Bot: /start + PDF | ✅ | [tasks/03-telegram-bot.md](./tasks/03-telegram-bot.md) |
+| 03 | Боты: Telegram + MAX (общее ядро) | ✅ | [tasks/03-messenger-bots.md](./tasks/03-messenger-bots.md) |
 | 04 | API: upload + create order | ✅ | [tasks/04-api-orders.md](./tasks/04-api-orders.md) |
 | 05 | Desktop: polling-агент | ✅ | [tasks/05-desktop-agent.md](./tasks/05-desktop-agent.md) |
 | 06 | Печать PDF на принтере | ✅ | [tasks/06-print-pdf.md](./tasks/06-print-pdf.md) |
@@ -71,7 +76,9 @@ DATABASE_URL="postgresql://user:pass@ep-xxx.neon.tech/kopir?sslmode=require"
 BLOB_READ_WRITE_TOKEN="vercel_blob_rw_..."
 
 TELEGRAM_BOT_TOKEN="..."
-ADMIN_SECRET="..."          # для /admin и set-webhook
+MAX_BOT_TOKEN="..."         # опционально
+MAX_WEBHOOK_SECRET="..."    # рекомендуется для MAX в prod
+ADMIN_SECRET="..."          # для /admin и set-webhooks
 AGENT_API_KEY="..."         # desktop → server auth
 ```
 
@@ -93,7 +100,7 @@ POLL_INTERVAL_SEC=5
 1. Подключить репозиторий к Vercel, Root Directory = `web`
 2. Добавить env из таблицы выше (те же Neon + Blob, что и локально)
 3. `prisma migrate deploy` против prod Neon
-4. Webhook: `POST /api/telegram/set-webhook` или вручную через Bot API
+4. Webhooks: `POST /api/bots/set-webhooks` или `./scripts/set-bot-webhooks.sh`
 5. Агент на ПК копицентра смотрит на `SERVER_URL` Vercel
 
 Подробнее: [PROJECT.md — Инфра](../../PROJECT.md#инфра)

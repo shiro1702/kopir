@@ -12,7 +12,8 @@
 | Файл | Назначение |
 |------|------------|
 | [PROJECT.md](./PROJECT.md) | Сводка проекта + технологии (контекст для AI) |
-| [ENV_SETUP.md](./ENV_SETUP.md) | Где взять env: Neon, Vercel Blob, Telegram, секреты |
+| [ENV_SETUP.md](./ENV_SETUP.md) | Где взять env: Neon, Blob, Telegram, MAX, секреты |
+| [BOT_MESSENGERS.md](./BOT_MESSENGERS.md) | Мультиканальные боты: TG, MAX, как добавить VK |
 | [FEATURES.md](./FEATURES.md) | Реестр фич со статусами ⬜ 🔵 ✅ |
 | [ROADMAP.md](./ROADMAP.md) | Этапы 1–4: пилот → MVP → автоматизация → масштаб |
 | [SPRINTS.md](./SPRINTS.md) | Задачи по 2-недельным спринтам |

@@ -4084,7 +4084,7 @@ function _expandFromEnv(value) {
 const _inlineRuntimeConfig = {
   "app": {
     "baseURL": "/",
-    "buildId": "5a280da5-08bc-41c8-8122-4430779e0ab5",
+    "buildId": "67888339-01e3-4fd0-b70b-e87853548d5a",
     "buildAssetsDir": "/_nuxt/",
     "cdnURL": ""
   },
@@ -4115,11 +4115,13 @@ const _inlineRuntimeConfig = {
   "public": {
     "appVersion": "0.0.1"
   },
-  "databaseUrl": "",
-  "blobReadWriteToken": "",
-  "telegramBotToken": "",
-  "adminSecret": "",
-  "agentApiKey": ""
+  "databaseUrl": "postgresql://user:pass@ep-xxx.neon.tech/kopir?sslmode=require",
+  "blobReadWriteToken": "vercel_blob_rw_...",
+  "telegramBotToken": "...",
+  "maxBotToken": "",
+  "maxWebhookSecret": "",
+  "adminSecret": "...",
+  "agentApiKey": "..."
 };
 const envOptions = {
   prefix: "NITRO_",
@@ -4566,7 +4568,10 @@ const _lazy_gKN5Pb = () => import('../routes/api/agent/orders/_id/claim.post.mjs
 const _lazy_exqejF = () => import('../routes/api/agent/orders/_id/complete.post.mjs');
 const _lazy_jyiyGD = () => import('../routes/api/agent/orders/_id/file.get.mjs');
 const _lazy_czMzF4 = () => import('../routes/api/agent/queue.get.mjs');
+const _lazy_QX96uK = () => import('../routes/api/bots/set-webhooks.post.mjs');
 const _lazy_ijw3bR = () => import('../routes/api/health.get.mjs');
+const _lazy_oW5477 = () => import('../routes/api/max/set-webhook.post.mjs');
+const _lazy_AWv2e9 = () => import('../routes/api/max/webhook.post.mjs');
 const _lazy_tGXmps = () => import('../routes/api/telegram/set-webhook.post.mjs');
 const _lazy_uoDOaO = () => import('../routes/api/telegram/webhook.post.mjs');
 const _lazy_GdGm0T = () => import('../routes/renderer.mjs').then(function (n) { return n.r; });
@@ -4578,7 +4583,10 @@ const handlers = [
   { route: '/api/agent/orders/:id/complete', handler: _lazy_exqejF, lazy: true, middleware: false, method: "post" },
   { route: '/api/agent/orders/:id/file', handler: _lazy_jyiyGD, lazy: true, middleware: false, method: "get" },
   { route: '/api/agent/queue', handler: _lazy_czMzF4, lazy: true, middleware: false, method: "get" },
+  { route: '/api/bots/set-webhooks', handler: _lazy_QX96uK, lazy: true, middleware: false, method: "post" },
   { route: '/api/health', handler: _lazy_ijw3bR, lazy: true, middleware: false, method: "get" },
+  { route: '/api/max/set-webhook', handler: _lazy_oW5477, lazy: true, middleware: false, method: "post" },
+  { route: '/api/max/webhook', handler: _lazy_AWv2e9, lazy: true, middleware: false, method: "post" },
   { route: '/api/telegram/set-webhook', handler: _lazy_tGXmps, lazy: true, middleware: false, method: "post" },
   { route: '/api/telegram/webhook', handler: _lazy_uoDOaO, lazy: true, middleware: false, method: "post" },
   { route: '/__nuxt_error', handler: _lazy_GdGm0T, lazy: true, middleware: false, method: undefined },

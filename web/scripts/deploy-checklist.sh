@@ -16,11 +16,11 @@ echo "==> Health check"
 curl -sf "$BASE_URL/api/health" | jq .
 
 if [[ -n "$ADMIN_SECRET" ]]; then
-  echo "==> Set Telegram webhook"
-  curl -sf -X POST "$BASE_URL/api/telegram/set-webhook" \
+  echo "==> Set Telegram + MAX webhooks"
+  curl -sf -X POST "$BASE_URL/api/bots/set-webhooks" \
     -H "Authorization: Bearer $ADMIN_SECRET" | jq .
 else
-  echo "Skip webhook (set ADMIN_SECRET to run)"
+  echo "Skip webhooks (set ADMIN_SECRET to run)"
 fi
 
 echo "Done. Next: run agent with SERVER_URL=$BASE_URL"

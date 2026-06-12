@@ -8,11 +8,13 @@ import 'node:buffer';
 import 'node:fs';
 import 'node:path';
 import 'node:crypto';
+import '../../../_/core.mjs';
 import '@prisma/client';
 import '../../../_/blob.mjs';
 import '@vercel/blob';
 import '../../../_/prisma.mjs';
 import '../../../_/points.mjs';
+import '../../../_/client2.mjs';
 
 let handler = null;
 function getWebhookHandler() {

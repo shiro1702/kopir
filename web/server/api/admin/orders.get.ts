@@ -26,7 +26,9 @@ export default defineEventHandler(async (event) => {
       createdAt: order.createdAt.toISOString(),
       paidAt: order.paidAt?.toISOString() ?? null,
       user: {
-        telegramId: order.user.telegramId.toString(),
+        messenger: order.user.telegramId ? 'telegram' : 'max',
+        telegramId: order.user.telegramId?.toString() ?? null,
+        maxUserId: order.user.maxUserId?.toString() ?? null,
         username: order.user.username,
         firstName: order.user.firstName,
       },

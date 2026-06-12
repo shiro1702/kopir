@@ -9,10 +9,12 @@
 | 1 | `DATABASE_URL` | [Neon](https://neon.tech) | `web/.env` + Vercel |
 | 2 | `BLOB_READ_WRITE_TOKEN` | Vercel → Storage → Blob | `web/.env` + Vercel |
 | 3 | `TELEGRAM_BOT_TOKEN` | [@BotFather](https://t.me/BotFather) | `web/.env` + Vercel |
-| 4 | `ADMIN_SECRET` | Сгенерировать самому | `web/.env` + Vercel |
-| 5 | `AGENT_API_KEY` | Сгенерировать самому | `web/.env` + Vercel + `desktop/.env` |
-| 6 | `SERVER_URL` | URL деплоя Vercel | `desktop/.env` |
-| 7 | `POINT_ID` | Константа `point_dev_1` | `desktop/.env` |
+| 4 | `MAX_BOT_TOKEN` | [MAX для разработчиков](https://dev.max.ru) | `web/.env` + Vercel (опц.) |
+| 5 | `MAX_WEBHOOK_SECRET` | Сгенерировать (5–256 символов) | `web/.env` + Vercel (рекомендуется) |
+| 6 | `ADMIN_SECRET` | Сгенерировать самому | `web/.env` + Vercel |
+| 7 | `AGENT_API_KEY` | Сгенерировать самому | `web/.env` + Vercel + `desktop/.env` |
+| 8 | `SERVER_URL` | URL деплоя Vercel | `desktop/.env` |
+| 9 | `POINT_ID` | Константа `point_dev_1` | `desktop/.env` |
 
 ---
 
@@ -89,8 +91,10 @@ TELEGRAM_BOT_TOKEN="123456789:AAHxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 
 ### Webhook (после деплоя на Vercel)
 
+**Все каналы одной командой** (Telegram + MAX, если токены заданы):
+
 ```bash
-curl -X POST "https://ВАШ-ДОМЕН.vercel.app/api/telegram/set-webhook" \
+curl -X POST "https://ВАШ-ДОМЕН.vercel.app/api/bots/set-webhooks" \
   -H "Authorization: Bearer ВАШ_ADMIN_SECRET"
 ```
 
@@ -98,12 +102,45 @@ curl -X POST "https://ВАШ-ДОМЕН.vercel.app/api/telegram/set-webhook" \
 
 ```bash
 cd web
-ADMIN_SECRET=xxx ./scripts/deploy-checklist.sh https://ВАШ-ДОМЕН.vercel.app
+ADMIN_SECRET=xxx ./scripts/set-bot-webhooks.sh https://ВАШ-ДОМЕН.vercel.app
 ```
+
+Только Telegram: `POST /api/telegram/set-webhook`. Только MAX: `POST /api/max/set-webhook`.
+
+Подробнее об архитектуре ботов: [BOT_MESSENGERS.md](./BOT_MESSENGERS.md).
 
 ---
 
-## 4. `ADMIN_SECRET` — секрет админки
+## 4. MAX — `MAX_BOT_TOKEN` и `MAX_WEBHOOK_SECRET`
+
+**Зачем:** бот в мессенджере MAX принимает PDF на том же бэкенде, что Telegram.
+
+### Шаги
+
+1. Зарегистрироваться на [dev.max.ru](https://dev.max.ru)
+2. Создать чат-бота → **Расширенные настройки** → скопировать токен
+3. Сгенерировать секрет для webhook (латиница, цифры, дефис):
+
+```bash
+openssl rand -hex 16
+```
+
+```env
+MAX_BOT_TOKEN="..."
+MAX_WEBHOOK_SECRET="my-webhook-secret-2026"
+```
+
+MAX шлёт секрет в заголовке `X-Max-Bot-Api-Secret` — сервер сверяет с env.
+
+### Webhook
+
+Регистрируется через `POST /api/bots/set-webhooks` (см. §3 Telegram) или отдельно `POST /api/max/set-webhook`.
+
+Требования MAX: HTTPS на 443, доверенный сертификат (Vercel подходит).
+
+---
+
+## 5. `ADMIN_SECRET` — секрет админки
 
 **Зачем:** доступ к `/admin`, API `GET /api/admin/orders`, `POST .../pay`, установка webhook.
 
@@ -126,7 +163,7 @@ ADMIN_SECRET="a1b2c3d4e5f6..."
 
 ---
 
-## 5. `AGENT_API_KEY` — ключ десктоп-агента
+## 6. `AGENT_API_KEY` — ключ десктоп-агента
 
 **Зачем:** Python-агент на ПК копицентра опрашивает `/api/agent/*`.
 
@@ -150,7 +187,7 @@ AGENT_API_KEY="f7e8d9c0..."
 
 ---
 
-## 6. Vercel — деплой и env
+## 7. Vercel — деплой и env
 
 ### Первый деплой
 
@@ -164,6 +201,8 @@ AGENT_API_KEY="f7e8d9c0..."
 | `DATABASE_URL` | Production, Preview, Development |
 | `BLOB_READ_WRITE_TOKEN` | Production, Preview, Development |
 | `TELEGRAM_BOT_TOKEN` | Production, Preview, Development |
+| `MAX_BOT_TOKEN` | Production, Preview, Development (если используете MAX) |
+| `MAX_WEBHOOK_SECRET` | Production, Preview, Development (рекомендуется) |
 | `ADMIN_SECRET` | Production, Preview, Development |
 | `AGENT_API_KEY` | Production, Preview, Development |
 
@@ -193,7 +232,7 @@ DATABASE_URL="postgresql://..." npm run db:seed
 
 ---
 
-## 7. Desktop agent — `desktop/.env`
+## 8. Desktop agent — `desktop/.env`
 
 ```bash
 cd desktop
@@ -235,6 +274,8 @@ lpstat -p -d
 DATABASE_URL="postgresql://..."
 BLOB_READ_WRITE_TOKEN="vercel_blob_rw_..."
 TELEGRAM_BOT_TOKEN="123456789:AAH..."
+MAX_BOT_TOKEN="..."              # опционально
+MAX_WEBHOOK_SECRET="..."         # опционально, для prod
 ADMIN_SECRET="..."
 AGENT_API_KEY="..."
 ```
@@ -275,7 +316,8 @@ cd desktop && python -m agent.main
 |---------|---------|---------|
 | 401 на `/api/agent/*` | Неверный `AGENT_API_KEY` | Сверить web и desktop `.env` |
 | 401 на `/admin` | Неверный `ADMIN_SECRET` | Переввести секрет в UI |
-| Бот молчит | Webhook не установлен | `POST /api/telegram/set-webhook` |
+| Бот молчит (TG) | Webhook не установлен | `POST /api/bots/set-webhooks` |
+| MAX не отвечает | Нет токена / webhook | `MAX_BOT_TOKEN` + set-webhooks |
 | Prisma error | Нет миграций | `npm run db:deploy` |
 | Blob upload fail | Нет `BLOB_READ_WRITE_TOKEN` | Создать Blob store в Vercel |
 | Агент idle, заказы не печатаются | Заказ не `PAID` | Нажать «Оплатить» в `/admin` |
@@ -286,6 +328,7 @@ cd desktop && python -m agent.main
 ## Связанные документы
 
 - [PROJECT.md](./PROJECT.md) — архитектура и инфра
+- [BOT_MESSENGERS.md](./BOT_MESSENGERS.md) — Telegram, MAX, как добавить VK
 - [sprints/sprint-0/README.md](./sprints/sprint-0/README.md) — Sprint 0
 - [web/README.md](../web/README.md) — команды web
 - [desktop/README.md](../desktop/README.md) — запуск агента

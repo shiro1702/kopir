@@ -74,7 +74,9 @@ async function payOrder(orderId) {
 function formatUser(user) {
   if (user.username) return `@${user.username}`
   if (user.firstName) return user.firstName
-  return user.telegramId
+  if (user.telegramId) return `TG:${user.telegramId}`
+  if (user.maxUserId) return `MAX:${user.maxUserId}`
+  return '—'
 }
 
 </script>

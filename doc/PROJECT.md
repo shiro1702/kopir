@@ -72,7 +72,7 @@ kopir/
 5. Сервер шлёт задание агенту по WebSocket
 6. Агент печатает (+ опционально разделительный лист)
 7. Агент отчитывается: `printed` / `error` / `partial`
-8. Бот уведомляет пользователя: «Готово!» / возврат при ошибке
+8. Бот (Telegram / MAX / …) уведомляет пользователя: «Готово!» / возврат при ошибке
 
 ### Роли
 
@@ -110,6 +110,7 @@ kopir/
 - **Socket.io / Nitro WebSocket** — связь с агентами
 - **Leaflet** — карта точек (MVP), позже Яндекс.Карты
 - **Т-Банк API** — Init, GetQr, webhook
+- **Мессенджер-боты** — общее ядро `server/utils/bot/core.ts` + адаптеры (Telegram grammY, MAX Bot API; VK — план). См. [BOT_MESSENGERS.md](./BOT_MESSENGERS.md)
 
 ### Desktop (`desktop/`)
 
@@ -139,6 +140,8 @@ kopir/
 | БД | **Neon** free tier → `DATABASE_URL` |
 | PDF-файлы | **Vercel Blob** → `BLOB_READ_WRITE_TOKEN` |
 | Telegram webhook | `https://<app>.vercel.app/api/telegram/webhook` |
+| MAX webhook | `https://<app>.vercel.app/api/max/webhook` |
+| Все webhooks разом | `POST /api/bots/set-webhooks` |
 
 Локальная разработка использует те же Neon + Blob (токены в `web/.env`), не папку `uploads/` — на Vercel диск не персистентный.
 
@@ -154,9 +157,9 @@ kopir/
 1. Создать проект Neon → скопировать `DATABASE_URL` (connection string с `?sslmode=require`)
 2. В Vercel: Storage → Blob → создать store → `BLOB_READ_WRITE_TOKEN`
 3. Root Directory = `web`, Framework = Nuxt
-4. Env: `DATABASE_URL`, `BLOB_READ_WRITE_TOKEN`, `TELEGRAM_BOT_TOKEN`, `ADMIN_SECRET`, `AGENT_API_KEY`
+4. Env: `DATABASE_URL`, `BLOB_READ_WRITE_TOKEN`, `TELEGRAM_BOT_TOKEN`, `MAX_BOT_TOKEN` (опц.), `ADMIN_SECRET`, `AGENT_API_KEY`
 5. После первого деплоя: `npx prisma migrate deploy` + `npx prisma db seed` (локально с prod `DATABASE_URL`)
-6. Установить Telegram webhook на URL Vercel
+6. Установить webhooks: `POST /api/bots/set-webhooks` или `./scripts/set-bot-webhooks.sh`
 7. В `desktop/.env`: `SERVER_URL=https://<app>.vercel.app`
 
 ## Ограничения и риски (учитывать в коде)
@@ -176,6 +179,7 @@ kopir/
 ## Связанные документы
 
 - [FEATURES.md](./FEATURES.md) — статусы фич
+- [BOT_MESSENGERS.md](./BOT_MESSENGERS.md) — мультиканальные боты, как добавить VK
 - [ROADMAP.md](./ROADMAP.md) — этапы 1–4
 - [SPRINTS.md](./SPRINTS.md) — текущие задачи
 - [brainstorm/11.06.2026.md](./brainstorm/11.06.2026.md) — полный брейншторм

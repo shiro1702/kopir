@@ -1,12 +1,14 @@
 # Kopir Web — Sprint 0
 
-Nuxt 3 + Nitro API for Telegram bot, admin panel, and print agent.
+Nuxt 3 + Nitro API for messenger bots (Telegram, MAX), admin panel, and print agent.
+
+Bot architecture: [doc/BOT_MESSENGERS.md](../doc/BOT_MESSENGERS.md).
 
 ## Setup
 
 ```bash
 cd web
-cp .env.example .env   # fill Neon, Blob, Telegram, secrets
+cp .env.example .env   # fill Neon, Blob, Telegram, MAX (opt.), secrets
 npm install
 npm run db:deploy      # against Neon
 npm run db:seed
@@ -26,11 +28,10 @@ DATABASE_URL="postgresql://..." npm run db:deploy
 DATABASE_URL="postgresql://..." npm run db:seed
 ```
 
-5. Set Telegram webhook:
+5. Set webhooks (Telegram + MAX if tokens are set):
 
 ```bash
-curl -X POST "https://YOUR_APP.vercel.app/api/telegram/set-webhook" \
-  -H "Authorization: Bearer YOUR_ADMIN_SECRET"
+ADMIN_SECRET=xxx ./scripts/set-bot-webhooks.sh https://YOUR_APP.vercel.app
 ```
 
 ## API
@@ -39,7 +40,10 @@ curl -X POST "https://YOUR_APP.vercel.app/api/telegram/set-webhook" \
 |----------|------|-------------|
 | `GET /api/health` | — | Health check |
 | `POST /api/telegram/webhook` | Telegram | Bot updates |
-| `POST /api/telegram/set-webhook` | ADMIN_SECRET | Register webhook |
+| `POST /api/max/webhook` | MAX (`X-Max-Bot-Api-Secret`) | Bot updates |
+| `POST /api/bots/set-webhooks` | ADMIN_SECRET | Register all webhooks |
+| `POST /api/telegram/set-webhook` | ADMIN_SECRET | Telegram only |
+| `POST /api/max/set-webhook` | ADMIN_SECRET | MAX only |
 | `GET /api/admin/orders` | ADMIN_SECRET | List orders |
 | `POST /api/admin/orders/:id/pay` | ADMIN_SECRET | Confirm payment |
 | `GET /api/agent/queue?pointId=` | AGENT_API_KEY | Paid queue |
