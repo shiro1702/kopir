@@ -95,7 +95,7 @@ model User {
 | `VK_BOT_TOKEN` | VK | будущее |
 | `VK_CONFIRMATION_SECRET` | VK | будущее |
 
-Подробнее: [ENV_SETUP.md](./ENV_SETUP.md).
+Подробнее: [ENV_SETUP.md](../dev/ENV_SETUP.md).
 
 ## Как добавить новый мессенджер (чеклист)
 
@@ -138,5 +138,5 @@ web/scripts/set-bot-webhooks.sh
 ## Связанные документы
 
 - [FEATURES.md](./FEATURES.md) — WEB-08, WEB-14–17
-- [ENV_SETUP.md](./ENV_SETUP.md) — токены и webhook
-- [sprints/sprint-0/tasks/03-messenger-bots.md](./sprints/sprint-0/tasks/03-messenger-bots.md) — задача спринта
+- [ENV_SETUP.md](../dev/ENV_SETUP.md) — токены и webhook
+- [sprints/sprint-0/tasks/03-messenger-bots.md](../sprints/sprint-0/tasks/03-messenger-bots.md) — задача спринта

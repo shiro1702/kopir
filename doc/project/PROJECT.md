@@ -39,11 +39,13 @@ kopir/
 ├── web/                 # Nuxt 3: сайт, Mini App, Nitro API, админки
 ├── desktop/             # Python: агент печати для Windows (копицентры / боксы)
 ├── doc/
-│   ├── PROJECT.md       # ← этот файл
-│   ├── FEATURES.md      # фичи со статусами
-│   ├── ROADMAP.md       # этапы продукта
-│   ├── SPRINTS.md       # задачи по спринтам
-│   └── brainstorm/      # исходный брейншторм
+│   ├── project/         # PROJECT, FEATURES, BOT_MESSENGERS
+│   ├── roadmap/         # этапы продукта (бизнес)
+│   ├── sprints/         # задачи по спринтам
+│   ├── business/        # экономика, модели
+│   ├── hardware/        # боксы, IoT
+│   ├── product/         # будущие фичи
+│   └── brainstorm/      # сырой брейншторм
 └── .cursorrules         # правила для AI (создать при старте кода)
 ```
 
@@ -180,9 +182,11 @@ kopir/
 
 - [FEATURES.md](./FEATURES.md) — статусы фич
 - [BOT_MESSENGERS.md](./BOT_MESSENGERS.md) — мультиканальные боты, как добавить VK
-- [ROADMAP.md](./ROADMAP.md) — этапы 1–4
-- [SPRINTS.md](./SPRINTS.md) — текущие задачи
-- [brainstorm/11.06.2026.md](./brainstorm/11.06.2026.md) — полный брейншторм
+- [roadmap/ROADMAP.md](../roadmap/ROADMAP.md) — этапы 1–4 (продукт)
+- [sprints/SPRINTS.md](../sprints/SPRINTS.md) — текущие задачи (код)
+- [business/](../business/models.md) — экономика и масштабирование
+- [hardware/](../hardware/README.md) — боксы (после MVP)
+- [brainstorm/11.06.2026.md](../brainstorm/11.06.2026.md) — полный брейншторм
 
 ## Именование в коде
 

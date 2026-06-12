@@ -1,5 +1,8 @@
 # Kopir — Roadmap
 
+> **Продуктовая дорожная карта** (бизнес-этапы, не план кода).  
+> Задачи разработки: [sprints/SPRINTS.md](../sprints/SPRINTS.md). Экономика: [business/](../business/models.md).
+
 ```
 Этап 1          Этап 2              Этап 3                 Этап 4
 Ручной пилот →  MVP (3–5 точек) →  Автоматизация →        Масштабирование
@@ -18,7 +21,7 @@
 - Оплата вручную (перевод → подтверждение в админке)
 
 **Техника:**
-- Nuxt: боты Telegram + MAX на общем ядре `bot/core` (см. [BOT_MESSENGERS.md](./BOT_MESSENGERS.md))
+- Nuxt: боты Telegram + MAX на общем ядре `bot/core` (см. [BOT_MESSENGERS.md](../project/BOT_MESSENGERS.md))
 - Python: polling каждые 5 сек → печать
 - Без эквайринга, без GUI
 

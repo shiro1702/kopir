@@ -4,7 +4,7 @@
 |---|---|
 | **Период** | 11–18 июня 2026 (1 неделя) |
 | **Цель** | Файл из мессенджера (Telegram / MAX) доезжает до принтера за < 30 сек |
-| **Этап roadmap** | [Этап 1 — Ручной пилот](../../ROADMAP.md#этап-1--ручной-пилот-proof-of-concept) |
+| **Этап roadmap** | [Этап 1 — Ручной пилот](../../roadmap/ROADMAP.md#этап-1--ручной-пилот-proof-of-concept) |
 | **Feature IDs** | INF-01, WEB-01–03, WEB-08, WEB-14, WEB-15, AGT-01–02, PAY-01 |
 
 ## Definition of Done
@@ -32,7 +32,7 @@
                      [ Принтер ]
 ```
 
-Архитектура ботов: [BOT_MESSENGERS.md](../../BOT_MESSENGERS.md).
+Архитектура ботов: [BOT_MESSENGERS.md](../../project/BOT_MESSENGERS.md).
 
 **Вне скоупа Sprint 0:** Mini App, Т-Банк, WebSocket, GUI, DOCX, карта, Redis.
 
@@ -64,7 +64,7 @@
 
 ## Окружение
 
-📖 **Подробная инструкция:** [ENV_SETUP.md](../../ENV_SETUP.md) — где взять каждый ключ, пошагово.
+📖 **Подробная инструкция:** [ENV_SETUP.md](../../dev/ENV_SETUP.md) — где взять каждый ключ, пошагово.
 
 ### Переменные (`.env` в `web/`)
 
@@ -103,7 +103,7 @@ POLL_INTERVAL_SEC=5
 4. Webhooks: `POST /api/bots/set-webhooks` или `./scripts/set-bot-webhooks.sh`
 5. Агент на ПК копицентра смотрит на `SERVER_URL` Vercel
 
-Подробнее: [PROJECT.md — Инфра](../../PROJECT.md#инфра)
+Подробнее: [PROJECT.md — Инфра](../../project/PROJECT.md#инфра)
 
 ## Ежедневный чеклист
 

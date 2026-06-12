@@ -2,7 +2,7 @@
 
 Nuxt 3 + Nitro API for messenger bots (Telegram, MAX), admin panel, and print agent.
 
-Bot architecture: [doc/BOT_MESSENGERS.md](../doc/BOT_MESSENGERS.md).
+Bot architecture: [doc/project/BOT_MESSENGERS.md](../doc/project/BOT_MESSENGERS.md).
 
 ## Setup
 

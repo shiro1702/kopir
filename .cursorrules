@@ -4,7 +4,7 @@
 
 Kopir — SaaS self-service печати. Monorepo: `web/` (Nuxt 3 + Nitro) + `desktop/` (Python агент печати).
 
-**Обязательно читай перед работой:** `doc/PROJECT.md`, `doc/FEATURES.md`, `doc/SPRINTS.md`, `doc/BOT_MESSENGERS.md` (боты).
+**Обязательно читай перед работой:** `doc/project/PROJECT.md`, `doc/project/FEATURES.md`, `doc/sprints/SPRINTS.md`, `doc/project/BOT_MESSENGERS.md` (боты).
 
 ## Стек
 

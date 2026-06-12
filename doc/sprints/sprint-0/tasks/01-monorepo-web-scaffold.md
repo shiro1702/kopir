@@ -68,7 +68,7 @@ curl http://localhost:3000/api/health
 
 ## Заметки
 
-- **Хранилище:** Neon (Postgres) + Vercel Blob — см. [PROJECT.md](../../../PROJECT.md#инфра)
+- **Хранилище:** Neon (Postgres) + Vercel Blob — см. [PROJECT.md](../../../project/PROJECT.md#инфра)
 - Локально: `npm run dev` + те же `DATABASE_URL` / `BLOB_READ_WRITE_TOKEN` из Neon/Vercel Dashboard
 - Для webhook без деплоя: ngrok на `:3000` (задача 03); staging на Vercel — опционально
 - В `nuxt.config.ts` для Vercel: `nitro: { preset: 'vercel' }`

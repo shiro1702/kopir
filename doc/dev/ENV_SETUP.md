@@ -107,7 +107,7 @@ ADMIN_SECRET=xxx ./scripts/set-bot-webhooks.sh https://ВАШ-ДОМЕН.vercel.
 
 Только Telegram: `POST /api/telegram/set-webhook`. Только MAX: `POST /api/max/set-webhook`.
 
-Подробнее об архитектуре ботов: [BOT_MESSENGERS.md](./BOT_MESSENGERS.md).
+Подробнее об архитектуре ботов: [BOT_MESSENGERS.md](../project/BOT_MESSENGERS.md).
 
 ---
 
@@ -327,8 +327,8 @@ cd desktop && python -m agent.main
 
 ## Связанные документы
 
-- [PROJECT.md](./PROJECT.md) — архитектура и инфра
-- [BOT_MESSENGERS.md](./BOT_MESSENGERS.md) — Telegram, MAX, как добавить VK
-- [sprints/sprint-0/README.md](./sprints/sprint-0/README.md) — Sprint 0
+- [PROJECT.md](../project/PROJECT.md) — архитектура и инфра
+- [BOT_MESSENGERS.md](../project/BOT_MESSENGERS.md) — Telegram, MAX, как добавить VK
+- [sprints/sprint-0/README.md](../sprints/sprint-0/README.md) — Sprint 0
 - [web/README.md](../web/README.md) — команды web
 - [desktop/README.md](../desktop/README.md) — запуск агента

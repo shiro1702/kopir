@@ -14,7 +14,7 @@
 
 ## Архитектура
 
-См. [BOT_MESSENGERS.md](../../../BOT_MESSENGERS.md).
+См. [BOT_MESSENGERS.md](../../../project/BOT_MESSENGERS.md).
 
 ```
 server/utils/bot/core.ts     ← handleStart, handlePdfDocument, notifyPaymentConfirmed

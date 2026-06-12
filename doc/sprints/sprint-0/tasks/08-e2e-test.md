@@ -83,4 +83,4 @@
 
 ## После E2E
 
-Обновить статусы в [FEATURES.md](../../../FEATURES.md) для закрытых feature ID.
+Обновить статусы в [FEATURES.md](../../../project/FEATURES.md) для закрытых feature ID.
