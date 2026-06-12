@@ -17,17 +17,19 @@
 
 ## Sprint 0 — «Первая печать» (11–18 июня 2026)
 
+📁 **Подробные задачи:** [doc/sprints/sprint-0/](./sprints/sprint-0/README.md)
+
 **Цель:** файл из Telegram → принтер за 30 сек.
 
 | Статус | Задача | Feature ID |
 |--------|--------|------------|
-| ⬜ | Создать `web/` — Nuxt 3 + Nitro scaffold | INF-01, WEB-01 |
-| ⬜ | Prisma: модели User, Point, Order (минимум) | WEB-02 |
-| ⬜ | Bot: /start, приём PDF-документа | WEB-08 |
-| ⬜ | API: сохранить файл, создать order | WEB-03 |
-| ⬜ | Создать `desktop/` — Python polling-скрипт | INF-01, AGT-01 |
-| ⬜ | Печать PDF через SumatraPDF / системный print | AGT-02 |
-| ⬜ | Ручное «Оплачено» в простой админ-странице | PAY-01 |
+| ✅ | Создать `web/` — Nuxt 3 + Nitro scaffold | INF-01, WEB-01 |
+| ✅ | Prisma: модели User, Point, Order (минимум) | WEB-02 |
+| ✅ | Bot: /start, приём PDF-документа | WEB-08 |
+| ✅ | API: сохранить файл, создать order | WEB-03 |
+| ✅ | Создать `desktop/` — Python polling-скрипт | INF-01, AGT-01 |
+| ✅ | Печать PDF через SumatraPDF / системный print | AGT-02 |
+| ✅ | Ручное «Оплачено» в простой админ-странице | PAY-01 |
 | ⬜ | E2E тест: отправил в бота → напечаталось | — |
 | ⬜ | Договориться с 1 копицентром на тест | — |
 
@@ -105,7 +107,8 @@
 | ⬜ | Превью страниц PDF в Mini App | FILE-04, FILE-05 |
 | ⬜ | Статус печати в реальном времени | UX-09 |
 | ⬜ | Redis для heartbeat | WEB-05 |
-| ⬜ | Deploy на VPS + домен | INF-04 |
+| ⬜ | Deploy staging: Vercel + Neon + Blob | INF-04 |
+| ⬜ | Deploy prod: VPS + домен (WebSocket) | INF-04 |
 | ⬜ | `.cursorrules` + документация API | INF-02 |
 
 ---

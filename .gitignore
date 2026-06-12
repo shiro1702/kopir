@@ -1,0 +1,12 @@
+node_modules/
+.env
+.env.local
+.nuxt
+.output
+dist
+.DS_Store
+*.log
+.venv/
+__pycache__/
+*.pyc
+desktop/bin/SumatraPDF.exe

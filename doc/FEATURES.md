@@ -17,11 +17,11 @@
 
 | Статус | ID | Фича | Этап | Примечание |
 |--------|-----|------|------|------------|
-| ⬜ todo | INF-01 | Monorepo: `web/` + `desktop/` | 1 | См. PROJECT.md |
+| ✅ done | INF-01 | Monorepo: `web/` + `desktop/` | 1 | См. PROJECT.md |
 | ⬜ todo | INF-02 | `.cursorrules` для Nuxt + Python | 1 | |
 | ⬜ todo | INF-03 | CI: lint + typecheck web | 2 | |
-| ⬜ todo | INF-04 | Docker / deploy VPS | 2 | WebSocket → VPS |
-| ⬜ todo | INF-05 | Staging + prod окружения | 2 | |
+| ⬜ todo | INF-04 | Deploy: Vercel staging + VPS prod | 1–2 | Sprint 0: Vercel + Neon + Blob; WS → VPS |
+| ⬜ todo | INF-05 | Staging + prod окружения | 2 | Neon branches, отдельные Blob store |
 
 ---
 
@@ -29,14 +29,14 @@
 
 | Статус | ID | Фича | Этап | Примечание |
 |--------|-----|------|------|------------|
-| ⬜ todo | WEB-01 | Скелет Nuxt 3 проекта | 1 | |
-| ⬜ todo | WEB-02 | Prisma + PostgreSQL схема | 1 | users, points, orders, payments |
-| ⬜ todo | WEB-03 | REST API: upload, orders, points | 1 | |
+| ✅ done | WEB-01 | Скелет Nuxt 3 проекта | 1 | |
+| ✅ done | WEB-02 | Prisma + PostgreSQL схема | 1 | Neon; users, points, orders |
+| ✅ done | WEB-03 | REST API: upload, orders, points | 1 | PDF → Vercel Blob |
 | ⬜ todo | WEB-04 | WebSocket: агент ↔ сервер | 1 | print jobs, heartbeat |
 | ⬜ todo | WEB-05 | Redis: heartbeat + TTL коды | 2 | |
 | ⬜ todo | WEB-06 | Омниканальный сайт (PWA) | 2 | QR → `?point_id=` |
 | ⬜ todo | WEB-07 | Telegram Mini App (SPA) | 2 | WebApp SDK |
-| ⬜ todo | WEB-08 | Telegram Bot: /start, inline-кнопки | 1 | telegraf или grammy |
+| ✅ done | WEB-08 | Telegram Bot: /start, inline-кнопки | 1 | grammy |
 | ⬜ todo | WEB-09 | Мультиссылка QR (TG / Viber / VK) | 3 | редиректор |
 | ⬜ todo | WEB-10 | Страница карты точек (Leaflet) | 2 | статичные пины |
 | ⬜ todo | WEB-11 | Карта: динамическая нагрузка (🟢🟡🔴) | 3 | из очереди принтера |
@@ -55,7 +55,7 @@
 | ⬜ todo | FILE-04 | Превью страниц в Mini App | 2 | pdfjs-dist |
 | ⬜ todo | FILE-05 | Выбор диапазона страниц | 2 | |
 | ⬜ todo | FILE-06 | Дисклеймер при DOCX | 2 | «шрифты могут измениться» |
-| ⬜ todo | FILE-07 | Автоудаление после печати | 2 | ФЗ-152, TTL 24ч |
+| ✅ done | FILE-07 | Автоудаление после печати | 2 | `blob.del()`; Sprint 0 basic |
 | ⬜ todo | FILE-08 | Маршрутизация на фотопринтер | ⏸ deferred | target_printer tag |
 | ⬜ todo | FILE-09 | XLSX/PPTX конвертация | ⏸ deferred | |
 
@@ -84,7 +84,7 @@
 
 | Статус | ID | Фича | Этап | Примечание |
 |--------|-----|------|------|------------|
-| ⬜ todo | PAY-01 | Ручное подтверждение оплаты (пилот) | 1 | перевод на карту |
+| ✅ done | PAY-01 | Ручное подтверждение оплаты (пилот) | 1 | перевод на карту |
 | ⬜ todo | PAY-02 | Т-Банк: Init + GetQr (СБП) | 2 | |
 | ⬜ todo | PAY-03 | Webhook оплаты → печать | 2 | |
 | ⬜ todo | PAY-04 | Облачная касса (ФЗ-54) | 2 | чек в Telegram |
@@ -102,8 +102,8 @@
 
 | Статус | ID | Фича | Этап | Примечание |
 |--------|-----|------|------|------------|
-| ⬜ todo | AGT-01 | Консольный polling-агент | 1 | proof of concept |
-| ⬜ todo | AGT-02 | Печать PDF на принтер по умолчанию | 1 | SumatraPDF CLI |
+| ✅ done | AGT-01 | Консольный polling-агент | 1 | proof of concept |
+| ✅ done | AGT-02 | Печать PDF на принтер по умолчанию | 1 | SumatraPDF CLI + lp |
 | ⬜ todo | AGT-03 | WebSocket вместо polling | 2 | |
 | ⬜ todo | AGT-04 | GUI PySide6: статус + лог заказов | 2 | |
 | ⬜ todo | AGT-05 | Авторизация по токену (6 цифр) | 3 | |

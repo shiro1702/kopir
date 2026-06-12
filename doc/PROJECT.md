@@ -18,8 +18,9 @@
 | Архитектура | Monorepo: `web/` (Nuxt) + `desktop/` (Python) |
 | Фронт + API | **Nuxt 3 + Nitro** — один проект: сайт, Mini App, REST/WebSocket API |
 | Десктоп-агент | **Python** (PySide6 GUI → `.exe` для Windows копицентров) |
-| БД облако | **PostgreSQL** + **Prisma** |
-| Кэш / heartbeat | **Redis** (статусы принтеров, TTL-коды) |
+| БД облако | **PostgreSQL (Neon)** + **Prisma** |
+| Файлы заказов (PDF) | **Vercel Blob** (не локальный диск на serverless) |
+| Кэш / heartbeat | **Redis** (статусы принтеров, TTL-коды) — с Sprint 1 |
 | БД на устройстве | **SQLite** (очередь офлайн, локальные настройки) |
 | Платежи MVP | **Т-Банк** (СБП через API эквайринга) |
 | AI (опционально) | **Groq** — FAQ, классификация документов |
@@ -28,7 +29,7 @@
 | Старт без железа | Python `.exe` на ПК партнёра вместо Orange Pi |
 | Разделитель заказов | Умный разделительный лист, toggle `USE_SEPARATOR_PAGE` |
 | Безопасность бокса | Печать только после сканирования QR на корпусе (не сразу после оплаты) |
-| Файлы | Конвертация в PDF в облаке; автоудаление после печати |
+| Файлы | PDF в **Vercel Blob**; конвертация в облаке; автоудаление после печати |
 | Чеки | Облачная касса (ФЗ-54) |
 
 ## Структура репозитория
@@ -52,7 +53,8 @@ kopir/
 [ Пользователь ]
    │  Telegram Mini App, MAX bot / Web / Bot
    ▼
-[ Nuxt 3 + Nitro ]  ←→  PostgreSQL + Redis
+[ Nuxt 3 + Nitro ]  ←→  Neon (PostgreSQL) + Vercel Blob
+   │                    Redis — с Sprint 1
    │  WebSocket / HTTP
    ▼
 [ Desktop Agent (Python) ]  — Windows ПК копицентра
@@ -99,8 +101,9 @@ kopir/
 
 - **Nuxt 3** (SPA-режим для Mini App)
 - **Nitro** — API routes в `server/api/`
-- **Prisma** + PostgreSQL
-- **Redis** — heartbeat, коды печати
+- **Prisma** + **Neon** (PostgreSQL)
+- **Vercel Blob** (`@vercel/blob`) — хранение PDF заказов
+- **Redis** — heartbeat, коды печати (Sprint 1+)
 - **Telegram WebApp SDK** — initData, MainButton
 - **pdf-lib / pdf-parse** — анализ PDF на сервере
 - **LibreOffice headless** или CloudConvert — DOCX→PDF
@@ -128,10 +131,33 @@ kopir/
 
 ### Инфра
 
-- VPS или **Vercel** (без WS) / VPS для продакшена с WebSocket
-- **Supabase / Neon** — managed PostgreSQL
-- **Upstash** — managed Redis
+**Staging / пилот (Sprint 0–1):**
+
+| Слой | Сервис |
+|------|--------|
+| Хостинг API + фронт | **Vercel** (Nuxt 3, `nitro.preset: 'vercel'`) |
+| БД | **Neon** free tier → `DATABASE_URL` |
+| PDF-файлы | **Vercel Blob** → `BLOB_READ_WRITE_TOKEN` |
+| Telegram webhook | `https://<app>.vercel.app/api/telegram/webhook` |
+
+Локальная разработка использует те же Neon + Blob (токены в `web/.env`), не папку `uploads/` — на Vercel диск не персистентный.
+
+**Продакшен (Sprint 2+):**
+
+- **Vercel** — Mini App, REST, бот (polling агента ок; WebSocket — ограниченно)
+- **VPS** — когда нужен стабильный WebSocket агент ↔ сервер (Sprint 1+)
+- **Upstash** — managed Redis (heartbeat)
 - Облачная касса: АТОЛ Онлайн / Orange Data
+
+**Деплой на Vercel (чеклист):**
+
+1. Создать проект Neon → скопировать `DATABASE_URL` (connection string с `?sslmode=require`)
+2. В Vercel: Storage → Blob → создать store → `BLOB_READ_WRITE_TOKEN`
+3. Root Directory = `web`, Framework = Nuxt
+4. Env: `DATABASE_URL`, `BLOB_READ_WRITE_TOKEN`, `TELEGRAM_BOT_TOKEN`, `ADMIN_SECRET`, `AGENT_API_KEY`
+5. После первого деплоя: `npx prisma migrate deploy` + `npx prisma db seed` (локально с prod `DATABASE_URL`)
+6. Установить Telegram webhook на URL Vercel
+7. В `desktop/.env`: `SERVER_URL=https://<app>.vercel.app`
 
 ## Ограничения и риски (учитывать в коде)
 

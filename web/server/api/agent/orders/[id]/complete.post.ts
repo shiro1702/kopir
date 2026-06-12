@@ -1,0 +1,64 @@
+import { OrderStatus } from '@prisma/client'
+import { assertAgentAuth } from '../../../../utils/agent-auth'
+import { deleteOrderPdf } from '../../../../utils/blob'
+import { prisma } from '../../../../utils/prisma'
+
+interface CompleteBody {
+  status: 'PRINTED' | 'FAILED'
+  errorMessage?: string
+}
+
+export default defineEventHandler(async (event) => {
+  assertAgentAuth(event)
+
+  const id = getRouterParam(event, 'id')
+  if (!id) {
+    throw createError({
+      statusCode: 400,
+      data: { error: 'Order id is required', code: 'MISSING_ORDER_ID' },
+    })
+  }
+
+  const body = await readBody<CompleteBody>(event)
+  if (!body?.status || !['PRINTED', 'FAILED'].includes(body.status)) {
+    throw createError({
+      statusCode: 400,
+      data: { error: 'status must be PRINTED or FAILED', code: 'INVALID_STATUS' },
+    })
+  }
+
+  const order = await prisma.order.findUnique({ where: { id } })
+  if (!order) {
+    throw createError({
+      statusCode: 404,
+      data: { error: 'Order not found', code: 'ORDER_NOT_FOUND' },
+    })
+  }
+
+  if (order.status === OrderStatus.PRINTED || order.status === OrderStatus.FAILED) {
+    return { id: order.id, status: order.status }
+  }
+
+  if (order.status !== OrderStatus.PRINTING) {
+    throw createError({
+      statusCode: 400,
+      data: { error: 'Order is not in PRINTING status', code: 'INVALID_STATUS' },
+    })
+  }
+
+  const targetStatus =
+    body.status === 'PRINTED' ? OrderStatus.PRINTED : OrderStatus.FAILED
+
+  const updated = await prisma.order.update({
+    where: { id },
+    data: {
+      status: targetStatus,
+      printedAt: new Date(),
+      errorMessage: body.status === 'FAILED' ? body.errorMessage ?? 'Print failed' : null,
+    },
+  })
+
+  await deleteOrderPdf(order.filePath)
+
+  return { id: updated.id, status: updated.status }
+})
