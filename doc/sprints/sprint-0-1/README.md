@@ -40,12 +40,12 @@
 
 | # | Задача | Статус | Файл |
 |---|--------|--------|------|
-| 01 | Prisma: статусы + mimeType | ⬜ | [tasks/01-schema-docx-statuses.md](./tasks/01-schema-docx-statuses.md) |
-| 02 | Бот: приём doc/docx | ⬜ | [tasks/02-bot-accept-docx.md](./tasks/02-bot-accept-docx.md) |
-| 03 | API: очередь CALCULATING + calculation | ⬜ | [tasks/03-api-calculation.md](./tasks/03-api-calculation.md) |
-| 04 | Агент: Word page count (pywin32) | ⬜ | [tasks/04-agent-word-count.md](./tasks/04-agent-word-count.md) |
-| 05 | Агент: печать docx через Word | ⬜ | [tasks/05-agent-word-print.md](./tasks/05-agent-word-print.md) |
-| 06 | Бот: сообщение с ценой + уведомления | ⬜ | [tasks/06-bot-price-message.md](./tasks/06-bot-price-message.md) |
+| 01 | Prisma: статусы + mimeType | ✅ | [tasks/01-schema-docx-statuses.md](./tasks/01-schema-docx-statuses.md) |
+| 02 | Бот: приём doc/docx | ✅ | [tasks/02-bot-accept-docx.md](./tasks/02-bot-accept-docx.md) |
+| 03 | API: очередь CALCULATING + calculation | ✅ | [tasks/03-api-calculation.md](./tasks/03-api-calculation.md) |
+| 04 | Агент: Word page count (pywin32) | ✅ | [tasks/04-agent-word-count.md](./tasks/04-agent-word-count.md) |
+| 05 | Агент: печать docx через Word | ✅ | [tasks/05-agent-word-print.md](./tasks/05-agent-word-print.md) |
+| 06 | Бот: сообщение с ценой + уведомления | ✅ | [tasks/06-bot-price-message.md](./tasks/06-bot-price-message.md) |
 | 07 | E2E: docx → цена → оплата → печать | ⬜ | [tasks/07-e2e-docx.md](./tasks/07-e2e-docx.md) |
 
 ## Порядок выполнения

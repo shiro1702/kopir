@@ -50,12 +50,12 @@
 
 | Статус | Задача | Feature ID |
 |--------|--------|------------|
-| ⬜ | Prisma: `CALCULATING`, `mimeType` | FILE-10 |
-| ⬜ | Бот: приём doc/docx | FILE-11 |
-| ⬜ | API: очередь calculation + POST result | FILE-10, WEB-03 |
-| ⬜ | Агент: pywin32 page count | AGT-14 |
-| ⬜ | Агент: печать docx через Word | AGT-15 |
-| ⬜ | Бот: сообщение «N стр, X ₽» | FILE-11 |
+| ✅ | Prisma: `CALCULATING`, `mimeType` | FILE-10 |
+| ✅ | Бот: приём doc/docx | FILE-11 |
+| ✅ | API: очередь calculation + POST result | FILE-10, WEB-03 |
+| ✅ | Агент: pywin32 page count | AGT-14 |
+| ✅ | Агент: печать docx через Word | AGT-15 |
+| ✅ | Бот: сообщение «N стр, X ₽» | FILE-11 |
 | ⬜ | E2E docx на Windows + Word | — |
 
 **Definition of Done:**

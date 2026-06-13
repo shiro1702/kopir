@@ -1,11 +1,13 @@
 # Боксы — обзор
 
-> Источник: [brainstorm/12.06.2026.md](../brainstorm/12.06.2026.md)  
+> Источники: [brainstorm/12.06.2026.md](../brainstorm/12.06.2026.md), [brainstorm/13.06.2026.md](../brainstorm/13.06.2026.md)  
 > **Не в Sprint 0.** Сейчас — SaaS на ПК копицентра.
 
 ## Концепция
 
 Автономный принт-бокс: пользователь сканирует QR → оплачивает в боте (СБП) → печать после подтверждения.
+
+**Эволюция (июнь 2026):** не только печать, но **Student Hub** — гибрид «наша / своя бумага» + мини-маркет в ячейках (бумага, канцелярия, кабели). См. [product/byop-hybrid-printing.md](../product/byop-hybrid-printing.md), [product/student-hub-vending.md](../product/student-hub-vending.md).
 
 **Без:** POS-терминала, отдельного роутера (Wi-Fi в Orange Pi + опционально 4G USB).
 

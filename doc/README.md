@@ -44,7 +44,9 @@ doc/
 ├── product/                  # будущие фичи (после MVP)
 │   ├── README.md
 │   ├── docx-conversion.md
-│   └── color-printing.md
+│   ├── color-printing.md
+│   ├── byop-hybrid-printing.md
+│   └── student-hub-vending.md
 │
 ├── hardware/                 # боксы, IoT, обслуживание
 │   ├── README.md
@@ -56,10 +58,11 @@ doc/
 └── brainstorm/               # сырые брейнштормы (не редактировать)
     ├── README.md
     ├── 11.06.2026.md
-    └── 12.06.2026.md
+    ├── 12.06.2026.md
+    └── 13.06.2026.md
 ```
 
-Структурированные выводы из `brainstorm/12.06.2026.md` вынесены в `business/`, `hardware/`, `product/`. Полные диалоги остаются в `brainstorm/`.
+Структурированные выводы из `brainstorm/12.06.2026.md` и `13.06.2026.md` вынесены в `business/`, `hardware/`, `product/`. Полные диалоги остаются в `brainstorm/`.
 
 ---
 
@@ -74,7 +77,7 @@ doc/
 | **business/** | Экономика, модели (SaaS / франшиза), критерии масштабирования | Бизнес-план, инвесторы, партнёры |
 | **hardware/** | Боксы, комплектации, IoT, контроль заправщиков | После MVP, сборка первого бокса |
 | **product/** | DOCX-конвертация, цветная печать — фичи **не в Sprint 0** | Планирование Sprint 1+ |
-| **brainstorm/** | Архив сырых идей (11–12 июня 2026) | Справочно, не редактировать |
+| **brainstorm/** | Архив сырых идей (11–13 июня 2026) | Справочно, не редактировать |
 
 **Главное правило:** `roadmap/` — про продукт и бизнес; `sprints/` — про код и задачи. Не смешивать.
 
@@ -104,7 +107,9 @@ doc/
 | [business/scaling.md](./business/scaling.md) | Критерии перехода на следующий уровень |
 | [product/docx-conversion.md](./product/docx-conversion.md) | Word на ПК (0.1) → VPS LibreOffice (2+) |
 | [product/color-printing.md](./product/color-printing.md) | Цветная печать (после MVP, на старте только ЧБ) |
-| [hardware/overview.md](./hardware/overview.md) | Концепция бокса, Orange Pi, оплата в боте |
+| [product/byop-hybrid-printing.md](./product/byop-hybrid-printing.md) | BYOP, гибрид «наша / своя бумага» |
+| [product/student-hub-vending.md](./product/student-hub-vending.md) | Ячейки, мини-маркет, админ-каталог |
+| [hardware/overview.md](./hardware/overview.md) | Концепция бокса, Orange Pi, Student Hub |
 | [hardware/configurations.md](./hardware/configurations.md) | Комплектации LITE / MAX / PRO-DIPLOMA |
 | [hardware/components.md](./hardware/components.md) | IoT-начинка, датчики, замки, LED |
 | [hardware/service-agents.md](./hardware/service-agents.md) | Контроль заправщиков, PIN на экране |
@@ -115,6 +120,7 @@ doc/
 |------|------------|---------------|
 | [brainstorm/11.06.2026.md](./brainstorm/11.06.2026.md) | Первичная идея, архитектура, MVP | [project/PROJECT.md](./project/PROJECT.md) |
 | [brainstorm/12.06.2026.md](./brainstorm/12.06.2026.md) | Боксы, IoT, экономика, заправщики, цвет | [business/](./business/models.md), [hardware/](./hardware/README.md), [product/](./product/README.md) |
+| [brainstorm/13.06.2026.md](./brainstorm/13.06.2026.md) | BYOP, гибридная бумага, Student Hub, вендинг | [product/byop-hybrid-printing.md](./product/byop-hybrid-printing.md), [product/student-hub-vending.md](./product/student-hub-vending.md), [hardware/](./hardware/configurations.md), [business/](./business/economics.md) |
 
 ---
 
