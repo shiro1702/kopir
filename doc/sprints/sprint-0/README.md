@@ -122,4 +122,5 @@ POLL_INTERVAL_SEC=5
 
 ## После спринта
 
-→ [Sprint 1 — Бета в копицентре](../sprint-1/README.md) *(создать при старте)*
+→ [Sprint 0.1 — DOCX: подсчёт и оплата](../sprint-0-1/README.md)  
+→ [Sprint 1 — Бета в копицентре](../SPRINTS.md#sprint-1--бета-в-копицентре)

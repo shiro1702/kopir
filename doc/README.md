@@ -26,12 +26,10 @@ doc/
 │
 ├── sprints/                  # план разработки по неделям
 │   ├── SPRINTS.md
-│   └── sprint-0/             # Sprint 0 — в работе
-│       ├── README.md
-│       ├── notes.md
-│       ├── bugs.md
-│       ├── partner-leads.md
-│       └── tasks/            # 01–09
+│   ├── sprint-0/             # Sprint 0 — в работе
+│   │   └── tasks/            # 01–09
+│   └── sprint-0-1/           # DOCX + Word page count
+│       └── tasks/            # 01–07
 │
 ├── dev/
 │   ├── README.md
@@ -93,7 +91,8 @@ doc/
 | [project/BOT_MESSENGERS.md](./project/BOT_MESSENGERS.md) | Мультиканальные боты: TG, MAX, VK |
 | [dev/ENV_SETUP.md](./dev/ENV_SETUP.md) | Neon, Blob, Telegram, MAX, секреты |
 | [sprints/SPRINTS.md](./sprints/SPRINTS.md) | Задачи по 2-недельным спринтам |
-| [sprints/sprint-0/](./sprints/sprint-0/README.md) | **Sprint 0** — детальный план (в работе) |
+| [sprints/sprint-0/](./sprints/sprint-0/README.md) | **Sprint 0** — PDF, первая печать (в работе) |
+| [sprints/sprint-0-1/](./sprints/sprint-0-1/README.md) | **Sprint 0.1** — DOCX, Word, quote в боте |
 
 ### Продукт и бизнес (не код)
 
@@ -103,7 +102,7 @@ doc/
 | [business/models.md](./business/models.md) | SaaS vs франшиза боксов, гибридный старт |
 | [business/economics.md](./business/economics.md) | Экономика по городам, пессимист / реалист |
 | [business/scaling.md](./business/scaling.md) | Критерии перехода на следующий уровень |
-| [product/docx-conversion.md](./product/docx-conversion.md) | Печать Word: MVP → облачная конвертация |
+| [product/docx-conversion.md](./product/docx-conversion.md) | Word на ПК (0.1) → VPS LibreOffice (2+) |
 | [product/color-printing.md](./product/color-printing.md) | Цветная печать (после MVP, на старте только ЧБ) |
 | [hardware/overview.md](./hardware/overview.md) | Концепция бокса, Orange Pi, оплата в боте |
 | [hardware/configurations.md](./hardware/configurations.md) | Комплектации LITE / MAX / PRO-DIPLOMA |

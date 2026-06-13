@@ -41,7 +41,32 @@
 
 ---
 
-## Sprint 1 — «Бета в копицентре» (19 июня – 2 июля 2026)
+## Sprint 0.1 — «DOCX: подсчёт и оплата» (~19–25 июня 2026)
+
+📁 **Подробные задачи:** [sprint-0-1/](./sprint-0-1/README.md)  
+📖 **Спека:** [product/docx-conversion.md](../product/docx-conversion.md)
+
+**Цель:** `.docx` → Word на ПК считает листы → бот показывает цену → после оплаты печать. PDF-flow без регрессии.
+
+| Статус | Задача | Feature ID |
+|--------|--------|------------|
+| ⬜ | Prisma: `CALCULATING`, `mimeType` | FILE-10 |
+| ⬜ | Бот: приём doc/docx | FILE-11 |
+| ⬜ | API: очередь calculation + POST result | FILE-10, WEB-03 |
+| ⬜ | Агент: pywin32 page count | AGT-14 |
+| ⬜ | Агент: печать docx через Word | AGT-15 |
+| ⬜ | Бот: сообщение «N стр, X ₽» | FILE-11 |
+| ⬜ | E2E docx на Windows + Word | — |
+
+**Definition of Done:**
+- 3 docx-заказа подряд: quote ≤ 20 сек, печать после PAID
+- PDF из Sprint 0 работает как раньше
+
+**Позже (не 0.1):** свой VPS, LibreOffice → PDF в Blob (FILE-02).
+
+---
+
+## Sprint 1 — «Бета в копицентре» (26 июня – 9 июля 2026)
 
 **Цель:** 20–30 реальных пользователей, разделительный лист, демо-оплата.
 
@@ -78,7 +103,7 @@
 | ⬜ | Т-Банк: Init, GetQr, webhook | PAY-02, PAY-03 |
 | ⬜ | Оплата → автоматическая печать | — |
 | ⬜ | GUI агента PySide6 (статус + лог) | AGT-04 |
-| ⬜ | DOCX → PDF + дисклеймер | FILE-02, FILE-06 |
+| ⬜ | DOCX → PDF на VPS (LibreOffice) + дисклеймер | FILE-02, FILE-06 |
 | ⬜ | JPG/PNG → PDF A4 | FILE-03 |
 | ⬜ | Автоудаление файлов после печати | FILE-07 |
 | ⬜ | Облачная касса (тест) | PAY-04 |

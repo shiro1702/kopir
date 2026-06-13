@@ -53,8 +53,10 @@
 
 | Статус | ID | Фича | Этап | Примечание |
 |--------|-----|------|------|------------|
-| ⬜ todo | FILE-01 | Приём PDF, подсчёт страниц | 1 | pdf-lib / pdf-parse |
-| ⬜ todo | FILE-02 | DOCX/DOC → PDF (облако) | 2 | LibreOffice / CloudConvert |
+| ⬜ todo | FILE-01 | Приём PDF, подсчёт страниц | 1 | pdf-lib / pdf-parse; Sprint 0.1 partial |
+| ⬜ todo | FILE-02 | DOCX/DOC → PDF (облако) | 2 | **Свой VPS + LibreOffice/Gotenberg** |
+| 🔵 in_progress | FILE-10 | DOCX: статусы CALCULATING + API calculation | 1 | Sprint 0.1 |
+| 🔵 in_progress | FILE-11 | Бот: приём doc/docx, quote клиенту | 1 | Sprint 0.1 |
 | ⬜ todo | FILE-03 | JPG/PNG → PDF A4 | 2 | pdf-lib wrap |
 | ⬜ todo | FILE-04 | Превью страниц в Mini App | 2 | pdfjs-dist |
 | ⬜ todo | FILE-05 | Выбор диапазона страниц | 2 | |
@@ -118,6 +120,8 @@
 | ⬜ todo | AGT-10 | Разделительный лист (toggle) | 2 | `USE_SEPARATOR_PAGE` |
 | ⬜ todo | AGT-11 | «Печать QR-материалов» из программы | 2 | PDF с point_id |
 | ⬜ todo | AGT-12 | PyInstaller → `kopir-agent.exe` | 2 | |
+| 🔵 in_progress | AGT-14 | Word: подсчёт страниц docx (pywin32) | 1 | Sprint 0.1, Windows |
+| 🔵 in_progress | AGT-15 | Word: печать doc/docx | 1 | Sprint 0.1; PDF — AGT-02 |
 | ⬜ todo | AGT-13 | Дашборд: статистика для партнёра | 3 | без GMV платформы |
 
 ---
