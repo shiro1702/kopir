@@ -1,6 +1,7 @@
 import { b as getHeader, c as createError, u as useRuntimeConfig, d as defineEventHandler, r as readBody } from '../../../nitro/nitro.mjs';
 import { timingSafeEqual } from 'node:crypto';
-import { h as handleStart, a as handlePdfDocument } from '../../../_/core.mjs';
+import { h as handleStart, d as handleDocument } from '../../../_/core.mjs';
+import { b as detectDocumentKind, m as mimeTypeForKind } from '../../../_/blob.mjs';
 import { getMaxClient } from '../../../_/client.mjs';
 import 'node:http';
 import 'node:https';
@@ -9,10 +10,8 @@ import 'node:buffer';
 import 'node:fs';
 import 'node:path';
 import '@prisma/client';
-import '../../../_/blob.mjs';
-import '@vercel/blob';
 import '../../../_/prisma.mjs';
-import '../../../_/points.mjs';
+import '@vercel/blob';
 
 function createMaxAdapter() {
   const client = getMaxClient();
@@ -89,12 +88,16 @@ async function handleMaxUpdate(update) {
       if (!((_j = fileAttachment == null ? void 0 : fileAttachment.payload) == null ? void 0 : _j.url)) {
         return;
       }
-      await handlePdfDocument(
+      const fileName = (_k = fileAttachment.filename) != null ? _k : "document.pdf";
+      const kind = detectDocumentKind(fileName);
+      const mimeType = mimeTypeForKind(kind === "unsupported" ? "pdf" : kind, fileName);
+      await handleDocument(
         "max",
         target,
         user,
         {
-          fileName: (_k = fileAttachment.filename) != null ? _k : "document.pdf",
+          fileName,
+          mimeType,
           download: () => client.downloadFile(fileAttachment.payload.url)
         },
         adapter

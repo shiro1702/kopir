@@ -1,9 +1,11 @@
 import time
-from typing import Any
+from typing import Any, Literal
 
 import requests
 
 from .config import Config
+
+QueueKind = Literal["calculate", "print"]
 
 
 class ApiClient:
@@ -46,11 +48,11 @@ class ApiClient:
 
         raise RuntimeError(f"API request failed: {method} {path}") from last_error
 
-    def get_queue(self) -> list[dict[str, Any]]:
+    def get_queue(self, kind: QueueKind = "print") -> list[dict[str, Any]]:
         response = self._request(
             "GET",
             "/api/agent/queue",
-            params={"pointId": self.config.point_id},
+            params={"pointId": self.config.point_id, "kind": kind},
         )
         data = response.json()
         return data.get("orders", [])
@@ -69,6 +71,27 @@ class ApiClient:
             for chunk in response.iter_content(chunk_size=8192):
                 if chunk:
                     file.write(chunk)
+
+    def submit_calculation(
+        self,
+        order_id: str,
+        *,
+        page_count: int | None = None,
+        error_message: str | None = None,
+    ) -> dict[str, Any]:
+        if page_count is not None:
+            body: dict[str, Any] = {"status": "OK", "pageCount": page_count}
+        else:
+            body = {
+                "status": "FAILED",
+                "errorMessage": error_message or "Calculation failed",
+            }
+        response = self._request(
+            "POST",
+            f"/api/agent/orders/{order_id}/calculation",
+            json=body,
+        )
+        return response.json()
 
     def complete(
         self,

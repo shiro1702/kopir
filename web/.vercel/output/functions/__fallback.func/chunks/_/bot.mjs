@@ -1,5 +1,5 @@
 import { Bot } from 'grammy';
-import { h as handleStart, a as handlePdfDocument } from './core.mjs';
+import { h as handleStart, d as handleDocument } from './core.mjs';
 import { getTelegramBotToken, downloadTelegramFile } from './client2.mjs';
 
 function createTelegramAdapter() {
@@ -39,7 +39,7 @@ function createBot() {
       chatId: String(telegramUser.id)
     };
     const file = await ctx.getFile();
-    await handlePdfDocument(
+    await handleDocument(
       "telegram",
       target,
       {

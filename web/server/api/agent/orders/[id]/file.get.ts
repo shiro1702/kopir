@@ -1,7 +1,13 @@
 import { OrderStatus } from '@prisma/client'
 import { assertAgentAuth } from '../../../../utils/agent-auth'
-import { downloadOrderPdf } from '../../../../utils/blob'
+import { downloadOrderFile } from '../../../../utils/blob'
 import { prisma } from '../../../../utils/prisma'
+
+const DOWNLOADABLE_STATUSES = new Set<OrderStatus>([
+  OrderStatus.CALCULATING,
+  OrderStatus.PAID,
+  OrderStatus.PRINTING,
+])
 
 export default defineEventHandler(async (event) => {
   assertAgentAuth(event)
@@ -22,16 +28,17 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  if (order.status !== OrderStatus.PAID && order.status !== OrderStatus.PRINTING) {
+  if (!DOWNLOADABLE_STATUSES.has(order.status)) {
     throw createError({
       statusCode: 400,
       data: { error: 'Order is not available for download', code: 'INVALID_STATUS' },
     })
   }
 
-  const buffer = await downloadOrderPdf(order.filePath)
+  const buffer = await downloadOrderFile(order.filePath)
+  const contentType = order.mimeType || 'application/octet-stream'
 
-  setHeader(event, 'Content-Type', 'application/pdf')
+  setHeader(event, 'Content-Type', contentType)
   setHeader(event, 'Content-Disposition', `attachment; filename="${order.fileName}"`)
   return buffer
 })

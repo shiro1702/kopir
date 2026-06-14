@@ -1,4 +1,5 @@
 import os
+import sys
 from dataclasses import dataclass
 
 from dotenv import load_dotenv
@@ -14,6 +15,7 @@ class Config:
     poll_interval_sec: int
     printer_name: str
     sumatra_path: str
+    use_word: bool
 
 
 def _require(name: str) -> str:
@@ -23,7 +25,15 @@ def _require(name: str) -> str:
     return value
 
 
+def _parse_bool(name: str, default: bool) -> bool:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() in {"1", "true", "yes", "on"}
+
+
 def load_config() -> Config:
+    default_use_word = sys.platform == "win32"
     return Config(
         server_url=_require("SERVER_URL").rstrip("/"),
         agent_api_key=_require("AGENT_API_KEY"),
@@ -31,4 +41,5 @@ def load_config() -> Config:
         poll_interval_sec=int(os.getenv("POLL_INTERVAL_SEC", "5")),
         printer_name=os.getenv("PRINTER_NAME", "").strip(),
         sumatra_path=os.getenv("SUMATRA_PATH", "bin/SumatraPDF.exe").strip(),
+        use_word=_parse_bool("USE_WORD", default_use_word),
     )

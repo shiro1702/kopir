@@ -11,11 +11,14 @@ export interface MessengerReplyTarget {
   chatId: string
 }
 
-export interface IncomingPdf {
+export interface IncomingDocument {
   fileName: string
   mimeType?: string
   download: () => Promise<Buffer>
 }
+
+/** @deprecated Use IncomingDocument */
+export type IncomingPdf = IncomingDocument
 
 export interface MessengerAdapter {
   platform: MessengerPlatform

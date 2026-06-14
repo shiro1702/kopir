@@ -1,6 +1,7 @@
 import { timingSafeEqual } from 'node:crypto'
 import type { H3Event } from 'h3'
-import { handlePdfDocument, handleStart } from '../bot/core'
+import { handleDocument, handleStart } from '../bot/core'
+import { detectDocumentKind, mimeTypeForKind } from '../file-types'
 import type { MessengerAdapter, MessengerReplyTarget } from '../bot/types'
 import { getMaxClient } from './client'
 import type { MaxAttachment, MaxUpdate } from './types'
@@ -89,12 +90,17 @@ export async function handleMaxUpdate(update: MaxUpdate): Promise<void> {
         return
       }
 
-      await handlePdfDocument(
+      const fileName = fileAttachment.filename ?? 'document.pdf'
+      const kind = detectDocumentKind(fileName)
+      const mimeType = mimeTypeForKind(kind === 'unsupported' ? 'pdf' : kind, fileName)
+
+      await handleDocument(
         'max',
         target,
         user,
         {
-          fileName: fileAttachment.filename ?? 'document.pdf',
+          fileName,
+          mimeType,
           download: () => client.downloadFile(fileAttachment.payload!.url!),
         },
         adapter,

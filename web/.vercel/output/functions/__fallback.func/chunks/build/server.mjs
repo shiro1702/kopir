@@ -432,7 +432,7 @@ const _routes = [
   {
     name: "admin",
     path: "/admin",
-    component: () => import('./admin-ImoG_Sit.mjs')
+    component: () => import('./admin-DDgzQGO-.mjs')
   },
   {
     name: "index",

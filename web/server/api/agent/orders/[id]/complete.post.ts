@@ -1,6 +1,7 @@
 import { OrderStatus } from '@prisma/client'
 import { assertAgentAuth } from '../../../../utils/agent-auth'
-import { deleteOrderPdf } from '../../../../utils/blob'
+import { notifyPrintComplete } from '../../../../utils/bot/core'
+import { deleteOrderFile } from '../../../../utils/blob'
 import { prisma } from '../../../../utils/prisma'
 
 interface CompleteBody {
@@ -27,7 +28,10 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const order = await prisma.order.findUnique({ where: { id } })
+  const order = await prisma.order.findUnique({
+    where: { id },
+    include: { user: true },
+  })
   if (!order) {
     throw createError({
       statusCode: 404,
@@ -58,7 +62,15 @@ export default defineEventHandler(async (event) => {
     },
   })
 
-  await deleteOrderPdf(order.filePath)
+  await deleteOrderFile(order.filePath)
+
+  if (targetStatus === OrderStatus.PRINTED) {
+    try {
+      await notifyPrintComplete(order.user, order.id)
+    } catch (error) {
+      console.error('[complete] print notify error:', order.id, error)
+    }
+  }
 
   return { id: updated.id, status: updated.status }
 })

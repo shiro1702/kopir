@@ -22,6 +22,8 @@ export default defineEventHandler(async (event) => {
       id: order.id,
       shortId: order.id.slice(-6),
       fileName: order.fileName,
+      pageCount: order.pageCount,
+      amountKopeks: order.amountKopeks,
       status: order.status,
       createdAt: order.createdAt.toISOString(),
       paidAt: order.paidAt?.toISOString() ?? null,

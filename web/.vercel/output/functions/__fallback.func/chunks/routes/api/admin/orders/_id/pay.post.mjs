@@ -12,7 +12,6 @@ import 'node:path';
 import 'node:crypto';
 import '../../../../../_/blob.mjs';
 import '@vercel/blob';
-import '../../../../../_/points.mjs';
 
 const pay_post = defineEventHandler(async (event) => {
   var _a, _b;
@@ -51,9 +50,9 @@ const pay_post = defineEventHandler(async (event) => {
     }
   });
   try {
-    await notifyPaymentConfirmed(order.user.telegramId, order.id);
+    await notifyPaymentConfirmed(order.user, order.id);
   } catch (error) {
-    console.error("[admin] telegram notify failed:", error);
+    console.error("[admin] messenger notify failed:", error);
   }
   return {
     id: updated.id,

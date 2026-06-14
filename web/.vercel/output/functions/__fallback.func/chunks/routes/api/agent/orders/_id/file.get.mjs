@@ -1,7 +1,7 @@
 import { d as defineEventHandler, a as getRouterParam, c as createError, s as setHeader } from '../../../../../nitro/nitro.mjs';
 import { OrderStatus } from '@prisma/client';
 import { a as assertAgentAuth } from '../../../../../_/agent-auth.mjs';
-import { a as downloadOrderPdf } from '../../../../../_/blob.mjs';
+import { a as downloadOrderFile } from '../../../../../_/blob.mjs';
 import { p as prisma } from '../../../../../_/prisma.mjs';
 import 'node:http';
 import 'node:https';
@@ -12,6 +12,11 @@ import 'node:path';
 import 'node:crypto';
 import '@vercel/blob';
 
+const DOWNLOADABLE_STATUSES = /* @__PURE__ */ new Set([
+  OrderStatus.CALCULATING,
+  OrderStatus.PAID,
+  OrderStatus.PRINTING
+]);
 const file_get = defineEventHandler(async (event) => {
   assertAgentAuth(event);
   const id = getRouterParam(event, "id");
@@ -28,14 +33,15 @@ const file_get = defineEventHandler(async (event) => {
       data: { error: "Order not found", code: "ORDER_NOT_FOUND" }
     });
   }
-  if (order.status !== OrderStatus.PAID && order.status !== OrderStatus.PRINTING) {
+  if (!DOWNLOADABLE_STATUSES.has(order.status)) {
     throw createError({
       statusCode: 400,
       data: { error: "Order is not available for download", code: "INVALID_STATUS" }
     });
   }
-  const buffer = await downloadOrderPdf(order.filePath);
-  setHeader(event, "Content-Type", "application/pdf");
+  const buffer = await downloadOrderFile(order.filePath);
+  const contentType = order.mimeType || "application/octet-stream";
+  setHeader(event, "Content-Type", contentType);
   setHeader(event, "Content-Disposition", `attachment; filename="${order.fileName}"`);
   return buffer;
 });

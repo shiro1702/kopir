@@ -71,6 +71,15 @@ async function payOrder(orderId) {
   }
 }
 
+function formatAmount(amountKopeks) {
+  if (!amountKopeks) return '—'
+  return `${Math.round(amountKopeks / 100)} ₽`
+}
+
+function formatPages(pageCount) {
+  return pageCount ?? '—'
+}
+
 function formatUser(user) {
   if (user.username) return `@${user.username}`
   if (user.firstName) return user.firstName
@@ -139,6 +148,12 @@ function formatUser(user) {
                 Файл
               </th>
               <th class="px-4 py-3">
+                Страниц
+              </th>
+              <th class="px-4 py-3">
+                Сумма
+              </th>
+              <th class="px-4 py-3">
                 Пользователь
               </th>
               <th class="px-4 py-3">
@@ -166,6 +181,12 @@ function formatUser(user) {
                 {{ order.fileName }}
               </td>
               <td class="px-4 py-3">
+                {{ formatPages(order.pageCount) }}
+              </td>
+              <td class="px-4 py-3">
+                {{ formatAmount(order.amountKopeks) }}
+              </td>
+              <td class="px-4 py-3">
                 {{ formatUser(order.user) }}
               </td>
               <td class="px-4 py-3">
@@ -189,7 +210,7 @@ function formatUser(user) {
             </tr>
             <tr v-if="!loading && orders.length === 0 && adminSecret">
               <td
-                colspan="7"
+                colspan="9"
                 class="px-4 py-8 text-center text-gray-500"
               >
                 Нет заказов, ожидающих оплаты
@@ -197,7 +218,7 @@ function formatUser(user) {
             </tr>
             <tr v-if="loading">
               <td
-                colspan="7"
+                colspan="9"
                 class="px-4 py-8 text-center text-gray-500"
               >
                 Загрузка...

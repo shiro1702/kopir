@@ -30,6 +30,13 @@ const _sfc_main = {
     useHead({
       meta: [{ name: "robots", content: "noindex" }]
     });
+    function formatAmount(amountKopeks) {
+      if (!amountKopeks) return "\u2014";
+      return `${Math.round(amountKopeks / 100)} \u20BD`;
+    }
+    function formatPages(pageCount) {
+      return pageCount != null ? pageCount : "\u2014";
+    }
     function formatUser(user) {
       if (user.username) return `@${user.username}`;
       if (user.firstName) return user.firstName;
@@ -49,18 +56,18 @@ const _sfc_main = {
       } else {
         _push(`<!---->`);
       }
-      _push(`<div class="overflow-hidden rounded-lg border bg-white"><table class="min-w-full text-sm"><thead class="bg-gray-100 text-left text-gray-600"><tr><th class="px-4 py-3"> \u0417\u0430\u043A\u0430\u0437 </th><th class="px-4 py-3"> \u0424\u0430\u0439\u043B </th><th class="px-4 py-3"> \u041F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044C </th><th class="px-4 py-3"> \u0422\u043E\u0447\u043A\u0430 </th><th class="px-4 py-3"> \u0414\u0430\u0442\u0430 </th><th class="px-4 py-3"> \u0421\u0442\u0430\u0442\u0443\u0441 </th><th class="px-4 py-3"></th></tr></thead><tbody><!--[-->`);
+      _push(`<div class="overflow-hidden rounded-lg border bg-white"><table class="min-w-full text-sm"><thead class="bg-gray-100 text-left text-gray-600"><tr><th class="px-4 py-3"> \u0417\u0430\u043A\u0430\u0437 </th><th class="px-4 py-3"> \u0424\u0430\u0439\u043B </th><th class="px-4 py-3"> \u0421\u0442\u0440\u0430\u043D\u0438\u0446 </th><th class="px-4 py-3"> \u0421\u0443\u043C\u043C\u0430 </th><th class="px-4 py-3"> \u041F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044C </th><th class="px-4 py-3"> \u0422\u043E\u0447\u043A\u0430 </th><th class="px-4 py-3"> \u0414\u0430\u0442\u0430 </th><th class="px-4 py-3"> \u0421\u0442\u0430\u0442\u0443\u0441 </th><th class="px-4 py-3"></th></tr></thead><tbody><!--[-->`);
       ssrRenderList(unref(orders), (order) => {
-        _push(`<tr class="border-t"><td class="px-4 py-3 font-mono"> #${ssrInterpolate(order.shortId)}</td><td class="px-4 py-3">${ssrInterpolate(order.fileName)}</td><td class="px-4 py-3">${ssrInterpolate(formatUser(order.user))}</td><td class="px-4 py-3">${ssrInterpolate(order.point.name)}</td><td class="px-4 py-3 text-gray-500">${ssrInterpolate(new Date(order.createdAt).toLocaleString("ru-RU"))}</td><td class="px-4 py-3"> \u041E\u0436\u0438\u0434\u0430\u0435\u0442 \u043E\u043F\u043B\u0430\u0442\u044B </td><td class="px-4 py-3"><button class="rounded bg-green-600 px-3 py-1 text-white hover:bg-green-700 disabled:opacity-50"${ssrIncludeBooleanAttr(unref(payingId) === order.id) ? " disabled" : ""}>${ssrInterpolate(unref(payingId) === order.id ? "..." : "\u041E\u043F\u043B\u0430\u0442\u0438\u0442\u044C")}</button></td></tr>`);
+        _push(`<tr class="border-t"><td class="px-4 py-3 font-mono"> #${ssrInterpolate(order.shortId)}</td><td class="px-4 py-3">${ssrInterpolate(order.fileName)}</td><td class="px-4 py-3">${ssrInterpolate(formatPages(order.pageCount))}</td><td class="px-4 py-3">${ssrInterpolate(formatAmount(order.amountKopeks))}</td><td class="px-4 py-3">${ssrInterpolate(formatUser(order.user))}</td><td class="px-4 py-3">${ssrInterpolate(order.point.name)}</td><td class="px-4 py-3 text-gray-500">${ssrInterpolate(new Date(order.createdAt).toLocaleString("ru-RU"))}</td><td class="px-4 py-3"> \u041E\u0436\u0438\u0434\u0430\u0435\u0442 \u043E\u043F\u043B\u0430\u0442\u044B </td><td class="px-4 py-3"><button class="rounded bg-green-600 px-3 py-1 text-white hover:bg-green-700 disabled:opacity-50"${ssrIncludeBooleanAttr(unref(payingId) === order.id) ? " disabled" : ""}>${ssrInterpolate(unref(payingId) === order.id ? "..." : "\u041E\u043F\u043B\u0430\u0442\u0438\u0442\u044C")}</button></td></tr>`);
       });
       _push(`<!--]-->`);
       if (!unref(loading) && unref(orders).length === 0 && unref(adminSecret)) {
-        _push(`<tr><td colspan="7" class="px-4 py-8 text-center text-gray-500"> \u041D\u0435\u0442 \u0437\u0430\u043A\u0430\u0437\u043E\u0432, \u043E\u0436\u0438\u0434\u0430\u044E\u0449\u0438\u0445 \u043E\u043F\u043B\u0430\u0442\u044B </td></tr>`);
+        _push(`<tr><td colspan="9" class="px-4 py-8 text-center text-gray-500"> \u041D\u0435\u0442 \u0437\u0430\u043A\u0430\u0437\u043E\u0432, \u043E\u0436\u0438\u0434\u0430\u044E\u0449\u0438\u0445 \u043E\u043F\u043B\u0430\u0442\u044B </td></tr>`);
       } else {
         _push(`<!---->`);
       }
       if (unref(loading)) {
-        _push(`<tr><td colspan="7" class="px-4 py-8 text-center text-gray-500"> \u0417\u0430\u0433\u0440\u0443\u0437\u043A\u0430... </td></tr>`);
+        _push(`<tr><td colspan="9" class="px-4 py-8 text-center text-gray-500"> \u0417\u0430\u0433\u0440\u0443\u0437\u043A\u0430... </td></tr>`);
       } else {
         _push(`<!---->`);
       }
@@ -76,4 +83,4 @@ _sfc_main.setup = (props, ctx) => {
 };
 
 export { _sfc_main as default };
-//# sourceMappingURL=admin-ImoG_Sit.mjs.map
+//# sourceMappingURL=admin-DDgzQGO-.mjs.map

@@ -1,7 +1,8 @@
 import { d as defineEventHandler, a as getRouterParam, c as createError, r as readBody } from '../../../../../nitro/nitro.mjs';
 import { OrderStatus } from '@prisma/client';
 import { a as assertAgentAuth } from '../../../../../_/agent-auth.mjs';
-import { d as deleteOrderPdf } from '../../../../../_/blob.mjs';
+import { c as notifyPrintComplete } from '../../../../../_/core.mjs';
+import { d as deleteOrderFile } from '../../../../../_/blob.mjs';
 import { p as prisma } from '../../../../../_/prisma.mjs';
 import 'node:http';
 import 'node:https';
@@ -29,7 +30,10 @@ const complete_post = defineEventHandler(async (event) => {
       data: { error: "status must be PRINTED or FAILED", code: "INVALID_STATUS" }
     });
   }
-  const order = await prisma.order.findUnique({ where: { id } });
+  const order = await prisma.order.findUnique({
+    where: { id },
+    include: { user: true }
+  });
   if (!order) {
     throw createError({
       statusCode: 404,
@@ -54,7 +58,14 @@ const complete_post = defineEventHandler(async (event) => {
       errorMessage: body.status === "FAILED" ? (_a = body.errorMessage) != null ? _a : "Print failed" : null
     }
   });
-  await deleteOrderPdf(order.filePath);
+  await deleteOrderFile(order.filePath);
+  if (targetStatus === OrderStatus.PRINTED) {
+    try {
+      await notifyPrintComplete(order.user, order.id);
+    } catch (error) {
+      console.error("[complete] print notify error:", order.id, error);
+    }
+  }
   return { id: updated.id, status: updated.status };
 });
 

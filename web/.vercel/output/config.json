@@ -105,6 +105,10 @@
       "dest": "/api/agent/orders/[id]/claim"
     },
     {
+      "src": "/api/agent/orders/(?<id>[^/]+)/calculation",
+      "dest": "/api/agent/orders/[id]/calculation"
+    },
+    {
       "src": "/api/admin/orders/(?<id>[^/]+)/pay",
       "dest": "/api/admin/orders/[id]/pay"
     },

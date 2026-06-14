@@ -1,5 +1,7 @@
+import type { Order, User } from '@prisma/client'
 import { OrderStatus } from '@prisma/client'
-import { uploadOrderPdf } from '../blob'
+import { uploadOrderFile } from '../blob'
+import { detectDocumentKind, mimeTypeForKind } from '../file-types'
 import { prisma } from '../prisma'
 import { resolvePointBySlug } from '../points'
 import { DEFAULT_POINT_SLUG } from './constants'
@@ -7,7 +9,7 @@ import * as messages from './messages'
 import { getPointPreference, setPointPreference } from './preferences'
 import type {
   BotUser,
-  IncomingPdf,
+  IncomingDocument,
   MessengerAdapter,
   MessengerPlatform,
   MessengerReplyTarget,
@@ -35,71 +37,7 @@ async function upsertBotUser(platform: MessengerPlatform, user: BotUser) {
   })
 }
 
-export async function handleStart(
-  platform: MessengerPlatform,
-  target: MessengerReplyTarget,
-  pointSlug: string | undefined,
-  adapter: MessengerAdapter,
-): Promise<void> {
-  const slug = pointSlug?.trim() || DEFAULT_POINT_SLUG
-
-  try {
-    await resolvePointBySlug(slug)
-    setPointPreference(platform, target.chatId, slug)
-  } catch {
-    setPointPreference(platform, target.chatId, DEFAULT_POINT_SLUG)
-  }
-
-  await adapter.sendText(target, messages.MSG_START)
-}
-
-export async function handlePdfDocument(
-  platform: MessengerPlatform,
-  target: MessengerReplyTarget,
-  user: BotUser,
-  pdf: IncomingPdf,
-  adapter: MessengerAdapter,
-): Promise<void> {
-  const fileName = pdf.fileName
-  const mimeType = pdf.mimeType ?? ''
-  const isPdf =
-    mimeType === 'application/pdf' || fileName.toLowerCase().endsWith('.pdf')
-
-  if (!isPdf) {
-    await adapter.sendText(target, messages.MSG_PDF_ONLY)
-    return
-  }
-
-  const pointSlug = getPointPreference(platform, target.chatId) ?? DEFAULT_POINT_SLUG
-  const point = await resolvePointBySlug(pointSlug)
-  const dbUser = await upsertBotUser(platform, user)
-
-  const order = await prisma.order.create({
-    data: {
-      status: OrderStatus.AWAITING_PAYMENT,
-      fileName,
-      filePath: '',
-      userId: dbUser.id,
-      pointId: point.id,
-    },
-  })
-
-  const buffer = await pdf.download()
-  const blob = await uploadOrderPdf(order.id, buffer)
-  await prisma.order.update({
-    where: { id: order.id },
-    data: { filePath: blob.url },
-  })
-
-  const shortId = order.id.slice(-6)
-  await adapter.sendText(target, messages.formatOrderReceived(fileName, shortId))
-}
-
-export async function notifyPaymentConfirmed(
-  user: { telegramId: bigint | null, maxUserId: bigint | null },
-  orderId: string,
-): Promise<void> {
-  const text = messages.formatPaymentConfirmed(orderId.slice(-6))
+async function sendToUser(user: Pick<User, 'telegramId' | 'maxUserId'>, text: string): Promise<void> {
   const errors: Error[] = []
 
   if (user.telegramId) {
@@ -121,7 +59,111 @@ export async function notifyPaymentConfirmed(
   }
 
   if (errors.length > 0) {
-    console.error('[bot] payment notification failed:', errors)
+    console.error('[bot] notification failed:', errors)
     throw errors[0]
   }
+}
+
+export async function handleStart(
+  platform: MessengerPlatform,
+  target: MessengerReplyTarget,
+  pointSlug: string | undefined,
+  adapter: MessengerAdapter,
+): Promise<void> {
+  const slug = pointSlug?.trim() || DEFAULT_POINT_SLUG
+
+  try {
+    await resolvePointBySlug(slug)
+    setPointPreference(platform, target.chatId, slug)
+  } catch {
+    setPointPreference(platform, target.chatId, DEFAULT_POINT_SLUG)
+  }
+
+  await adapter.sendText(target, messages.MSG_START)
+}
+
+export async function handleDocument(
+  platform: MessengerPlatform,
+  target: MessengerReplyTarget,
+  user: BotUser,
+  document: IncomingDocument,
+  adapter: MessengerAdapter,
+): Promise<void> {
+  const fileName = document.fileName
+  const kind = detectDocumentKind(fileName, document.mimeType)
+
+  if (kind === 'unsupported') {
+    await adapter.sendText(target, messages.MSG_UNSUPPORTED_FILE)
+    return
+  }
+
+  const pointSlug = getPointPreference(platform, target.chatId) ?? DEFAULT_POINT_SLUG
+  const point = await resolvePointBySlug(pointSlug)
+  const dbUser = await upsertBotUser(platform, user)
+  const mimeType = document.mimeType || mimeTypeForKind(kind, fileName)
+  const isWord = kind === 'word'
+
+  const order = await prisma.order.create({
+    data: {
+      status: isWord ? OrderStatus.CALCULATING : OrderStatus.AWAITING_PAYMENT,
+      fileName,
+      filePath: '',
+      mimeType,
+      userId: dbUser.id,
+      pointId: point.id,
+    },
+  })
+
+  const buffer = await document.download()
+  const blob = await uploadOrderFile(order.id, buffer, {
+    fileName,
+    mimeType,
+    kind,
+  })
+  await prisma.order.update({
+    where: { id: order.id },
+    data: { filePath: blob.url },
+  })
+
+  const shortId = order.id.slice(-6)
+  if (isWord) {
+    await adapter.sendText(target, messages.formatCalculating(fileName, shortId))
+    return
+  }
+
+  await adapter.sendText(target, messages.formatOrderReceived(fileName, shortId))
+}
+
+/** @deprecated Use handleDocument */
+export const handlePdfDocument = handleDocument
+
+export async function notifyPaymentConfirmed(
+  user: Pick<User, 'telegramId' | 'maxUserId'>,
+  orderId: string,
+): Promise<void> {
+  await sendToUser(user, messages.formatPaymentConfirmed(orderId.slice(-6)))
+}
+
+export async function notifyQuoteReady(
+  user: Pick<User, 'telegramId' | 'maxUserId'>,
+  order: Pick<Order, 'id' | 'fileName' | 'pageCount' | 'amountKopeks'>,
+): Promise<void> {
+  await sendToUser(
+    user,
+    messages.formatQuote(order.fileName, order.pageCount, order.amountKopeks),
+  )
+}
+
+export async function notifyCalculationFailed(
+  user: Pick<User, 'telegramId' | 'maxUserId'>,
+  order: Pick<Order, 'fileName' | 'errorMessage'>,
+): Promise<void> {
+  await sendToUser(user, messages.formatCalculationFailed(order.fileName, order.errorMessage))
+}
+
+export async function notifyPrintComplete(
+  user: Pick<User, 'telegramId' | 'maxUserId'>,
+  orderId: string,
+): Promise<void> {
+  await sendToUser(user, messages.formatPrintComplete(orderId.slice(-6)))
 }

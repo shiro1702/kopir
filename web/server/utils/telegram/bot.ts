@@ -1,5 +1,5 @@
 import { Bot } from 'grammy'
-import { handlePdfDocument, handleStart } from '../bot/core'
+import { handleDocument, handleStart } from '../bot/core'
 import type { MessengerAdapter, MessengerReplyTarget } from '../bot/types'
 import { downloadTelegramFile, getTelegramBotToken } from './client'
 
@@ -46,7 +46,7 @@ function createBot(): Bot {
 
     const file = await ctx.getFile()
 
-    await handlePdfDocument(
+    await handleDocument(
       'telegram',
       target,
       {

@@ -8,6 +8,8 @@ datasource db {
 }
 
 enum OrderStatus {
+  CALCULATING
+  CALCULATION_FAILED
   AWAITING_PAYMENT
   PAID
   PRINTING
@@ -39,8 +41,10 @@ model Order {
   status       OrderStatus @default(AWAITING_PAYMENT)
   fileName     String
   filePath     String
+  mimeType     String?
   pageCount    Int         @default(1)
   amountKopeks Int         @default(0)
+  calculatedAt DateTime?
   userId       String
   user         User        @relation(fields: [userId], references: [id])
   pointId      String

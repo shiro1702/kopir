@@ -4084,7 +4084,7 @@ function _expandFromEnv(value) {
 const _inlineRuntimeConfig = {
   "app": {
     "baseURL": "/",
-    "buildId": "67888339-01e3-4fd0-b70b-e87853548d5a",
+    "buildId": "941e6d84-3d3a-49b4-b65b-2112cedd5699",
     "buildAssetsDir": "/_nuxt/",
     "cdnURL": ""
   },
@@ -4121,7 +4121,9 @@ const _inlineRuntimeConfig = {
   "maxBotToken": "",
   "maxWebhookSecret": "",
   "adminSecret": "...",
-  "agentApiKey": "..."
+  "agentApiKey": "...",
+  "pricePerPageKopeks": "1000",
+  "calculationTimeoutSec": "120"
 };
 const envOptions = {
   prefix: "NITRO_",
@@ -4564,6 +4566,7 @@ const _SxA8c9 = defineEventHandler(() => {});
 
 const _lazy_7Csi0N = () => import('../routes/api/admin/orders.get.mjs');
 const _lazy_zSIz2g = () => import('../routes/api/admin/orders/_id/pay.post.mjs');
+const _lazy_ljD4Kk = () => import('../routes/api/agent/orders/_id/calculation.post.mjs');
 const _lazy_gKN5Pb = () => import('../routes/api/agent/orders/_id/claim.post.mjs');
 const _lazy_exqejF = () => import('../routes/api/agent/orders/_id/complete.post.mjs');
 const _lazy_jyiyGD = () => import('../routes/api/agent/orders/_id/file.get.mjs');
@@ -4579,6 +4582,7 @@ const _lazy_GdGm0T = () => import('../routes/renderer.mjs').then(function (n) { 
 const handlers = [
   { route: '/api/admin/orders', handler: _lazy_7Csi0N, lazy: true, middleware: false, method: "get" },
   { route: '/api/admin/orders/:id/pay', handler: _lazy_zSIz2g, lazy: true, middleware: false, method: "post" },
+  { route: '/api/agent/orders/:id/calculation', handler: _lazy_ljD4Kk, lazy: true, middleware: false, method: "post" },
   { route: '/api/agent/orders/:id/claim', handler: _lazy_gKN5Pb, lazy: true, middleware: false, method: "post" },
   { route: '/api/agent/orders/:id/complete', handler: _lazy_exqejF, lazy: true, middleware: false, method: "post" },
   { route: '/api/agent/orders/:id/file', handler: _lazy_jyiyGD, lazy: true, middleware: false, method: "get" },

@@ -1,4 +1,5 @@
 import { del, put } from '@vercel/blob'
+import { extensionForKind, type DocumentKind } from './file-types'
 
 function getBlobToken(): string {
   const config = useRuntimeConfig()
@@ -12,18 +13,38 @@ function getBlobToken(): string {
   return token
 }
 
-export async function uploadOrderPdf(orderId: string, data: Buffer | ArrayBuffer) {
+export interface UploadOrderFileOptions {
+  fileName: string
+  mimeType: string
+  kind: DocumentKind
+}
+
+export async function uploadOrderFile(
+  orderId: string,
+  data: Buffer | ArrayBuffer,
+  options: UploadOrderFileOptions,
+) {
   const token = getBlobToken()
-  const pathname = `orders/${orderId}.pdf`
+  const ext = extensionForKind(options.kind, options.fileName)
+  const pathname = `orders/${orderId}${ext}`
   return put(pathname, data, {
     access: 'public',
     token,
-    contentType: 'application/pdf',
+    contentType: options.mimeType,
     addRandomSuffix: false,
   })
 }
 
-export async function downloadOrderPdf(filePath: string): Promise<Buffer> {
+/** @deprecated Use uploadOrderFile */
+export async function uploadOrderPdf(orderId: string, data: Buffer | ArrayBuffer) {
+  return uploadOrderFile(orderId, data, {
+    fileName: 'document.pdf',
+    mimeType: 'application/pdf',
+    kind: 'pdf',
+  })
+}
+
+export async function downloadOrderFile(filePath: string): Promise<Buffer> {
   const response = await fetch(filePath)
   if (!response.ok) {
     throw createError({
@@ -35,11 +56,21 @@ export async function downloadOrderPdf(filePath: string): Promise<Buffer> {
   return Buffer.from(arrayBuffer)
 }
 
-export async function deleteOrderPdf(filePath: string) {
+/** @deprecated Use downloadOrderFile */
+export async function downloadOrderPdf(filePath: string): Promise<Buffer> {
+  return downloadOrderFile(filePath)
+}
+
+export async function deleteOrderFile(filePath: string) {
   const token = getBlobToken()
   try {
     await del(filePath, { token })
   } catch (error) {
     console.error('[blob] delete failed:', filePath, error)
   }
+}
+
+/** @deprecated Use deleteOrderFile */
+export async function deleteOrderPdf(filePath: string) {
+  return deleteOrderFile(filePath)
 }

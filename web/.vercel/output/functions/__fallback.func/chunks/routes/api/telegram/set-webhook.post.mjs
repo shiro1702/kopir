@@ -15,7 +15,6 @@ import '@prisma/client';
 import '../../../_/blob.mjs';
 import '@vercel/blob';
 import '../../../_/prisma.mjs';
-import '../../../_/points.mjs';
 import '../../../_/client2.mjs';
 
 const setWebhook_post = defineEventHandler(async (event) => {
