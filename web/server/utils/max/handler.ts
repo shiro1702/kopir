@@ -2,6 +2,8 @@ import { timingSafeEqual } from 'node:crypto'
 import type { H3Event } from 'h3'
 import { handleDocument, handleStart } from '../bot/core'
 import { detectDocumentKind, mimeTypeForKind } from '../file-types'
+import { handleStaffCallbackPayload } from '../staff-actions'
+import { getStaffMaxUserId } from '../payment-mode'
 import type { MessengerAdapter, MessengerReplyTarget } from '../bot/types'
 import { getMaxClient } from './client'
 import type { MaxAttachment, MaxUpdate } from './types'
@@ -105,6 +107,36 @@ export async function handleMaxUpdate(update: MaxUpdate): Promise<void> {
         },
         adapter,
       )
+      return
+    }
+
+    case 'message_callback': {
+      const callback = update.callback
+      if (!callback?.callback_id || !callback.payload) {
+        return
+      }
+
+      const staffMaxUserId = getStaffMaxUserId()
+      if (!staffMaxUserId || callback.user.user_id !== staffMaxUserId) {
+        await client.answerCallback(callback.callback_id, 'Нет доступа')
+        return
+      }
+
+      try {
+        const message = await handleStaffCallbackPayload(callback.payload)
+        await client.answerCallback(callback.callback_id, message)
+      } catch (error) {
+        let text = 'Ошибка'
+        if (error && typeof error === 'object' && 'data' in error) {
+          const data = (error as { data?: { error?: string } }).data
+          if (data?.error) {
+            text = data.error
+          }
+        } else if (error instanceof Error) {
+          text = error.message
+        }
+        await client.answerCallback(callback.callback_id, text)
+      }
       return
     }
 

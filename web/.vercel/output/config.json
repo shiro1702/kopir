@@ -81,6 +81,10 @@
       "dest": "/api/admin/orders"
     },
     {
+      "src": "/api/admin/config",
+      "dest": "/api/admin/config"
+    },
+    {
       "src": "/admin",
       "dest": "/admin"
     },
@@ -109,8 +113,16 @@
       "dest": "/api/agent/orders/[id]/calculation"
     },
     {
+      "src": "/api/admin/orders/(?<id>[^/]+)/print",
+      "dest": "/api/admin/orders/[id]/print"
+    },
+    {
       "src": "/api/admin/orders/(?<id>[^/]+)/pay",
       "dest": "/api/admin/orders/[id]/pay"
+    },
+    {
+      "src": "/api/admin/orders/(?<id>[^/]+)/confirm-payment",
+      "dest": "/api/admin/orders/[id]/confirm-payment"
     },
     {
       "src": "/__nuxt_island/(?:.*)",

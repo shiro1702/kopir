@@ -16,6 +16,7 @@ class Config:
     printer_name: str
     sumatra_path: str
     use_word: bool
+    use_separator_page: bool
 
 
 def _require(name: str) -> str:
@@ -42,4 +43,5 @@ def load_config() -> Config:
         printer_name=os.getenv("PRINTER_NAME", "").strip(),
         sumatra_path=os.getenv("SUMATRA_PATH", "bin/SumatraPDF.exe").strip(),
         use_word=_parse_bool("USE_WORD", default_use_word),
+        use_separator_page=_parse_bool("USE_SEPARATOR_PAGE", False),
     )

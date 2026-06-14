@@ -14,6 +14,27 @@ export interface MaxUser {
   first_name?: string
 }
 
+export interface MaxCallback {
+  timestamp?: number
+  callback_id: string
+  payload?: string
+  user: MaxUser
+}
+
+export interface MaxInlineKeyboardButton {
+  type: 'callback'
+  text: string
+  payload: string
+  intent?: 'default'
+}
+
+export interface MaxInlineKeyboardAttachment {
+  type: 'inline_keyboard'
+  payload: {
+    buttons: MaxInlineKeyboardButton[][]
+  }
+}
+
 export interface MaxAttachment {
   type: string
   filename?: string
@@ -44,5 +65,6 @@ export interface MaxUpdate {
   message?: MaxMessage
   chat_id?: number
   user?: MaxUser
+  callback?: MaxCallback
   payload?: string
 }

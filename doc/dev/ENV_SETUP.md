@@ -278,6 +278,11 @@ MAX_BOT_TOKEN="..."              # опционально
 MAX_WEBHOOK_SECRET="..."         # опционально, для prod
 ADMIN_SECRET="..."
 AGENT_API_KEY="..."
+PRICE_PER_PAGE_KOPEKS=1000
+CALCULATION_TIMEOUT_SEC=120
+PAYMENT_MODE=terminal
+STAFF_TELEGRAM_CHAT_ID="123456789"   # chat id сотрудника в Telegram
+STAFF_MAX_USER_ID="987654321"        # user_id сотрудника в MAX
 ```
 
 ### `desktop/.env`
@@ -289,6 +294,8 @@ POINT_ID="point_dev_1"
 POLL_INTERVAL_SEC=5
 PRINTER_NAME=""
 SUMATRA_PATH="bin/SumatraPDF.exe"
+USE_WORD=true
+USE_SEPARATOR_PAGE=false   # по умолчанию без разделительного листа
 ```
 
 ---
@@ -320,7 +327,7 @@ cd desktop && python -m agent.main
 | MAX не отвечает | Нет токена / webhook | `MAX_BOT_TOKEN` + set-webhooks |
 | Prisma error | Нет миграций | `npm run db:deploy` |
 | Blob upload fail | Нет `BLOB_READ_WRITE_TOKEN` | Создать Blob store в Vercel |
-| Агент idle, заказы не печатаются | Заказ не `PAID` | Нажать «Оплатить» в `/admin` |
+| Агент idle, заказы не печатаются | Заказ не `PAID` | В `/admin`: «Оплата получена» → «Печать» (или кнопки в TG сотрудника) |
 | `Point not found` | Нет seed | `npm run db:seed` |
 
 ---

@@ -93,7 +93,7 @@ def main() -> None:
     log(
         f"Kopir agent started | server={config.server_url} "
         f"point={config.point_id} poll={config.poll_interval_sec}s "
-        f"use_word={config.use_word}"
+        f"use_word={config.use_word} separator={config.use_separator_page}"
     )
 
     while True:

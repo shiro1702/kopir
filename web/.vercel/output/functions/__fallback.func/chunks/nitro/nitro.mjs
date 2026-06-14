@@ -4084,7 +4084,7 @@ function _expandFromEnv(value) {
 const _inlineRuntimeConfig = {
   "app": {
     "baseURL": "/",
-    "buildId": "941e6d84-3d3a-49b4-b65b-2112cedd5699",
+    "buildId": "b5f729f7-0fcb-49ad-a40e-2906f2b680e2",
     "buildAssetsDir": "/_nuxt/",
     "cdnURL": ""
   },
@@ -4123,7 +4123,10 @@ const _inlineRuntimeConfig = {
   "adminSecret": "...",
   "agentApiKey": "...",
   "pricePerPageKopeks": "1000",
-  "calculationTimeoutSec": "120"
+  "calculationTimeoutSec": "120",
+  "paymentMode": "terminal",
+  "staffTelegramChatId": "",
+  "staffMaxUserId": ""
 };
 const envOptions = {
   prefix: "NITRO_",
@@ -4564,8 +4567,11 @@ const plugins = [
 
 const _SxA8c9 = defineEventHandler(() => {});
 
+const _lazy_UgSWYJ = () => import('../routes/api/admin/config.get.mjs');
 const _lazy_7Csi0N = () => import('../routes/api/admin/orders.get.mjs');
+const _lazy_tVoNAd = () => import('../routes/api/admin/orders/_id/confirm-payment.post.mjs');
 const _lazy_zSIz2g = () => import('../routes/api/admin/orders/_id/pay.post.mjs');
+const _lazy_DHnb8U = () => import('../routes/api/admin/orders/_id/print.post.mjs');
 const _lazy_ljD4Kk = () => import('../routes/api/agent/orders/_id/calculation.post.mjs');
 const _lazy_gKN5Pb = () => import('../routes/api/agent/orders/_id/claim.post.mjs');
 const _lazy_exqejF = () => import('../routes/api/agent/orders/_id/complete.post.mjs');
@@ -4580,8 +4586,11 @@ const _lazy_uoDOaO = () => import('../routes/api/telegram/webhook.post.mjs');
 const _lazy_GdGm0T = () => import('../routes/renderer.mjs').then(function (n) { return n.r; });
 
 const handlers = [
+  { route: '/api/admin/config', handler: _lazy_UgSWYJ, lazy: true, middleware: false, method: "get" },
   { route: '/api/admin/orders', handler: _lazy_7Csi0N, lazy: true, middleware: false, method: "get" },
+  { route: '/api/admin/orders/:id/confirm-payment', handler: _lazy_tVoNAd, lazy: true, middleware: false, method: "post" },
   { route: '/api/admin/orders/:id/pay', handler: _lazy_zSIz2g, lazy: true, middleware: false, method: "post" },
+  { route: '/api/admin/orders/:id/print', handler: _lazy_DHnb8U, lazy: true, middleware: false, method: "post" },
   { route: '/api/agent/orders/:id/calculation', handler: _lazy_ljD4Kk, lazy: true, middleware: false, method: "post" },
   { route: '/api/agent/orders/:id/claim', handler: _lazy_gKN5Pb, lazy: true, middleware: false, method: "post" },
   { route: '/api/agent/orders/:id/complete', handler: _lazy_exqejF, lazy: true, middleware: false, method: "post" },

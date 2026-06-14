@@ -13,6 +13,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, key + "" , value);
 const MAX_API_BASE = "https://platform-api.max.ru";
 const MAX_UPDATE_TYPES = [
   "message_created",
+  "message_callback",
   "bot_started"
 ];
 function getMaxBotToken() {
@@ -61,7 +62,7 @@ class MaxClient {
     }
     await this.request("POST", "/subscriptions", { body });
   }
-  async sendMessage(target, text) {
+  async sendMessage(target, text, attachments) {
     const query = {};
     if (target.chatId !== void 0) {
       query.chat_id = String(target.chatId);
@@ -70,9 +71,19 @@ class MaxClient {
     } else {
       throw new Error("MAX sendMessage requires chatId or userId");
     }
+    const body = { text };
+    if (attachments == null ? void 0 : attachments.length) {
+      body.attachments = attachments;
+    }
     await this.request("POST", "/messages", {
       query,
-      body: { text }
+      body
+    });
+  }
+  async answerCallback(callbackId, notification) {
+    await this.request("POST", "/answers", {
+      query: { callback_id: callbackId },
+      body: { notification }
     });
   }
   async downloadFile(url) {

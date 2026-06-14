@@ -1,7 +1,8 @@
 import { b as getHeader, c as createError, u as useRuntimeConfig, d as defineEventHandler, r as readBody } from '../../../nitro/nitro.mjs';
 import { timingSafeEqual } from 'node:crypto';
-import { h as handleStart, d as handleDocument } from '../../../_/core.mjs';
+import { h as handleStaffCallbackPayload, d as handleStart, e as handleDocument } from '../../../_/order-staff-actions.mjs';
 import { b as detectDocumentKind, m as mimeTypeForKind } from '../../../_/blob.mjs';
+import { a as getStaffMaxUserId } from '../../../_/messages.mjs';
 import { getMaxClient } from '../../../_/client.mjs';
 import 'node:http';
 import 'node:https';
@@ -11,6 +12,7 @@ import 'node:fs';
 import 'node:path';
 import '@prisma/client';
 import '../../../_/prisma.mjs';
+import 'grammy';
 import '@vercel/blob';
 
 function createMaxAdapter() {
@@ -102,6 +104,33 @@ async function handleMaxUpdate(update) {
         },
         adapter
       );
+      return;
+    }
+    case "message_callback": {
+      const callback = update.callback;
+      if (!(callback == null ? void 0 : callback.callback_id) || !callback.payload) {
+        return;
+      }
+      const staffMaxUserId = getStaffMaxUserId();
+      if (!staffMaxUserId || callback.user.user_id !== staffMaxUserId) {
+        await client.answerCallback(callback.callback_id, "\u041D\u0435\u0442 \u0434\u043E\u0441\u0442\u0443\u043F\u0430");
+        return;
+      }
+      try {
+        const message = await handleStaffCallbackPayload(callback.payload);
+        await client.answerCallback(callback.callback_id, message);
+      } catch (error) {
+        let text = "\u041E\u0448\u0438\u0431\u043A\u0430";
+        if (error && typeof error === "object" && "data" in error) {
+          const data = error.data;
+          if (data == null ? void 0 : data.error) {
+            text = data.error;
+          }
+        } else if (error instanceof Error) {
+          text = error.message;
+        }
+        await client.answerCallback(callback.callback_id, text);
+      }
       return;
     }
     default:

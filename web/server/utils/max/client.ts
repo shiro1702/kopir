@@ -2,6 +2,7 @@ const MAX_API_BASE = 'https://platform-api.max.ru'
 
 const MAX_UPDATE_TYPES = [
   'message_created',
+  'message_callback',
   'bot_started',
 ] as const
 
@@ -64,6 +65,7 @@ export class MaxClient {
   async sendMessage(
     target: { chatId?: number, userId?: number },
     text: string,
+    attachments?: unknown[],
   ): Promise<void> {
     const query: Record<string, string> = {}
     if (target.chatId !== undefined) {
@@ -74,9 +76,21 @@ export class MaxClient {
       throw new Error('MAX sendMessage requires chatId or userId')
     }
 
+    const body: Record<string, unknown> = { text }
+    if (attachments?.length) {
+      body.attachments = attachments
+    }
+
     await this.request('POST', '/messages', {
       query,
-      body: { text },
+      body,
+    })
+  }
+
+  async answerCallback(callbackId: string, notification: string): Promise<void> {
+    await this.request('POST', '/answers', {
+      query: { callback_id: callbackId },
+      body: { notification },
     })
   }
 

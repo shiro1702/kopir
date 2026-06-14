@@ -4,6 +4,7 @@ import { uploadOrderFile } from '../blob'
 import { detectDocumentKind, mimeTypeForKind } from '../file-types'
 import { prisma } from '../prisma'
 import { resolvePointBySlug } from '../points'
+import { notifyStaffOrderAwaitingPayment } from '../staff-notify'
 import { DEFAULT_POINT_SLUG } from './constants'
 import * as messages from './messages'
 import { getPointPreference, setPointPreference } from './preferences'
@@ -132,16 +133,46 @@ export async function handleDocument(
   }
 
   await adapter.sendText(target, messages.formatOrderReceived(fileName, shortId))
+  await notifyStaffAfterOrderReady(order.id)
 }
 
 /** @deprecated Use handleDocument */
 export const handlePdfDocument = handleDocument
 
+export async function notifyStaffAfterOrderReady(orderId: string): Promise<void> {
+  try {
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: { user: true, point: true },
+    })
+    if (order?.status === OrderStatus.AWAITING_PAYMENT) {
+      await notifyStaffOrderAwaitingPayment(order)
+    }
+  } catch (error) {
+    console.error('[staff] order notify failed:', orderId, error)
+  }
+}
+
+export async function notifyPaymentReceivedByStaff(
+  user: Pick<User, 'telegramId' | 'maxUserId'>,
+  orderId: string,
+): Promise<void> {
+  await sendToUser(user, messages.formatPaymentReceivedByStaff(orderId.slice(-6)))
+}
+
+export async function notifyPrintStarted(
+  user: Pick<User, 'telegramId' | 'maxUserId'>,
+  orderId: string,
+): Promise<void> {
+  await sendToUser(user, messages.formatPrintStarted(orderId.slice(-6)))
+}
+
+/** @deprecated Use notifyPrintStarted */
 export async function notifyPaymentConfirmed(
   user: Pick<User, 'telegramId' | 'maxUserId'>,
   orderId: string,
 ): Promise<void> {
-  await sendToUser(user, messages.formatPaymentConfirmed(orderId.slice(-6)))
+  await notifyPrintStarted(user, orderId)
 }
 
 export async function notifyQuoteReady(
@@ -152,6 +183,7 @@ export async function notifyQuoteReady(
     user,
     messages.formatQuote(order.fileName, order.pageCount, order.amountKopeks),
   )
+  await notifyStaffAfterOrderReady(order.id)
 }
 
 export async function notifyCalculationFailed(

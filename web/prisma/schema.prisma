@@ -45,6 +45,7 @@ model Order {
   pageCount    Int         @default(1)
   amountKopeks Int         @default(0)
   calculatedAt DateTime?
+  paymentConfirmedAt DateTime?
   userId       String
   user         User        @relation(fields: [userId], references: [id])
   pointId      String

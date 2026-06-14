@@ -1,6 +1,8 @@
 import { Bot } from 'grammy'
 import { handleDocument, handleStart } from '../bot/core'
 import type { MessengerAdapter, MessengerReplyTarget } from '../bot/types'
+import { handleStaffCallbackPayload } from '../staff-actions'
+import { getStaffTelegramChatId } from '../payment-mode'
 import { downloadTelegramFile, getTelegramBotToken } from './client'
 
 function createTelegramAdapter(): MessengerAdapter {
@@ -20,6 +22,15 @@ export function getBot(): Bot {
     botInstance = createBot()
   }
   return botInstance
+}
+
+async function handleStaffCallback(data: string, chatId: number): Promise<string> {
+  const staffChatId = getStaffTelegramChatId()
+  if (!staffChatId || chatId !== staffChatId) {
+    throw new Error('Нет доступа')
+  }
+
+  return handleStaffCallbackPayload(data)
 }
 
 function createBot(): Bot {
@@ -57,10 +68,34 @@ function createBot(): Bot {
       {
         fileName: document.file_name ?? 'document.pdf',
         mimeType: document.mime_type ?? '',
-        download: () => downloadTelegramFile(file.file_path),
+        download: () => downloadTelegramFile(file.file_path ?? ''),
       },
       adapter,
     )
+  })
+
+  bot.on('callback_query:data', async (ctx) => {
+    const chatId = ctx.callbackQuery.message?.chat.id
+    if (!chatId) {
+      await ctx.answerCallbackQuery({ text: 'Ошибка сообщения', show_alert: true })
+      return
+    }
+
+    try {
+      const message = await handleStaffCallback(ctx.callbackQuery.data, chatId)
+      await ctx.answerCallbackQuery({ text: message })
+    } catch (error) {
+      let text = 'Ошибка'
+      if (error && typeof error === 'object' && 'data' in error) {
+        const data = (error as { data?: { error?: string } }).data
+        if (data?.error) {
+          text = data.error
+        }
+      } else if (error instanceof Error) {
+        text = error.message
+      }
+      await ctx.answerCallbackQuery({ text, show_alert: true })
+    }
   })
 
   bot.catch((err) => {

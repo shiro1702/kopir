@@ -95,7 +95,7 @@ POINT_OFFLINE_THRESHOLD_SEC=30
 SERVER_URL="https://kopir-xxx.vercel.app"
 WS_URL="wss://ws.kopir.example.com"
 POINT_ID="point_bgu_1"
-USE_SEPARATOR_PAGE=true
+USE_SEPARATOR_PAGE=false
 POLL_INTERVAL_SEC=30          # fallback only
 HEARTBEAT_INTERVAL_SEC=15
 ```

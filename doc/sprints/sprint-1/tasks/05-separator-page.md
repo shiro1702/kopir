@@ -13,7 +13,7 @@
 
 ## Подзадачи
 
-- [ ] **5.1** Env `USE_SEPARATOR_PAGE=true|false` (default `true` для копицентра)
+- [ ] **5.1** Env `USE_SEPARATOR_PAGE=true|false` (default `false`; включать в копицентре при необходимости)
 - [ ] **5.2** Для PDF: `pdf-lib` (Python: `pypdf` или `reportlab`) — добавить 1 страницу:
   - текст: `--- Заказ #XXXXXX ---` (shortId)
   - мелкий шрифт, по центру
