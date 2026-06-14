@@ -4,7 +4,7 @@
 
 1. **[project/PROJECT.md](./project/PROJECT.md)** — что строим, стек, архитектура
 2. **[dev/ENV_SETUP.md](./dev/ENV_SETUP.md)** — где взять ключи и токены
-3. **[sprints/SPRINTS.md](./sprints/SPRINTS.md)** — что делать сейчас (**Sprint 0 в работе**)
+3. **[sprints/SPRINTS.md](./sprints/SPRINTS.md)** — что делать сейчас (**Sprint 0 → 0.1**; следующий — **Sprint 1**)
 4. **[project/FEATURES.md](./project/FEATURES.md)** — статусы фич, не дублируй работу
 
 ---
@@ -28,8 +28,10 @@ doc/
 │   ├── SPRINTS.md
 │   ├── sprint-0/             # Sprint 0 — в работе
 │   │   └── tasks/            # 01–09
-│   └── sprint-0-1/           # DOCX + Word page count
-│       └── tasks/            # 01–07
+│   ├── sprint-0-1/           # DOCX + Word page count
+│   │   └── tasks/            # 01–07
+│   └── sprint-1/             # Бета в копицентре (WebSocket, QR, demo pay)
+│       └── tasks/            # 01–10
 │
 ├── dev/
 │   ├── README.md
@@ -72,7 +74,7 @@ doc/
 |-------|------------|--------------|
 | **project/** | Контекст для Cursor и кода: стек, архитектура, реестр фич, боты | Перед любой сессией разработки |
 | **roadmap/** | Этапы продукта, календарь, приоритеты — **без привязки к коду** | Стратегия, «куда идём» |
-| **sprints/** | Что делаем в разработке по спринтам; детальные задачи | Ежедневная работа (**Sprint 0 сейчас**) |
+| **sprints/** | Что делаем в разработке по спринтам; детальные задачи | Ежедневная работа (**Sprint 0 → 0.1**; **Sprint 1** с 26 июня) |
 | **dev/** | Настройка окружения, ключи, токены | Первый деплой, новый разработчик |
 | **business/** | Экономика, модели (SaaS / франшиза), критерии масштабирования | Бизнес-план, инвесторы, партнёры |
 | **hardware/** | Боксы, комплектации, IoT, контроль заправщиков | После MVP, сборка первого бокса |
@@ -96,6 +98,7 @@ doc/
 | [sprints/SPRINTS.md](./sprints/SPRINTS.md) | Задачи по 2-недельным спринтам |
 | [sprints/sprint-0/](./sprints/sprint-0/README.md) | **Sprint 0** — PDF, первая печать (в работе) |
 | [sprints/sprint-0-1/](./sprints/sprint-0-1/README.md) | **Sprint 0.1** — DOCX, Word, quote в боте |
+| [sprints/sprint-1/](./sprints/sprint-1/README.md) | **Sprint 1** — бета в копицентре: WS, QR, demo pay, разделитель |
 
 ### Продукт и бизнес (не код)
 
