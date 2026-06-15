@@ -4,11 +4,11 @@
 
 Kopir — SaaS self-service печати. Monorepo: `web/` (Nuxt 3 + Nitro) + `desktop/` (Python агент печати).
 
-**Обязательно читай перед работой:** `doc/PROJECT.md`, `doc/FEATURES.md`, `doc/SPRINTS.md`.
+**Обязательно читай перед работой:** `doc/project/PROJECT.md`, `doc/project/FEATURES.md`, `doc/sprints/SPRINTS.md`, `doc/project/BOT_MESSENGERS.md` (боты).
 
 ## Стек
 
-- **web/**: Nuxt 3, Vue 3 Composition API + `<script setup>`, Nitro, TypeScript, Prisma, PostgreSQL, Redis, Tailwind
+- **web/**: Nuxt 3, Vue 3 Composition API + `<script setup>`, Nitro, TypeScript, Prisma, Neon (PostgreSQL), Vercel Blob, Redis (Sprint 1+), Tailwind
 - **desktop/**: Python 3.11+, PySide6, websockets, pywin32, PyInstaller
 - Платежи: Т-Банк API (СБП)
 - Не использовать Next.js, Express отдельно, MongoDB — только то, что в PROJECT.md
@@ -33,7 +33,7 @@ web/
 - Имена: `point` (точка), `order` (заказ), `agent` (десктоп-клиент), `partner` (владелец)
 - Типы: общие типы в `web/types/` или auto-import
 - Ошибки API: `{ error: string, code?: string }`
-- Файлы пользователей: удалять после печати, не логировать содержимое
+- Файлы пользователей: **Vercel Blob** (`@vercel/blob`), не локальный `uploads/`; удалять после печати, не логировать содержимое
 - Комментарии: только неочевидная бизнес-логика
 
 ## desktop/
