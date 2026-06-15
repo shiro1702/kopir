@@ -46,9 +46,9 @@
 **Vercel** — боты, REST, Blob, админка (как в Sprint 0–0.1).  
 **VPS** (минимальный, ~500 ₽/мес) — стабильный WebSocket для агента; Vercel serverless не держит долгие WS-сессии.
 
-**Вне скоупа Sprint 1:** Т-Банк, Mini App, Redis (heartbeat в Postgres), GUI PySide6, карта точек, VK-бот, LibreOffice на сервере.
+**Вне скоупа Sprint 1:** Т-Банк, Mini App, Redis (heartbeat в Postgres), GUI PySide6, карта точек, VK-бот, LibreOffice на сервере, `/bind` для staff-каналов.
 
-**Позже:** Redis heartbeat → Sprint 3; реальная оплата → Sprint 2.
+**Позже:** Redis heartbeat → Sprint 3; реальная оплата → Sprint 2; привязка сотрудников через `/bind` → [Sprint 2, задача 11](../sprint-2/tasks/11-staff-bind-token.md).
 
 ## Задачи
 
