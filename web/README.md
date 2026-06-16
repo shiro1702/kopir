@@ -17,6 +17,8 @@ npm run dev
 
 ## Deploy to Vercel
 
+См. [doc/dev/DEPLOY.md](../doc/dev/DEPLOY.md) — полная инструкция. Кратко:
+
 1. Connect repo — **Root Directory** = `web`
 2. Add env vars from `.env.example`
 3. Deploy (auto on push)

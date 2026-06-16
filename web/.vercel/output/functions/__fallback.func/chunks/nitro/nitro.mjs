@@ -4084,7 +4084,7 @@ function _expandFromEnv(value) {
 const _inlineRuntimeConfig = {
   "app": {
     "baseURL": "/",
-    "buildId": "b5f729f7-0fcb-49ad-a40e-2906f2b680e2",
+    "buildId": "093f31de-945a-4953-bbdb-b9ec04078b92",
     "buildAssetsDir": "/_nuxt/",
     "cdnURL": ""
   },
@@ -4115,18 +4115,18 @@ const _inlineRuntimeConfig = {
   "public": {
     "appVersion": "0.0.1"
   },
-  "databaseUrl": "postgresql://user:pass@ep-xxx.neon.tech/kopir?sslmode=require",
+  "databaseUrl": "postgresql://neondb_owner:npg_u7kJatX3hwfp@ep-jolly-cherry-ab2ccq9t-pooler.eu-west-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require",
   "blobReadWriteToken": "vercel_blob_rw_...",
-  "telegramBotToken": "...",
-  "maxBotToken": "",
-  "maxWebhookSecret": "",
-  "adminSecret": "...",
-  "agentApiKey": "...",
+  "telegramBotToken": "8918475832:AAFvBHPnjelKAG9uRSKY9j4kPQDOOdM0Oyw",
+  "maxBotToken": "f9LHodD0cOICGKO3FM1sto9MbCDg09N2HFvuqWkGSduYW82F65zjTRp7gTDXfKGhyEiJZSymHkuSMEZImouE",
+  "maxWebhookSecret": "...",
+  "adminSecret": "2bad38675c0208004265c5ea07cb0bcea17cdbc1fea52f8bd1361bb8a5162d96",
+  "agentApiKey": "84c35a7c423d24645e188f4aa57ebfb2b6f10e70eed6472de198781498f97b49",
   "pricePerPageKopeks": "1000",
   "calculationTimeoutSec": "120",
   "paymentMode": "terminal",
-  "staffTelegramChatId": "",
-  "staffMaxUserId": ""
+  "staffTelegramChatId": "27646293",
+  "staffMaxUserId": "256715254"
 };
 const envOptions = {
   prefix: "NITRO_",

@@ -3,9 +3,10 @@
 ## Быстрый старт для Cursor
 
 1. **[project/PROJECT.md](./project/PROJECT.md)** — что строим, стек, архитектура
-2. **[dev/ENV_SETUP.md](./dev/ENV_SETUP.md)** — где взять ключи и токены
-3. **[sprints/SPRINTS.md](./sprints/SPRINTS.md)** — что делать сейчас (**Sprint 0 → 0.1**; следующий — **Sprint 1**)
-4. **[project/FEATURES.md](./project/FEATURES.md)** — статусы фич, не дублируй работу
+2. **[dev/DEPLOY.md](./dev/DEPLOY.md)** — деплой на Vercel + Neon + Blob
+3. **[dev/ENV_SETUP.md](./dev/ENV_SETUP.md)** — где взять ключи и токены
+4. **[sprints/SPRINTS.md](./sprints/SPRINTS.md)** — что делать сейчас (**Sprint 0 → 0.1**; следующий — **Sprint 1**)
+5. **[project/FEATURES.md](./project/FEATURES.md)** — статусы фич, не дублируй работу
 
 ---
 
@@ -35,6 +36,7 @@ doc/
 │
 ├── dev/
 │   ├── README.md
+│   ├── DEPLOY.md
 │   └── ENV_SETUP.md
 │
 ├── business/                 # экономика и стратегия (не код)
@@ -94,6 +96,7 @@ doc/
 | [project/PROJECT.md](./project/PROJECT.md) | Сводка проекта + технологии (контекст для AI) |
 | [project/FEATURES.md](./project/FEATURES.md) | Реестр фич со статусами ⬜ 🔵 ✅ |
 | [project/BOT_MESSENGERS.md](./project/BOT_MESSENGERS.md) | Мультиканальные боты: TG, MAX, VK |
+| [dev/DEPLOY.md](./dev/DEPLOY.md) | Деплой Vercel + Neon + Blob |
 | [dev/ENV_SETUP.md](./dev/ENV_SETUP.md) | Neon, Blob, Telegram, MAX, секреты |
 | [sprints/SPRINTS.md](./sprints/SPRINTS.md) | Задачи по 2-недельным спринтам |
 | [sprints/sprint-0/](./sprints/sprint-0/README.md) | **Sprint 0** — PDF, первая печать (в работе) |
