@@ -1,7 +1,6 @@
 import { d as defineEventHandler, a as getRouterParam, c as createError } from '../../../../../nitro/nitro.mjs';
-import { OrderStatus } from '@prisma/client';
+import { p as prisma, _ as _default } from '../../../../../_/prisma.mjs';
 import { a as assertAgentAuth } from '../../../../../_/agent-auth.mjs';
-import { p as prisma } from '../../../../../_/prisma.mjs';
 import 'node:http';
 import 'node:https';
 import 'node:events';
@@ -9,6 +8,16 @@ import 'node:buffer';
 import 'node:fs';
 import 'node:path';
 import 'node:crypto';
+import 'node:os';
+import '../../../../../virtual/_commonjsHelpers.mjs';
+import 'node:tty';
+import 'node:child_process';
+import 'node:fs/promises';
+import 'node:util';
+import 'node:process';
+import 'node:async_hooks';
+import 'path';
+import 'fs';
 
 const claim_post = defineEventHandler(async (event) => {
   assertAgentAuth(event);
@@ -26,10 +35,10 @@ const claim_post = defineEventHandler(async (event) => {
       data: { error: "Order not found", code: "ORDER_NOT_FOUND" }
     });
   }
-  if (order.status === OrderStatus.PRINTING) {
+  if (order.status === _default.OrderStatus.PRINTING) {
     return { id: order.id, status: order.status };
   }
-  if (order.status !== OrderStatus.PAID) {
+  if (order.status !== _default.OrderStatus.PAID) {
     throw createError({
       statusCode: 400,
       data: { error: "Order cannot be claimed", code: "INVALID_STATUS" }
@@ -37,7 +46,7 @@ const claim_post = defineEventHandler(async (event) => {
   }
   const updated = await prisma.order.update({
     where: { id },
-    data: { status: OrderStatus.PRINTING }
+    data: { status: _default.OrderStatus.PRINTING }
   });
   return { id: updated.id, status: updated.status };
 });

@@ -1,8 +1,4 @@
-var commonjsGlobal = typeof globalThis !== 'undefined' ? globalThis : "undefined" !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
-
-function getDefaultExportFromNamespaceIfNotNamed (n) {
-	return n && Object.prototype.hasOwnProperty.call(n, 'default') && Object.keys(n).length === 1 ? n['default'] : n;
-}
+import { c as commonjsGlobal } from '../virtual/_commonjsHelpers.mjs';
 
 var shared_cjs_prod = {};
 
@@ -610,5 +606,5 @@ shared_cjs_prod.toNumber = toNumber;
 shared_cjs_prod.toRawType = toRawType;
 shared_cjs_prod.toTypeString = toTypeString;
 
-export { escapeHtml_1 as e, getDefaultExportFromNamespaceIfNotNamed as g, shared_cjs_prod as s };
+export { escapeHtml_1 as e, shared_cjs_prod as s };
 //# sourceMappingURL=shared.cjs.prod.mjs.map

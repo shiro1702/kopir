@@ -1,5 +1,6 @@
 import process from 'node:process';globalThis._importMeta_=globalThis._importMeta_||{url:"file:///_entry.js",env:process.env};import { w as withLeadingSlash, j as joinRelativeURL, u as useRuntimeConfig, e as encodePath, f as defineRenderHandler, g as getQuery, c as createError, h as getRouteRules, i as getResponseStatusText, k as getResponseStatus, l as useNitroApp } from '../nitro/nitro.mjs';
-import { s as shared_cjs_prod, g as getDefaultExportFromNamespaceIfNotNamed } from '../_/shared.cjs.prod.mjs';
+import { s as shared_cjs_prod } from '../_/shared.cjs.prod.mjs';
+import { g as getDefaultExportFromNamespaceIfNotNamed } from '../virtual/_commonjsHelpers.mjs';
 import * as node_stream from 'node:stream';
 
 function _mergeNamespaces(n, m) {

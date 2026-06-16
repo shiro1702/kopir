@@ -10,6 +10,7 @@ import 'node:fs';
 import 'node:path';
 import 'node:crypto';
 import '../_/shared.cjs.prod.mjs';
+import '../virtual/_commonjsHelpers.mjs';
 import 'node:stream';
 
 const _sfc_main = {

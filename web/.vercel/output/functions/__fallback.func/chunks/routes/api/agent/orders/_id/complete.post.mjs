@@ -1,9 +1,8 @@
 import { d as defineEventHandler, a as getRouterParam, c as createError, r as readBody } from '../../../../../nitro/nitro.mjs';
-import { OrderStatus } from '@prisma/client';
+import { p as prisma, _ as _default } from '../../../../../_/prisma.mjs';
 import { a as assertAgentAuth } from '../../../../../_/agent-auth.mjs';
 import { b as notifyPrintComplete } from '../../../../../_/order-staff-actions.mjs';
 import { d as deleteOrderFile } from '../../../../../_/blob.mjs';
-import { p as prisma } from '../../../../../_/prisma.mjs';
 import 'node:http';
 import 'node:https';
 import 'node:events';
@@ -11,6 +10,16 @@ import 'node:buffer';
 import 'node:fs';
 import 'node:path';
 import 'node:crypto';
+import 'node:os';
+import '../../../../../virtual/_commonjsHelpers.mjs';
+import 'node:tty';
+import 'node:child_process';
+import 'node:fs/promises';
+import 'node:util';
+import 'node:process';
+import 'node:async_hooks';
+import 'path';
+import 'fs';
 import 'grammy';
 import '../../../../../_/messages.mjs';
 import '../../../../../_/client.mjs';
@@ -43,16 +52,16 @@ const complete_post = defineEventHandler(async (event) => {
       data: { error: "Order not found", code: "ORDER_NOT_FOUND" }
     });
   }
-  if (order.status === OrderStatus.PRINTED || order.status === OrderStatus.FAILED) {
+  if (order.status === _default.OrderStatus.PRINTED || order.status === _default.OrderStatus.FAILED) {
     return { id: order.id, status: order.status };
   }
-  if (order.status !== OrderStatus.PRINTING) {
+  if (order.status !== _default.OrderStatus.PRINTING) {
     throw createError({
       statusCode: 400,
       data: { error: "Order is not in PRINTING status", code: "INVALID_STATUS" }
     });
   }
-  const targetStatus = body.status === "PRINTED" ? OrderStatus.PRINTED : OrderStatus.FAILED;
+  const targetStatus = body.status === "PRINTED" ? _default.OrderStatus.PRINTED : _default.OrderStatus.FAILED;
   const updated = await prisma.order.update({
     where: { id },
     data: {
@@ -62,7 +71,7 @@ const complete_post = defineEventHandler(async (event) => {
     }
   });
   await deleteOrderFile(order.filePath);
-  if (targetStatus === OrderStatus.PRINTED) {
+  if (targetStatus === _default.OrderStatus.PRINTED) {
     try {
       await notifyPrintComplete(order.user, order.id);
     } catch (error) {

@@ -1,7 +1,6 @@
 import { u as useRuntimeConfig } from '../nitro/nitro.mjs';
-import { OrderStatus } from '@prisma/client';
+import { p as prisma, _ as _default } from './prisma.mjs';
 import { n as notifyCalculationFailed } from './order-staff-actions.mjs';
-import { p as prisma } from './prisma.mjs';
 
 function getPricePerPageKopeks() {
   const config = useRuntimeConfig();
@@ -18,7 +17,7 @@ async function expireStaleCalculations(pointId) {
   const cutoff = new Date(Date.now() - timeoutSec * 1e3);
   const staleOrders = await prisma.order.findMany({
     where: {
-      status: OrderStatus.CALCULATING,
+      status: _default.OrderStatus.CALCULATING,
       createdAt: { lt: cutoff },
       ...pointId ? { pointId } : {}
     },
@@ -28,7 +27,7 @@ async function expireStaleCalculations(pointId) {
     await prisma.order.update({
       where: { id: order.id },
       data: {
-        status: OrderStatus.CALCULATION_FAILED,
+        status: _default.OrderStatus.CALCULATION_FAILED,
         errorMessage: "Calculation timed out"
       }
     });

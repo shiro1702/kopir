@@ -1,7 +1,6 @@
 import { c as createError, u as useRuntimeConfig } from '../nitro/nitro.mjs';
-import { OrderStatus } from '@prisma/client';
+import { p as prisma, _ as _default } from './prisma.mjs';
 import { b as detectDocumentKind, m as mimeTypeForKind, u as uploadOrderFile } from './blob.mjs';
-import { p as prisma } from './prisma.mjs';
 import { Bot, InlineKeyboard } from 'grammy';
 import { b as getStaffTelegramChatId, i as isTerminalPaymentMode, c as isStaffChannelConfigured, f as formatStaffOrderAwaitingPayment, a as getStaffMaxUserId, d as formatCalculationFailed, e as formatQuote, h as formatPrintComplete, j as formatPaymentReceivedByStaff, k as formatPrintStarted, M as MSG_START, l as MSG_UNSUPPORTED_FILE, m as formatCalculating, n as formatOrderReceived } from './messages.mjs';
 import { getMaxClient } from './client.mjs';
@@ -331,7 +330,7 @@ async function handleDocument(platform, target, user, document, adapter) {
   const isWord = kind === "word";
   const order = await prisma.order.create({
     data: {
-      status: isWord ? OrderStatus.CALCULATING : OrderStatus.AWAITING_PAYMENT,
+      status: isWord ? _default.OrderStatus.CALCULATING : _default.OrderStatus.AWAITING_PAYMENT,
       fileName,
       filePath: "",
       mimeType,
@@ -363,7 +362,7 @@ async function notifyStaffAfterOrderReady(orderId) {
       where: { id: orderId },
       include: { user: true, point: true }
     });
-    if ((order == null ? void 0 : order.status) === OrderStatus.AWAITING_PAYMENT) {
+    if ((order == null ? void 0 : order.status) === _default.OrderStatus.AWAITING_PAYMENT) {
       await notifyStaffOrderAwaitingPayment(order);
     }
   } catch (error) {
@@ -416,7 +415,7 @@ async function confirmOrderPayment(orderId) {
       data: { error: "Order not found", code: "ORDER_NOT_FOUND" }
     });
   }
-  if (order.status !== OrderStatus.AWAITING_PAYMENT) {
+  if (order.status !== _default.OrderStatus.AWAITING_PAYMENT) {
     throw invalidStatus("Order is not awaiting payment");
   }
   if (order.paymentConfirmedAt) {
@@ -460,14 +459,14 @@ async function startOrderPrint(orderId) {
       data: { error: "Order not found", code: "ORDER_NOT_FOUND" }
     });
   }
-  if (order.status === OrderStatus.PAID) {
+  if (order.status === _default.OrderStatus.PAID) {
     return {
       id: order.id,
       status: order.status,
       paidAt: (_b = (_a = order.paidAt) == null ? void 0 : _a.toISOString()) != null ? _b : null
     };
   }
-  if (order.status !== OrderStatus.AWAITING_PAYMENT) {
+  if (order.status !== _default.OrderStatus.AWAITING_PAYMENT) {
     throw invalidStatus("Order is not awaiting payment");
   }
   if (isTerminalPaymentMode() && !order.paymentConfirmedAt) {
@@ -482,7 +481,7 @@ async function startOrderPrint(orderId) {
   const updated = await prisma.order.update({
     where: { id: orderId },
     data: {
-      status: OrderStatus.PAID,
+      status: _default.OrderStatus.PAID,
       paidAt: /* @__PURE__ */ new Date()
     }
   });

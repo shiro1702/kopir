@@ -8,7 +8,16 @@ import 'node:buffer';
 import 'node:fs';
 import 'node:path';
 import 'node:crypto';
-import '@prisma/client';
+import 'node:os';
+import '../../../virtual/_commonjsHelpers.mjs';
+import 'node:tty';
+import 'node:child_process';
+import 'node:fs/promises';
+import 'node:util';
+import 'node:process';
+import 'node:async_hooks';
+import 'path';
+import 'fs';
 
 const orders_get = defineEventHandler(async (event) => {
   var _a;

@@ -1,4 +1,5 @@
 import { e as escapeHtml_1 } from './shared.cjs.prod.mjs';
+import '../virtual/_commonjsHelpers.mjs';
 
 const _messages = {
 	"appName": "Nuxt",
