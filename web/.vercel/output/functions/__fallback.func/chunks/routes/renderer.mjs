@@ -1,14 +1,393 @@
-import { createRenderer, getRequestDependencies, getPreloadLinks, getPrefetchLinks } from 'vue-bundle-renderer/runtime';
-import { j as joinRelativeURL, u as useRuntimeConfig, e as encodePath, f as defineRenderHandler, g as getQuery, c as createError, h as getRouteRules, i as getResponseStatusText, k as getResponseStatus, l as useNitroApp } from '../nitro/nitro.mjs';
-import { renderToString } from 'vue/server-renderer';
+import { w as withLeadingSlash, j as joinRelativeURL, u as useRuntimeConfig, e as encodePath, f as defineRenderHandler, g as getQuery, c as createError, h as getRouteRules, i as getResponseStatusText, k as getResponseStatus, l as useNitroApp } from '../nitro/nitro.mjs';
 import { createHead as createHead$1, propsToString, renderSSRHead } from 'unhead/server';
+import { renderToString } from '@vue/server-renderer';
 import { stringify, uneval } from 'devalue';
 import { walkResolver } from 'unhead/utils';
-import { isRef, toValue, hasInjectionContext, inject, ref, watchEffect, getCurrentInstance, onBeforeUnmount, onDeactivated, onActivated } from 'vue';
+import * as compilerDom from '@vue/compiler-dom';
+import { g as getDefaultExportFromNamespaceIfNotNamed, s as shared_cjs_prod } from '../_/shared.cjs.prod.mjs';
+import * as runtimeDom from '@vue/runtime-dom';
 import { DeprecationsPlugin, PromisesPlugin, TemplateParamsPlugin, AliasSortingPlugin } from 'unhead/plugins';
 
+function createRendererContext({ manifest, precomputed, buildAssetsURL }) {
+  if (!manifest && !precomputed) {
+    throw new Error("Either manifest or precomputed data must be provided");
+  }
+  const ctx = {
+    // Options
+    buildAssetsURL: buildAssetsURL || withLeadingSlash,
+    manifest,
+    precomputed,
+    updateManifest,
+    // Internal cache
+    _dependencies: {},
+    _dependencySets: {},
+    _entrypoints: []
+  };
+  function updateManifest(manifest2) {
+    const manifestEntries = Object.entries(manifest2);
+    ctx.manifest = manifest2;
+    ctx._dependencies = {};
+    ctx._dependencySets = {};
+    ctx._entrypoints = manifestEntries.filter((e) => e[1].isEntry).map(([module]) => module);
+  }
+  if (precomputed) {
+    ctx._dependencies = precomputed.dependencies;
+    ctx._entrypoints = precomputed.entrypoints;
+  } else if (manifest) {
+    updateManifest(manifest);
+  }
+  return ctx;
+}
+function getModuleDependencies(id, rendererContext) {
+  if (rendererContext._dependencies[id]) {
+    return rendererContext._dependencies[id];
+  }
+  const dependencies = rendererContext._dependencies[id] = {
+    scripts: {},
+    styles: {},
+    preload: {},
+    prefetch: {}
+  };
+  if (!rendererContext.manifest) {
+    return dependencies;
+  }
+  const meta = rendererContext.manifest[id];
+  if (!meta) {
+    return dependencies;
+  }
+  if (meta.file) {
+    dependencies.preload[id] = meta;
+    if (meta.isEntry || meta.sideEffects) {
+      dependencies.scripts[id] = meta;
+    }
+  }
+  for (const css of meta.css || []) {
+    dependencies.styles[css] = dependencies.preload[css] = dependencies.prefetch[css] = rendererContext.manifest[css];
+  }
+  for (const asset of meta.assets || []) {
+    dependencies.preload[asset] = dependencies.prefetch[asset] = rendererContext.manifest[asset];
+  }
+  for (const depId of meta.imports || []) {
+    const depDeps = getModuleDependencies(depId, rendererContext);
+    for (const key in depDeps.styles) {
+      dependencies.styles[key] = depDeps.styles[key];
+    }
+    for (const key in depDeps.preload) {
+      dependencies.preload[key] = depDeps.preload[key];
+    }
+    for (const key in depDeps.prefetch) {
+      dependencies.prefetch[key] = depDeps.prefetch[key];
+    }
+  }
+  const filteredPreload = {};
+  for (const id2 in dependencies.preload) {
+    const dep = dependencies.preload[id2];
+    if (dep.preload) {
+      filteredPreload[id2] = dep;
+    }
+  }
+  dependencies.preload = filteredPreload;
+  return dependencies;
+}
+function getAllDependencies(ids, rendererContext) {
+  let cacheKey = "";
+  const sortedIds = [...ids].sort();
+  for (let i = 0; i < sortedIds.length; i++) {
+    if (i > 0) cacheKey += ",";
+    cacheKey += sortedIds[i];
+  }
+  if (rendererContext._dependencySets[cacheKey]) {
+    return rendererContext._dependencySets[cacheKey];
+  }
+  const allDeps = {
+    scripts: {},
+    styles: {},
+    preload: {},
+    prefetch: {}
+  };
+  for (const id of ids) {
+    const deps = getModuleDependencies(id, rendererContext);
+    for (const key in deps.scripts) {
+      allDeps.scripts[key] = deps.scripts[key];
+    }
+    for (const key in deps.styles) {
+      allDeps.styles[key] = deps.styles[key];
+    }
+    for (const key in deps.preload) {
+      allDeps.preload[key] = deps.preload[key];
+    }
+    for (const key in deps.prefetch) {
+      allDeps.prefetch[key] = deps.prefetch[key];
+    }
+    for (const dynamicDepId of rendererContext.manifest?.[id]?.dynamicImports || []) {
+      const dynamicDeps = getModuleDependencies(dynamicDepId, rendererContext);
+      for (const key in dynamicDeps.scripts) {
+        allDeps.prefetch[key] = dynamicDeps.scripts[key];
+      }
+      for (const key in dynamicDeps.styles) {
+        allDeps.prefetch[key] = dynamicDeps.styles[key];
+      }
+      for (const key in dynamicDeps.preload) {
+        allDeps.prefetch[key] = dynamicDeps.preload[key];
+      }
+    }
+  }
+  const filteredPrefetch = {};
+  for (const id in allDeps.prefetch) {
+    const dep = allDeps.prefetch[id];
+    if (dep.prefetch) {
+      filteredPrefetch[id] = dep;
+    }
+  }
+  allDeps.prefetch = filteredPrefetch;
+  for (const id in allDeps.preload) {
+    delete allDeps.prefetch[id];
+  }
+  for (const style in allDeps.styles) {
+    delete allDeps.preload[style];
+    delete allDeps.prefetch[style];
+  }
+  rendererContext._dependencySets[cacheKey] = allDeps;
+  return allDeps;
+}
+function getRequestDependencies(ssrContext, rendererContext) {
+  if (ssrContext._requestDependencies) {
+    return ssrContext._requestDependencies;
+  }
+  const ids = new Set(Array.from([
+    ...rendererContext._entrypoints,
+    ...ssrContext.modules || ssrContext._registeredComponents || []
+  ]));
+  const deps = getAllDependencies(ids, rendererContext);
+  ssrContext._requestDependencies = deps;
+  return deps;
+}
+function renderStyles(ssrContext, rendererContext) {
+  const { styles } = getRequestDependencies(ssrContext, rendererContext);
+  let result = "";
+  for (const key in styles) {
+    const resource = styles[key];
+    result += `<link rel="stylesheet" href="${rendererContext.buildAssetsURL(resource.file)}" crossorigin>`;
+  }
+  return result;
+}
+function renderResourceHints(ssrContext, rendererContext) {
+  const { preload, prefetch } = getRequestDependencies(ssrContext, rendererContext);
+  let result = "";
+  for (const key in preload) {
+    const resource = preload[key];
+    const href = rendererContext.buildAssetsURL(resource.file);
+    const rel = resource.module ? "modulepreload" : "preload";
+    const crossorigin = resource.resourceType === "style" || resource.resourceType === "font" || resource.resourceType === "script" || resource.module ? " crossorigin" : "";
+    if (resource.resourceType && resource.mimeType) {
+      result += `<link rel="${rel}" as="${resource.resourceType}" type="${resource.mimeType}"${crossorigin} href="${href}">`;
+    } else if (resource.resourceType) {
+      result += `<link rel="${rel}" as="${resource.resourceType}"${crossorigin} href="${href}">`;
+    } else {
+      result += `<link rel="${rel}"${crossorigin} href="${href}">`;
+    }
+  }
+  for (const key in prefetch) {
+    const resource = prefetch[key];
+    const href = rendererContext.buildAssetsURL(resource.file);
+    const crossorigin = resource.resourceType === "style" || resource.resourceType === "font" || resource.resourceType === "script" || resource.module ? " crossorigin" : "";
+    if (resource.resourceType && resource.mimeType) {
+      result += `<link rel="prefetch" as="${resource.resourceType}" type="${resource.mimeType}"${crossorigin} href="${href}">`;
+    } else if (resource.resourceType) {
+      result += `<link rel="prefetch" as="${resource.resourceType}"${crossorigin} href="${href}">`;
+    } else {
+      result += `<link rel="prefetch"${crossorigin} href="${href}">`;
+    }
+  }
+  return result;
+}
+function renderResourceHeaders(ssrContext, rendererContext) {
+  const { preload, prefetch } = getRequestDependencies(ssrContext, rendererContext);
+  const links = [];
+  for (const key in preload) {
+    const resource = preload[key];
+    const href = rendererContext.buildAssetsURL(resource.file);
+    const rel = resource.module ? "modulepreload" : "preload";
+    let header = `<${href}>; rel="${rel}"`;
+    if (resource.resourceType) {
+      header += `; as="${resource.resourceType}"`;
+    }
+    if (resource.mimeType) {
+      header += `; type="${resource.mimeType}"`;
+    }
+    if (resource.resourceType === "style" || resource.resourceType === "font" || resource.resourceType === "script" || resource.module) {
+      header += "; crossorigin";
+    }
+    links.push(header);
+  }
+  for (const key in prefetch) {
+    const resource = prefetch[key];
+    const href = rendererContext.buildAssetsURL(resource.file);
+    let header = `<${href}>; rel="prefetch"`;
+    if (resource.resourceType) {
+      header += `; as="${resource.resourceType}"`;
+    }
+    if (resource.mimeType) {
+      header += `; type="${resource.mimeType}"`;
+    }
+    if (resource.resourceType === "style" || resource.resourceType === "font" || resource.resourceType === "script" || resource.module) {
+      header += "; crossorigin";
+    }
+    links.push(header);
+  }
+  return {
+    link: links.join(", ")
+  };
+}
+function getPreloadLinks(ssrContext, rendererContext) {
+  const { preload } = getRequestDependencies(ssrContext, rendererContext);
+  const result = [];
+  for (const key in preload) {
+    const resource = preload[key];
+    result.push({
+      rel: resource.module ? "modulepreload" : "preload",
+      as: resource.resourceType,
+      type: resource.mimeType ?? null,
+      crossorigin: resource.resourceType === "style" || resource.resourceType === "font" || resource.resourceType === "script" || resource.module ? "" : null,
+      href: rendererContext.buildAssetsURL(resource.file)
+    });
+  }
+  return result;
+}
+function getPrefetchLinks(ssrContext, rendererContext) {
+  const { prefetch } = getRequestDependencies(ssrContext, rendererContext);
+  const result = [];
+  for (const key in prefetch) {
+    const resource = prefetch[key];
+    result.push({
+      rel: "prefetch",
+      as: resource.resourceType,
+      type: resource.mimeType ?? null,
+      crossorigin: resource.resourceType === "style" || resource.resourceType === "font" || resource.resourceType === "script" || resource.module ? "" : null,
+      href: rendererContext.buildAssetsURL(resource.file)
+    });
+  }
+  return result;
+}
+function renderScripts(ssrContext, rendererContext) {
+  const { scripts } = getRequestDependencies(ssrContext, rendererContext);
+  let result = "";
+  for (const key in scripts) {
+    const resource = scripts[key];
+    if (resource.module) {
+      result += `<script type="module" src="${rendererContext.buildAssetsURL(resource.file)}" crossorigin><\/script>`;
+    } else {
+      result += `<script src="${rendererContext.buildAssetsURL(resource.file)}" defer crossorigin><\/script>`;
+    }
+  }
+  return result;
+}
+function createRenderer(createApp, renderOptions) {
+  const rendererContext = createRendererContext(renderOptions);
+  return {
+    rendererContext,
+    async renderToString(ssrContext) {
+      ssrContext._registeredComponents = ssrContext._registeredComponents || /* @__PURE__ */ new Set();
+      const _createApp = await Promise.resolve(createApp).then((r) => "default" in r ? r.default : r);
+      const app = await _createApp(ssrContext);
+      const html = await renderOptions.renderToString(app, ssrContext);
+      const wrap = (fn) => () => fn(ssrContext, rendererContext);
+      return {
+        html,
+        renderResourceHeaders: wrap(renderResourceHeaders),
+        renderResourceHints: wrap(renderResourceHints),
+        renderStyles: wrap(renderStyles),
+        renderScripts: wrap(renderScripts)
+      };
+    }
+  };
+}
+
+var vue = {exports: {}};
+
+var vue_cjs_prod = {};
+
+const require$$0 = /*@__PURE__*/getDefaultExportFromNamespaceIfNotNamed(compilerDom);
+
+const require$$1 = /*@__PURE__*/getDefaultExportFromNamespaceIfNotNamed(runtimeDom);
+
+/**
+* vue v3.5.38
+* (c) 2018-present Yuxi (Evan) You and Vue contributors
+* @license MIT
+**/
+
+(function (exports) {
+
+	Object.defineProperty(exports, '__esModule', { value: true });
+
+	var compilerDom = require$$0;
+	var runtimeDom = require$$1;
+	var shared = shared_cjs_prod;
+
+	function _interopNamespaceDefault(e) {
+	  var n = Object.create(null);
+	  if (e) {
+	    for (var k in e) {
+	      n[k] = e[k];
+	    }
+	  }
+	  n.default = e;
+	  return Object.freeze(n);
+	}
+
+	var runtimeDom__namespace = /*#__PURE__*/_interopNamespaceDefault(runtimeDom);
+
+	const compileCache = /* @__PURE__ */ Object.create(null);
+	function compileToFunction(template, options) {
+	  if (!shared.isString(template)) {
+	    if (template.nodeType) {
+	      template = template.innerHTML;
+	    } else {
+	      return shared.NOOP;
+	    }
+	  }
+	  const key = shared.genCacheKey(template, options);
+	  const cached = compileCache[key];
+	  if (cached) {
+	    return cached;
+	  }
+	  if (template[0] === "#") {
+	    const el = document.querySelector(template);
+	    template = el ? el.innerHTML : ``;
+	  }
+	  const opts = shared.extend(
+	    {
+	      hoistStatic: true,
+	      onError: void 0,
+	      onWarn: shared.NOOP
+	    },
+	    options
+	  );
+	  if (!opts.isCustomElement && typeof customElements !== "undefined") {
+	    opts.isCustomElement = (tag) => !!customElements.get(tag);
+	  }
+	  const { code } = compilerDom.compile(template, opts);
+	  const render = new Function("Vue", code)(runtimeDom__namespace);
+	  render._rc = true;
+	  return compileCache[key] = render;
+	}
+	runtimeDom.registerRuntimeCompiler(compileToFunction);
+
+	exports.compile = compileToFunction;
+	Object.keys(runtimeDom).forEach(function (k) {
+	  if (k !== 'default' && !Object.prototype.hasOwnProperty.call(exports, k)) exports[k] = runtimeDom[k];
+	}); 
+} (vue_cjs_prod));
+
+{
+  vue.exports = vue_cjs_prod;
+}
+
+var vueExports = vue.exports;
+
 const VueResolver = (_, value) => {
-  return isRef(value) ? toValue(value) : value;
+  return vueExports.isRef(value) ? vueExports.toValue(value) : value;
 };
 
 const headSymbol = "usehead";
@@ -26,8 +405,8 @@ function vueInstall(head) {
 
 // @__NO_SIDE_EFFECTS__
 function injectHead() {
-  if (hasInjectionContext()) {
-    const instance = inject(headSymbol);
+  if (vueExports.hasInjectionContext()) {
+    const instance = vueExports.inject(headSymbol);
     if (instance) {
       return instance;
     }
@@ -39,9 +418,9 @@ function useHead(input, options = {}) {
   return head.ssr ? head.push(input || {}, options) : clientUseHead(head, input, options);
 }
 function clientUseHead(head, input, options = {}) {
-  const deactivated = ref(false);
+  const deactivated = vueExports.ref(false);
   let entry;
-  watchEffect(() => {
+  vueExports.watchEffect(() => {
     const i = deactivated.value ? {} : walkResolver(input, VueResolver);
     if (entry) {
       entry.patch(i);
@@ -49,15 +428,15 @@ function clientUseHead(head, input, options = {}) {
       entry = head.push(i, options);
     }
   });
-  const vm = getCurrentInstance();
+  const vm = vueExports.getCurrentInstance();
   if (vm) {
-    onBeforeUnmount(() => {
+    vueExports.onBeforeUnmount(() => {
       entry.dispose();
     });
-    onDeactivated(() => {
+    vueExports.onDeactivated(() => {
       deactivated.value = true;
     });
-    onActivated(() => {
+    vueExports.onActivated(() => {
       deactivated.value = false;
     });
   }
@@ -457,5 +836,5 @@ const renderer = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.defineProperty({
   default: handler
 }, Symbol.toStringTag, { value: 'Module' }));
 
-export { baseURL as b, headSymbol as h, renderer as r, useHead as u };
+export { baseURL as b, headSymbol as h, renderer as r, useHead as u, vueExports as v };
 //# sourceMappingURL=renderer.mjs.map

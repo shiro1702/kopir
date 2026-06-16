@@ -1,13 +1,12 @@
-import { hasInjectionContext, inject } from 'vue';
 import { t as tryUseNuxtApp } from './server.mjs';
-import { u as useHead$1, h as headSymbol } from '../routes/renderer.mjs';
+import { u as useHead$1, v as vueExports, h as headSymbol } from '../routes/renderer.mjs';
 
 function injectHead(nuxtApp) {
   var _a;
   const nuxt = nuxtApp || tryUseNuxtApp();
   return ((_a = nuxt == null ? void 0 : nuxt.ssrContext) == null ? void 0 : _a.head) || (nuxt == null ? void 0 : nuxt.runWithContext(() => {
-    if (hasInjectionContext()) {
-      return inject(headSymbol);
+    if (vueExports.hasInjectionContext()) {
+      return vueExports.inject(headSymbol);
     }
   }));
 }

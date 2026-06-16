@@ -1,6 +1,6 @@
-import { defineComponent, shallowRef, h, resolveComponent, computed, unref } from 'vue';
-import { A as parseQuery, n as hasProtocol, q as joinURL, o as isScriptProtocol, B as withTrailingSlash, C as withoutTrailingSlash } from '../nitro/nitro.mjs';
+import { B as parseQuery, n as hasProtocol, q as joinURL, o as isScriptProtocol, C as withTrailingSlash, D as withoutTrailingSlash } from '../nitro/nitro.mjs';
 import { u as useRouter, e as encodeRoutePath, r as resolveRouteObject, n as navigateTo, a as useNuxtApp, b as useRuntimeConfig, c as nuxtLinkDefaults } from './server.mjs';
+import { v as vueExports } from '../routes/renderer.mjs';
 
 const firstNonUndefined = (...args) => args.find((arg) => arg !== void 0);
 function sanitizeExternalHref(value) {
@@ -41,34 +41,34 @@ function defineNuxtLink(options) {
     var _a, _b, _c;
     const router = useRouter();
     const config = useRuntimeConfig();
-    const hasTarget = computed(() => !!unref(props.target) && unref(props.target) !== "_self");
-    const isAbsoluteUrl = computed(() => {
-      const path = unref(props.to) || unref(props.href) || "";
+    const hasTarget = vueExports.computed(() => !!vueExports.unref(props.target) && vueExports.unref(props.target) !== "_self");
+    const isAbsoluteUrl = vueExports.computed(() => {
+      const path = vueExports.unref(props.to) || vueExports.unref(props.href) || "";
       return typeof path === "string" && hasProtocol(path, { acceptRelative: true });
     });
-    const builtinRouterLink = resolveComponent("RouterLink");
+    const builtinRouterLink = vueExports.resolveComponent("RouterLink");
     const useBuiltinLink = builtinRouterLink && typeof builtinRouterLink !== "string" ? builtinRouterLink.useLink : void 0;
-    const isExternal = computed(() => {
-      if (unref(props.external)) {
+    const isExternal = vueExports.computed(() => {
+      if (vueExports.unref(props.external)) {
         return true;
       }
-      const path = unref(props.to) || unref(props.href) || "";
+      const path = vueExports.unref(props.to) || vueExports.unref(props.href) || "";
       if (typeof path === "object") {
         return false;
       }
       return path === "" || isAbsoluteUrl.value;
     });
-    const to = computed(() => {
-      const path = unref(props.to) || unref(props.href) || "";
+    const to = vueExports.computed(() => {
+      const path = vueExports.unref(props.to) || vueExports.unref(props.href) || "";
       if (isExternal.value) {
         return path;
       }
-      return resolveTrailingSlashBehavior(path, router.resolve, unref(props.trailingSlash));
+      return resolveTrailingSlashBehavior(path, router.resolve, vueExports.unref(props.trailingSlash));
     });
-    const link = isExternal.value ? void 0 : useBuiltinLink == null ? void 0 : useBuiltinLink({ ...props, to, viewTransition: unref(props.viewTransition) });
-    const href = computed(() => {
+    const link = isExternal.value ? void 0 : useBuiltinLink == null ? void 0 : useBuiltinLink({ ...props, to, viewTransition: vueExports.unref(props.viewTransition) });
+    const href = vueExports.computed(() => {
       var _a2, _b2, _c2;
-      const effectiveTrailingSlash = (_a2 = unref(props.trailingSlash)) != null ? _a2 : options.trailingSlash;
+      const effectiveTrailingSlash = (_a2 = vueExports.unref(props.trailingSlash)) != null ? _a2 : options.trailingSlash;
       if (!to.value || isAbsoluteUrl.value || isHashLinkWithoutHashMode(to.value)) {
         const raw = to.value;
         return typeof raw === "string" ? sanitizeExternalHref(raw) : raw;
@@ -91,18 +91,18 @@ function defineNuxtLink(options) {
       isExternal,
       //
       href,
-      isActive: (_a = link == null ? void 0 : link.isActive) != null ? _a : computed(() => to.value === router.currentRoute.value.path),
-      isExactActive: (_b = link == null ? void 0 : link.isExactActive) != null ? _b : computed(() => to.value === router.currentRoute.value.path),
-      route: (_c = link == null ? void 0 : link.route) != null ? _c : computed(() => router.resolve(to.value)),
+      isActive: (_a = link == null ? void 0 : link.isActive) != null ? _a : vueExports.computed(() => to.value === router.currentRoute.value.path),
+      isExactActive: (_b = link == null ? void 0 : link.isExactActive) != null ? _b : vueExports.computed(() => to.value === router.currentRoute.value.path),
+      route: (_c = link == null ? void 0 : link.route) != null ? _c : vueExports.computed(() => router.resolve(to.value)),
       async navigate(_e) {
         if (href.value === null) {
           return;
         }
-        await navigateTo(href.value, { replace: unref(props.replace), external: isExternal.value || hasTarget.value });
+        await navigateTo(href.value, { replace: vueExports.unref(props.replace), external: isExternal.value || hasTarget.value });
       }
     };
   }
-  return defineComponent({
+  return vueExports.defineComponent({
     name: componentName,
     props: {
       // Routing
@@ -198,7 +198,7 @@ function defineNuxtLink(options) {
     setup(props, { slots }) {
       const router = useRouter();
       const { to, href, navigate, isExternal, hasTarget, isAbsoluteUrl } = useNuxtLink(props);
-      shallowRef(false);
+      vueExports.shallowRef(false);
       const el = void 0;
       const elRef = void 0;
       async function prefetch(nuxtApp = useNuxtApp()) {
@@ -221,8 +221,8 @@ function defineNuxtLink(options) {
           if (!props.custom) {
             routerLinkProps.rel = props.rel || void 0;
           }
-          return h(
-            resolveComponent("RouterLink"),
+          return vueExports.h(
+            vueExports.resolveComponent("RouterLink"),
             routerLinkProps,
             slots.default
           );
@@ -273,7 +273,7 @@ function defineNuxtLink(options) {
             isExactActive: false
           });
         }
-        return h("a", {
+        return vueExports.h("a", {
           ref: el,
           href: href.value || null,
           // converts `""` to `null` to prevent the attribute from being added as empty (`href=""`)

@@ -8,6 +8,9 @@ export default defineNuxtConfig({
   },
   nitro: {
     preset: 'vercel',
+    externals: {
+      inline: ['vue-bundle-renderer', 'vue', '@vue/shared'],
+    },
   },
   runtimeConfig: {
     databaseUrl: process.env.DATABASE_URL,
