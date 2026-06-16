@@ -8,13 +8,9 @@ import 'node:buffer';
 import 'node:fs';
 import 'node:path';
 import 'node:crypto';
-import 'unhead/server';
-import 'devalue';
-import 'unhead/utils';
 import '@vue/compiler-dom';
-import '../_/shared.cjs.prod.mjs';
 import '@vue/runtime-dom';
-import 'unhead/plugins';
+import '@vue/shared';
 
 /*!
 * vue-router v5.1.0

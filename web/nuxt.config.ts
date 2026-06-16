@@ -8,8 +8,17 @@ export default defineNuxtConfig({
   },
   nitro: {
     preset: 'vercel',
+    // Bundle SSR deps into the serverless function — Vercel runtime often misses traced node_modules.
     externals: {
-      inline: ['vue-bundle-renderer', 'vue', '@vue/shared'],
+      inline: [
+        /^@vue\//,
+        'vue',
+        'vue-bundle-renderer',
+        'vue-router',
+        'unhead',
+        'devalue',
+        'hookable',
+      ],
     },
   },
   runtimeConfig: {
