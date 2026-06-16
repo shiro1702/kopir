@@ -4084,7 +4084,7 @@ function _expandFromEnv(value) {
 const _inlineRuntimeConfig = {
   "app": {
     "baseURL": "/",
-    "buildId": "093f31de-945a-4953-bbdb-b9ec04078b92",
+    "buildId": "4c5bc99a-9ce9-4972-bd75-48a204851d15",
     "buildAssetsDir": "/_nuxt/",
     "cdnURL": ""
   },
@@ -4116,7 +4116,7 @@ const _inlineRuntimeConfig = {
     "appVersion": "0.0.1"
   },
   "databaseUrl": "postgresql://neondb_owner:npg_u7kJatX3hwfp@ep-jolly-cherry-ab2ccq9t-pooler.eu-west-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require",
-  "blobReadWriteToken": "vercel_blob_rw_...",
+  "blobReadWriteToken": "https://15qkuhxd7s6sime1.private.blob.vercel-storage.com",
   "telegramBotToken": "8918475832:AAFvBHPnjelKAG9uRSKY9j4kPQDOOdM0Oyw",
   "maxBotToken": "f9LHodD0cOICGKO3FM1sto9MbCDg09N2HFvuqWkGSduYW82F65zjTRp7gTDXfKGhyEiJZSymHkuSMEZImouE",
   "maxWebhookSecret": "...",
