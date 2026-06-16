@@ -1,5 +1,5 @@
 import { t as tryUseNuxtApp } from './server.mjs';
-import { u as useHead$1, v as vueExports, h as headSymbol } from '../routes/renderer.mjs';
+import { u as useHead$1, v as vueExports, i as headSymbol } from '../routes/renderer.mjs';
 
 function injectHead(nuxtApp) {
   var _a;

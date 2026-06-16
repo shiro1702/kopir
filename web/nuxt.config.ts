@@ -8,16 +8,27 @@ export default defineNuxtConfig({
   },
   nitro: {
     preset: 'vercel',
-    // Bundle SSR deps into the serverless function — Vercel runtime often misses traced node_modules.
+    // Vercel serverless runtime does not reliably load traced node_modules for SSR.
+    // Explicit package names required — regex like /^@vue\// does NOT inline subpaths.
     externals: {
       inline: [
-        /^@vue\//,
+        '@vue/server-renderer',
+        '@vue/compiler-dom',
+        '@vue/runtime-dom',
+        '@vue/shared',
+        '@vue/runtime-core',
+        '@vue/compiler-core',
+        '@vue/compiler-ssr',
+        '@vue/reactivity',
         'vue',
         'vue-bundle-renderer',
         'vue-router',
         'unhead',
         'devalue',
         'hookable',
+        'entities',
+        'estree-walker',
+        'source-map-js',
       ],
     },
   },

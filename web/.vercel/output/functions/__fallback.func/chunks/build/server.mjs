@@ -1,6 +1,5 @@
 import process from 'node:process';globalThis._importMeta_=globalThis._importMeta_||{url:"file:///_entry.js",env:process.env};import { p as parseURL$1, e as encodePath$1, m as decodePath, n as hasProtocol, o as isScriptProtocol, q as joinURL, t as withQuery, v as sanitizeStatusCode, x as getContext, $ as $fetch, y as createHooks, c as createError$1, z as executeAsync, A as defu } from '../nitro/nitro.mjs';
-import { v as vueExports, b as baseURL } from '../routes/renderer.mjs';
-import { ssrRenderSuspense, ssrRenderComponent, ssrRenderVNode, ssrRenderAttrs } from '@vue/server-renderer';
+import { v as vueExports, b as baseURL, s as ssrRenderSuspense_1, a as ssrRenderComponent_1, c as ssrRenderVNode, d as ssrRenderAttrs_1 } from '../routes/renderer.mjs';
 import 'node:http';
 import 'node:https';
 import 'node:events';
@@ -8,9 +7,8 @@ import 'node:buffer';
 import 'node:fs';
 import 'node:path';
 import 'node:crypto';
-import '@vue/compiler-dom';
-import '@vue/runtime-dom';
-import '@vue/shared';
+import '../_/shared.cjs.prod.mjs';
+import 'node:stream';
 
 /*!
 * vue-router v5.1.0
@@ -2671,9 +2669,9 @@ const _sfc_main$2 = {};
 function _sfc_ssrRender(_ctx, _push, _parent, _attrs) {
   const _component_NuxtRouteAnnouncer = __nuxt_component_0;
   const _component_NuxtPage = __nuxt_component_1;
-  _push(`<div${ssrRenderAttrs(_attrs)}>`);
-  _push(ssrRenderComponent(_component_NuxtRouteAnnouncer, null, null, _parent));
-  _push(ssrRenderComponent(_component_NuxtPage, null, null, _parent));
+  _push(`<div${ssrRenderAttrs_1(_attrs)}>`);
+  _push(ssrRenderComponent_1(_component_NuxtRouteAnnouncer, null, null, _parent));
+  _push(ssrRenderComponent_1(_component_NuxtPage, null, null, _parent));
   _push(`</div>`);
 }
 const _sfc_setup$2 = _sfc_main$2.setup;
@@ -2701,7 +2699,7 @@ const _sfc_main$1 = {
     const _Error = vueExports.defineAsyncComponent(() => import('./error-500-C6rMbKxO.mjs'));
     const ErrorTemplate = is404 ? _Error404 : _Error;
     return (_ctx, _push, _parent, _attrs) => {
-      _push(ssrRenderComponent(vueExports.unref(ErrorTemplate), vueExports.mergeProps({ status: vueExports.unref(status), statusText: vueExports.unref(statusText), statusCode: vueExports.unref(status), statusMessage: vueExports.unref(statusText), description: vueExports.unref(description), stack: vueExports.unref(stack) }, _attrs), null, _parent));
+      _push(ssrRenderComponent_1(vueExports.unref(ErrorTemplate), vueExports.mergeProps({ status: vueExports.unref(status), statusText: vueExports.unref(statusText), statusCode: vueExports.unref(status), statusMessage: vueExports.unref(statusText), description: vueExports.unref(description), stack: vueExports.unref(stack) }, _attrs), null, _parent));
     };
   }
 };
@@ -2745,18 +2743,18 @@ const _sfc_main = {
     });
     const islandContext = nuxtApp.ssrContext.islandContext;
     return (_ctx, _push, _parent, _attrs) => {
-      ssrRenderSuspense(_push, {
+      ssrRenderSuspense_1(_push, {
         default: () => {
           if (vueExports.unref(abortRender)) {
             _push(`<div></div>`);
           } else if (vueExports.unref(error)) {
-            _push(ssrRenderComponent(vueExports.unref(_sfc_main$1), { error: vueExports.unref(error) }, null, _parent));
+            _push(ssrRenderComponent_1(vueExports.unref(_sfc_main$1), { error: vueExports.unref(error) }, null, _parent));
           } else if (vueExports.unref(islandContext)) {
-            _push(ssrRenderComponent(vueExports.unref(IslandRenderer), { context: vueExports.unref(islandContext) }, null, _parent));
+            _push(ssrRenderComponent_1(vueExports.unref(IslandRenderer), { context: vueExports.unref(islandContext) }, null, _parent));
           } else if (vueExports.unref(SingleRenderer)) {
             ssrRenderVNode(_push, vueExports.createVNode(vueExports.resolveDynamicComponent(vueExports.unref(SingleRenderer)), null, null), _parent);
           } else {
-            _push(ssrRenderComponent(vueExports.unref(AppComponent), null, null, _parent));
+            _push(ssrRenderComponent_1(vueExports.unref(AppComponent), null, null, _parent));
           }
         },
         _: 1
