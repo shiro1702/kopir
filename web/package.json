@@ -15,7 +15,7 @@
   },
   "dependencies": {
     "@prisma/client": "^6.9.0",
-    "@vercel/blob": "^1.1.1",
+    "@vercel/blob": "^2.4.0",
     "grammy": "^1.36.3",
     "nuxt": "^3.17.6",
     "vue": "^3.5.35",

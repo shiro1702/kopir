@@ -39,6 +39,8 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     databaseUrl: process.env.DATABASE_URL,
+    blobStoreId: process.env.BLOB_STORE_ID,
+    blobWebhookPublicKey: process.env.BLOB_WEBHOOK_PUBLIC_KEY,
     blobReadWriteToken: process.env.BLOB_READ_WRITE_TOKEN,
     telegramBotToken: process.env.TELEGRAM_BOT_TOKEN,
     maxBotToken: process.env.MAX_BOT_TOKEN,

@@ -123,7 +123,7 @@ export async function handleDocument(
     })
     await prisma.order.update({
       where: { id: order.id },
-      data: { filePath: blob.url },
+      data: { filePath: blob.pathname },
     })
 
     const shortId = order.id.slice(-6)

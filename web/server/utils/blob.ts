@@ -1,16 +1,34 @@
-import { del, put } from '@vercel/blob'
+import { del, get, put } from '@vercel/blob'
+import type { BlobCommandOptions } from '@vercel/blob'
 import { extensionForKind, type DocumentKind } from './file-types'
 
-function getBlobToken(): string {
+const BLOB_ACCESS = 'private' as const
+
+function getBlobAuthOptions(): BlobCommandOptions {
   const config = useRuntimeConfig()
+  const storeId = process.env.BLOB_STORE_ID ?? config.blobStoreId
+  const oidcToken = process.env.VERCEL_OIDC_TOKEN
   const token = config.blobReadWriteToken
-  if (!token) {
-    throw createError({
-      statusCode: 500,
-      data: { error: 'Blob storage not configured', code: 'BLOB_NOT_CONFIGURED' },
-    })
+
+  if (storeId && oidcToken) {
+    return { storeId, oidcToken }
   }
-  return token
+
+  if (token) {
+    return { token }
+  }
+
+  if (storeId) {
+    return { storeId }
+  }
+
+  throw createError({
+    statusCode: 500,
+    data: {
+      error: 'Blob storage not configured. Connect a private Blob store (BLOB_STORE_ID) or set BLOB_READ_WRITE_TOKEN for local dev.',
+      code: 'BLOB_NOT_CONFIGURED',
+    },
+  })
 }
 
 export interface UploadOrderFileOptions {
@@ -24,12 +42,11 @@ export async function uploadOrderFile(
   data: Buffer | ArrayBuffer,
   options: UploadOrderFileOptions,
 ) {
-  const token = getBlobToken()
   const ext = extensionForKind(options.kind, options.fileName)
   const pathname = `orders/${orderId}${ext}`
   return put(pathname, data, {
-    access: 'public',
-    token,
+    ...getBlobAuthOptions(),
+    access: BLOB_ACCESS,
     contentType: options.mimeType,
     addRandomSuffix: false,
   })
@@ -44,15 +61,20 @@ export async function uploadOrderPdf(orderId: string, data: Buffer | ArrayBuffer
   })
 }
 
-export async function downloadOrderFile(filePath: string): Promise<Buffer> {
-  const response = await fetch(filePath)
-  if (!response.ok) {
+export async function downloadOrderFile(filePathOrUrl: string): Promise<Buffer> {
+  const result = await get(filePathOrUrl, {
+    ...getBlobAuthOptions(),
+    access: BLOB_ACCESS,
+  })
+
+  if (!result || result.statusCode !== 200 || !result.stream) {
     throw createError({
       statusCode: 404,
       data: { error: 'File not found in blob storage', code: 'FILE_NOT_FOUND' },
     })
   }
-  const arrayBuffer = await response.arrayBuffer()
+
+  const arrayBuffer = await new Response(result.stream).arrayBuffer()
   return Buffer.from(arrayBuffer)
 }
 
@@ -61,12 +83,11 @@ export async function downloadOrderPdf(filePath: string): Promise<Buffer> {
   return downloadOrderFile(filePath)
 }
 
-export async function deleteOrderFile(filePath: string) {
-  const token = getBlobToken()
+export async function deleteOrderFile(filePathOrUrl: string) {
   try {
-    await del(filePath, { token })
+    await del(filePathOrUrl, getBlobAuthOptions())
   } catch (error) {
-    console.error('[blob] delete failed:', filePath, error)
+    console.error('[blob] delete failed:', filePathOrUrl, error)
   }
 }
 
