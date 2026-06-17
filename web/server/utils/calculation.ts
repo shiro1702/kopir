@@ -1,5 +1,4 @@
 import { OrderStatus } from '@prisma/client'
-import { notifyCalculationFailed } from './bot/core'
 import { prisma } from './prisma'
 
 export function getPricePerPageKopeks(): number {
@@ -37,6 +36,7 @@ export async function expireStaleCalculations(pointId?: string): Promise<void> {
     })
 
     try {
+      const { notifyCalculationFailed } = await import('./bot/core')
       await notifyCalculationFailed(order.user, {
         fileName: order.fileName,
         errorMessage: 'Calculation timed out',

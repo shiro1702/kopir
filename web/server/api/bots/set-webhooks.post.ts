@@ -1,6 +1,4 @@
 import { assertAdminAuth } from '../../utils/admin-auth'
-import { getMaxClient } from '../../utils/max/client'
-import { getBot } from '../../utils/telegram/bot'
 import { resolveWebhookUrl } from '../../utils/webhook-url'
 
 interface WebhookResult {
@@ -23,8 +21,9 @@ export default defineEventHandler(async (event) => {
 
   if (config.telegramBotToken) {
     try {
+      const { getInitializedBot } = await import('../../utils/telegram/bot')
       const webhookUrl = resolveWebhookUrl(event, '/api/telegram/webhook')
-      await getBot().api.setWebhook(webhookUrl)
+      await (await getInitializedBot()).api.setWebhook(webhookUrl)
       results.telegram = { ok: true, webhookUrl }
     } catch (error) {
       results.telegram = {
@@ -36,6 +35,7 @@ export default defineEventHandler(async (event) => {
 
   if (config.maxBotToken) {
     try {
+      const { getMaxClient } = await import('../../utils/max/client')
       const webhookUrl = resolveWebhookUrl(event, '/api/max/webhook')
       await getMaxClient().setWebhook(webhookUrl, config.maxWebhookSecret || undefined)
       results.max = {

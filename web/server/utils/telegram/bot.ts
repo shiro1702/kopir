@@ -1,7 +1,5 @@
 import { Bot } from 'grammy'
-import { handleDocument, handleStart } from '../bot/core'
 import type { MessengerAdapter, MessengerReplyTarget } from '../bot/types'
-import { handleStaffCallbackPayload } from '../staff-actions'
 import { getStaffTelegramChatId } from '../payment-mode'
 import { downloadTelegramFile, getTelegramBotToken } from './client'
 
@@ -16,6 +14,7 @@ function createTelegramAdapter(): MessengerAdapter {
 }
 
 let botInstance: Bot | null = null
+let botInitPromise: Promise<Bot> | null = null
 
 export function getBot(): Bot {
   if (!botInstance) {
@@ -24,12 +23,21 @@ export function getBot(): Bot {
   return botInstance
 }
 
+export async function getInitializedBot(): Promise<Bot> {
+  const bot = getBot()
+  if (!botInitPromise) {
+    botInitPromise = bot.init().then(() => bot)
+  }
+  return botInitPromise
+}
+
 async function handleStaffCallback(data: string, chatId: number): Promise<string> {
   const staffChatId = getStaffTelegramChatId()
   if (!staffChatId || chatId !== staffChatId) {
     throw new Error('Нет доступа')
   }
 
+  const { handleStaffCallbackPayload } = await import('../staff-actions')
   return handleStaffCallbackPayload(data)
 }
 
@@ -44,6 +52,7 @@ function createBot(): Bot {
       chatId: String(telegramUser.id),
     }
 
+    const { handleStart } = await import('../bot/core')
     await handleStart('telegram', target, ctx.match?.trim(), adapter)
   })
 
@@ -56,6 +65,7 @@ function createBot(): Bot {
     }
 
     const file = await ctx.getFile()
+    const { handleDocument } = await import('../bot/core')
 
     await handleDocument(
       'telegram',

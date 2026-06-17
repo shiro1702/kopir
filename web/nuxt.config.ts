@@ -34,7 +34,6 @@ export default defineNuxtConfig({
         'entities',
         'estree-walker',
         'source-map-js',
-        'grammy',
       ],
     },
   },

@@ -1,8 +1,6 @@
 import { timingSafeEqual } from 'node:crypto'
 import type { H3Event } from 'h3'
-import { handleDocument, handleStart } from '../bot/core'
 import { detectDocumentKind, mimeTypeForKind } from '../file-types'
-import { handleStaffCallbackPayload } from '../staff-actions'
 import { getStaffMaxUserId } from '../payment-mode'
 import type { MessengerAdapter, MessengerReplyTarget } from '../bot/types'
 import { getMaxClient } from './client'
@@ -59,6 +57,7 @@ export async function handleMaxUpdate(update: MaxUpdate): Promise<void> {
         platform: 'max',
         chatId: String(update.chat_id),
       }
+      const { handleStart } = await import('../bot/core')
       await handleStart('max', target, update.payload, adapter)
       return
     }
@@ -83,6 +82,7 @@ export async function handleMaxUpdate(update: MaxUpdate): Promise<void> {
 
       const startPayload = parseStartPayload(message.body?.text)
       if (startPayload !== undefined || message.body?.text?.trim() === '/start') {
+        const { handleStart } = await import('../bot/core')
         await handleStart('max', target, startPayload, adapter)
         return
       }
@@ -96,6 +96,7 @@ export async function handleMaxUpdate(update: MaxUpdate): Promise<void> {
       const kind = detectDocumentKind(fileName)
       const mimeType = mimeTypeForKind(kind === 'unsupported' ? 'pdf' : kind, fileName)
 
+      const { handleDocument } = await import('../bot/core')
       await handleDocument(
         'max',
         target,
@@ -123,6 +124,7 @@ export async function handleMaxUpdate(update: MaxUpdate): Promise<void> {
       }
 
       try {
+        const { handleStaffCallbackPayload } = await import('../staff-actions')
         const message = await handleStaffCallbackPayload(callback.payload)
         await client.answerCallback(callback.callback_id, message)
       } catch (error) {

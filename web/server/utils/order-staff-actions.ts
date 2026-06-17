@@ -1,8 +1,6 @@
 import { OrderStatus } from '@prisma/client'
-import { notifyPaymentReceivedByStaff, notifyPrintStarted } from './bot/core'
 import { isTerminalPaymentMode } from './payment-mode'
 import { prisma } from './prisma'
-import { notifyStaffPaymentConfirmed } from './staff-notify'
 
 function invalidStatus(message: string) {
   return createError({
@@ -51,12 +49,14 @@ export async function confirmOrderPayment(orderId: string) {
   })
 
   try {
+    const { notifyPaymentReceivedByStaff } = await import('./bot/core')
     await notifyPaymentReceivedByStaff(order.user, order.id)
     const fullOrder = await prisma.order.findUnique({
       where: { id: orderId },
       include: { user: true, point: true },
     })
     if (fullOrder) {
+      const { notifyStaffPaymentConfirmed } = await import('./staff-notify')
       await notifyStaffPaymentConfirmed(fullOrder)
     }
   } catch (error) {
@@ -113,6 +113,7 @@ export async function startOrderPrint(orderId: string) {
   })
 
   try {
+    const { notifyPrintStarted } = await import('./bot/core')
     await notifyPrintStarted(order.user, order.id)
   } catch (error) {
     console.error('[staff] print started notify failed:', orderId, error)

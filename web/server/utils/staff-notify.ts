@@ -9,7 +9,6 @@ import {
 } from './payment-mode'
 import type { MaxInlineKeyboardAttachment } from './max/types'
 import { getMaxClient } from './max/client'
-import { getBot } from './telegram/bot'
 
 type OrderForStaff = Pick<Order, 'id' | 'fileName' | 'pageCount' | 'amountKopeks' | 'paymentConfirmedAt'>
   & {
@@ -59,6 +58,7 @@ async function notifyStaffTelegram(order: OrderForStaff, text: string): Promise<
     return
   }
 
+  const { getBot } = await import('./telegram/bot')
   const bot = getBot()
   await bot.api.sendMessage(chatId, text, {
     reply_markup: telegramStaffKeyboard(order),

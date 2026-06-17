@@ -4,7 +4,6 @@ import { uploadOrderFile } from '../blob'
 import { detectDocumentKind, mimeTypeForKind } from '../file-types'
 import { prisma } from '../prisma'
 import { resolvePointBySlug } from '../points'
-import { notifyStaffOrderAwaitingPayment } from '../staff-notify'
 import { DEFAULT_POINT_SLUG } from './constants'
 import * as messages from './messages'
 import { getPointPreference, setPointPreference } from './preferences'
@@ -158,6 +157,7 @@ export async function notifyStaffAfterOrderReady(orderId: string): Promise<void>
       include: { user: true, point: true },
     })
     if (order?.status === OrderStatus.AWAITING_PAYMENT) {
+      const { notifyStaffOrderAwaitingPayment } = await import('../staff-notify')
       await notifyStaffOrderAwaitingPayment(order)
     }
   } catch (error) {
