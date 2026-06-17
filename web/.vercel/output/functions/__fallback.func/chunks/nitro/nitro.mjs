@@ -4084,7 +4084,7 @@ function _expandFromEnv(value) {
 const _inlineRuntimeConfig = {
   "app": {
     "baseURL": "/",
-    "buildId": "612eb628-0f03-45e9-a561-01afac18b37d",
+    "buildId": "9e92eaa0-1578-4d23-a322-51b1c309012a",
     "buildAssetsDir": "/_nuxt/",
     "cdnURL": ""
   },
@@ -4119,7 +4119,7 @@ const _inlineRuntimeConfig = {
   "blobReadWriteToken": "https://15qkuhxd7s6sime1.private.blob.vercel-storage.com",
   "telegramBotToken": "8918475832:AAFvBHPnjelKAG9uRSKY9j4kPQDOOdM0Oyw",
   "maxBotToken": "f9LHodD0cOICGKO3FM1sto9MbCDg09N2HFvuqWkGSduYW82F65zjTRp7gTDXfKGhyEiJZSymHkuSMEZImouE",
-  "maxWebhookSecret": "...",
+  "maxWebhookSecret": "653f33871542bec0d4096daecb70d4ec",
   "adminSecret": "2bad38675c0208004265c5ea07cb0bcea17cdbc1fea52f8bd1361bb8a5162d96",
   "agentApiKey": "84c35a7c423d24645e188f4aa57ebfb2b6f10e70eed6472de198781498f97b49",
   "pricePerPageKopeks": "1000",

@@ -21,7 +21,11 @@ import 'node:process';
 import 'node:async_hooks';
 import 'path';
 import 'fs';
-import 'grammy';
+import 'http';
+import 'https';
+import 'stream';
+import '@grammyjs/types';
+import 'abort-controller';
 import '@vercel/blob';
 
 function createMaxAdapter() {

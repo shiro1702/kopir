@@ -1,6 +1,5 @@
 import { d as defineEventHandler, c as createError } from '../../../nitro/nitro.mjs';
-import { webhookCallback } from 'grammy';
-import { g as getBot } from '../../../_/order-staff-actions.mjs';
+import { m as mod, g as getBot } from '../../../_/order-staff-actions.mjs';
 import 'node:http';
 import 'node:https';
 import 'node:events';
@@ -21,13 +20,18 @@ import 'path';
 import 'fs';
 import '../../../_/blob.mjs';
 import '@vercel/blob';
+import 'http';
+import 'https';
+import 'stream';
+import '@grammyjs/types';
+import 'abort-controller';
 import '../../../_/messages.mjs';
 import '../../../_/client.mjs';
 
 let handler = null;
 function getWebhookHandler() {
   if (!handler) {
-    handler = webhookCallback(getBot(), "std/http");
+    handler = mod.webhookCallback(getBot(), "std/http");
   }
   return handler;
 }

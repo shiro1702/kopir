@@ -23,7 +23,11 @@ import 'path';
 import 'fs';
 import '../../../_/blob.mjs';
 import '@vercel/blob';
-import 'grammy';
+import 'http';
+import 'https';
+import 'stream';
+import '@grammyjs/types';
+import 'abort-controller';
 import '../../../_/messages.mjs';
 
 const setWebhooks_post = defineEventHandler(async (event) => {
