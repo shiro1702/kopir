@@ -6,6 +6,9 @@
 .cache
 dist
 
+# Vercel prebuilt output (generated locally; must not be committed)
+.vercel
+
 # Node dependencies
 node_modules
 
