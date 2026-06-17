@@ -129,19 +129,10 @@ BLOB_READ_WRITE_TOKEN="vercel_blob_rw_xxxxxxxx"
 | **Framework Preset** | Nuxt.js (авто) |
 | **Build Command** | `npm run build` |
 | **Install Command** | `npm install` |
-| **Output Directory** | (по умолчанию для Nuxt) |
+| **Output Directory** | **пусто** (не `public`, не `dist`) |
 
-В репозитории уже есть `web/vercel.json`:
-
-```json
-{
-  "buildCommand": "npm run build",
-  "installCommand": "npm install",
-  "framework": "nuxtjs"
-}
-```
-
-Nitro preset: `vercel` в `nuxt.config.ts` — serverless functions для API и WebSocket (Sprint 1+).
+Nuxt 3 + `nitro.preset: 'vercel'` в `nuxt.config.ts` сам пишет артефакты в `.vercel/output` (Build Output API).  
+**Не добавляйте** `web/vercel.json` с `"framework": "nuxtjs"` — Vercel начнёт искать статическую папку `public` и деплой упадёт.
 
 ### 3.3 Environment Variables
 
@@ -299,6 +290,7 @@ Preview получают те же env vars (если включены для Pr
 | Симптом | Причина | Решение |
 |---------|---------|---------|
 | Build fail на Vercel | Root Directory не `web` | Исправить в Settings |
+| `No Output Directory named "public"` | Output Directory = `public` или есть `vercel.json` | Очистить Output Directory в Settings; не коммитить `web/vercel.json` |
 | `PrismaClientInitializationError` | Неверный `DATABASE_URL` / нет SSL | Pooled URL + `sslmode=require` |
 | `BLOB_NOT_CONFIGURED` | Нет токена Blob | Storage → Blob → connect / добавить env |
 | 401 на `/api/agent/*` | Разные `AGENT_API_KEY` | Сверить Vercel и `desktop/.env` |
