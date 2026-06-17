@@ -290,7 +290,7 @@ Preview получают те же env vars (если включены для Pr
 | Симптом | Причина | Решение |
 |---------|---------|---------|
 | Build fail на Vercel | Root Directory не `web` | Исправить в Settings |
-| `No Output Directory named "public"` | Output Directory = `public` или есть `vercel.json` | Очистить Output Directory в Settings; не коммитить `web/vercel.json` |
+| `No Output Directory named "public"` | Output Directory = `public` в Dashboard, или `nitro.hooks.compiled` в `nuxt.config` | Очистить Output Directory; не использовать `nitro.hooks.compiled` — он ломает генерацию `.vercel/output/config.json` |
 | `PrismaClientInitializationError` | Неверный `DATABASE_URL` / нет SSL | Pooled URL + `sslmode=require` |
 | `BLOB_NOT_CONFIGURED` | Нет токена Blob | Storage → Blob → connect / добавить env |
 | 401 на `/api/agent/*` | Разные `AGENT_API_KEY` | Сверить Vercel и `desktop/.env` |

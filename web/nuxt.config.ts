@@ -1,8 +1,4 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
-import { copyFileSync, existsSync, mkdirSync } from 'node:fs'
-import { join } from 'node:path'
-
-const PRISMA_ENGINE = 'libquery_engine-rhel-openssl-3.0.x.so.node'
 
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
@@ -38,24 +34,6 @@ export default defineNuxtConfig({
         'source-map-js',
         'grammy',
       ],
-    },
-    hooks: {
-      compiled(nitro) {
-        const src = join(nitro.options.rootDir, 'node_modules/.prisma/client', PRISMA_ENGINE)
-        if (!existsSync(src)) {
-          console.warn(`[prisma] ${PRISMA_ENGINE} not found — run prisma generate`)
-          return
-        }
-
-        const destDirs = [
-          join(nitro.options.output.serverDir, 'node_modules/.prisma/client'),
-          join(nitro.options.output.serverDir, 'chunks/_'),
-        ]
-        for (const destDir of destDirs) {
-          mkdirSync(destDir, { recursive: true })
-          copyFileSync(src, join(destDir, PRISMA_ENGINE))
-        }
-      },
     },
   },
   runtimeConfig: {
