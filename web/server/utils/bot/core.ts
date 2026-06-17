@@ -115,25 +115,37 @@ export async function handleDocument(
     },
   })
 
-  const buffer = await document.download()
-  const blob = await uploadOrderFile(order.id, buffer, {
-    fileName,
-    mimeType,
-    kind,
-  })
-  await prisma.order.update({
-    where: { id: order.id },
-    data: { filePath: blob.url },
-  })
+  try {
+    const buffer = await document.download()
+    const blob = await uploadOrderFile(order.id, buffer, {
+      fileName,
+      mimeType,
+      kind,
+    })
+    await prisma.order.update({
+      where: { id: order.id },
+      data: { filePath: blob.url },
+    })
 
-  const shortId = order.id.slice(-6)
-  if (isWord) {
-    await adapter.sendText(target, messages.formatCalculating(fileName, shortId))
-    return
+    const shortId = order.id.slice(-6)
+    if (isWord) {
+      await adapter.sendText(target, messages.formatCalculating(fileName, shortId))
+      return
+    }
+
+    await adapter.sendText(target, messages.formatOrderReceived(fileName, shortId))
+    await notifyStaffAfterOrderReady(order.id)
+  } catch (error) {
+    console.error('[bot] document upload failed:', order.id, error)
+    await prisma.order.update({
+      where: { id: order.id },
+      data: {
+        status: OrderStatus.FAILED,
+        errorMessage: error instanceof Error ? error.message : 'upload failed',
+      },
+    })
+    await adapter.sendText(target, messages.MSG_UPLOAD_FAILED)
   }
-
-  await adapter.sendText(target, messages.formatOrderReceived(fileName, shortId))
-  await notifyStaffAfterOrderReady(order.id)
 }
 
 /** @deprecated Use handleDocument */

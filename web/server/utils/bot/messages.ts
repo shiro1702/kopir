@@ -16,6 +16,9 @@ export const MSG_CALCULATING =
 export const MSG_CALCULATION_FAILED =
   'Не удалось обработать файл. Проверьте, что документ не повреждён, и попробуйте снова или отправьте PDF.'
 
+export const MSG_UPLOAD_FAILED =
+  'Не удалось сохранить файл. Попробуйте отправить документ ещё раз через минуту.'
+
 function clientPaymentHint(): string {
   if (isTerminalPaymentMode()) {
     return (

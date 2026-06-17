@@ -9,12 +9,14 @@ export default defineNuxtConfig({
   },
   nitro: {
     preset: 'vercel',
-    // Vercel serverless runtime does not reliably load traced node_modules for SSR.
-    // Explicit package names required — regex like /^@vue\// does NOT inline subpaths.
+    // Prisma must stay external: bundling into ESM breaks __dirname in the query engine.
+    // traceInclude copies .prisma/client binaries into the Vercel function output.
     externals: {
+      traceInclude: [
+        'node_modules/.prisma/client/**',
+        'node_modules/@prisma/client/**',
+      ],
       inline: [
-        '@prisma/client',
-        '.prisma/client',
         '@vue/server-renderer',
         '@vue/compiler-dom',
         '@vue/runtime-dom',
