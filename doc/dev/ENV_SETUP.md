@@ -300,6 +300,15 @@ USE_WORD=true
 USE_SEPARATOR_PAGE=false   # по умолчанию без разделительного листа
 ```
 
+### Sprint 0.2 — batch (несколько файлов, одна оплата)
+
+```env
+BATCH_MAX_FILES=5              # максимум файлов в пачке
+BATCH_BUILD_TIMEOUT_MIN=15     # автоотмена незавершённой пачки (минуты)
+```
+
+После обновления схемы: `cd web && npm run db:deploy`
+
 ---
 
 ## Проверка

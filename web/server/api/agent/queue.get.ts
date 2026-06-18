@@ -13,6 +13,28 @@ function parseQueueKind(raw: string | undefined): QueueKind {
   return 'print'
 }
 
+function sortPrintQueue<T extends {
+  createdAt: Date
+  batchIndex: number | null
+  batch: { createdAt: Date } | null
+}>(orders: T[]): T[] {
+  return [...orders].sort((a, b) => {
+    const aPrimary = a.batch?.createdAt ?? a.createdAt
+    const bPrimary = b.batch?.createdAt ?? b.createdAt
+    const primaryDiff = aPrimary.getTime() - bPrimary.getTime()
+    if (primaryDiff !== 0) {
+      return primaryDiff
+    }
+
+    const indexDiff = (a.batchIndex ?? 0) - (b.batchIndex ?? 0)
+    if (indexDiff !== 0) {
+      return indexDiff
+    }
+
+    return a.createdAt.getTime() - b.createdAt.getTime()
+  })
+}
+
 export default defineEventHandler(async (event) => {
   assertAgentAuth(event)
 
@@ -41,15 +63,22 @@ export default defineEventHandler(async (event) => {
         id: true,
         fileName: true,
         mimeType: true,
+        batchId: true,
+        batchIndex: true,
         createdAt: true,
+        batch: { select: { createdAt: true } },
       },
     })
 
+    const sorted = sortPrintQueue(orders)
+
     return {
-      orders: orders.map((order) => ({
+      orders: sorted.map((order) => ({
         id: order.id,
         fileName: order.fileName,
         mimeType: order.mimeType,
+        batchId: order.batchId,
+        batchIndex: order.batchIndex,
         downloadUrl: `/api/agent/orders/${order.id}/file`,
         createdAt: order.createdAt.toISOString(),
       })),
@@ -61,23 +90,29 @@ export default defineEventHandler(async (event) => {
       pointId: point.id,
       status: OrderStatus.PAID,
     },
-    orderBy: { createdAt: 'asc' },
     select: {
       id: true,
       fileName: true,
       mimeType: true,
       pageCount: true,
+      batchId: true,
+      batchIndex: true,
       createdAt: true,
+      batch: { select: { createdAt: true } },
     },
   })
 
+  const sorted = sortPrintQueue(orders)
+
   return {
-    orders: orders.map((order) => ({
+    orders: sorted.map((order) => ({
       id: order.id,
       fileName: order.fileName,
       mimeType: order.mimeType,
       downloadUrl: `/api/agent/orders/${order.id}/file`,
       pageCount: order.pageCount,
+      batchId: order.batchId,
+      batchIndex: order.batchIndex,
       createdAt: order.createdAt.toISOString(),
     })),
   }

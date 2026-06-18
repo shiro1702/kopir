@@ -1,0 +1,406 @@
+import { OrderBatchStatus, OrderStatus, type Order, type OrderBatch } from '@prisma/client'
+import { deleteOrderFile } from './blob'
+import { getPricePerPageKopeks } from './calculation'
+import { prisma } from './prisma'
+
+export function getBatchMaxFiles(): number {
+  const config = useRuntimeConfig()
+  const value = Number(config.batchMaxFiles)
+  return Number.isFinite(value) && value > 0 ? value : 5
+}
+
+export function getBatchBuildTimeoutMin(): number {
+  const config = useRuntimeConfig()
+  const value = Number(config.batchBuildTimeoutMin)
+  return Number.isFinite(value) && value > 0 ? value : 15
+}
+
+function batchLog(batchId: string, message: string, extra?: unknown) {
+  if (extra !== undefined) {
+    console.log(`[batch:${batchId}] ${message}`, extra)
+  } else {
+    console.log(`[batch:${batchId}] ${message}`)
+  }
+}
+
+export async function recalculateBatchTotals(batchId: string): Promise<OrderBatch> {
+  const orders = await prisma.order.findMany({
+    where: { batchId },
+    orderBy: { batchIndex: 'asc' },
+  })
+
+  const totalPages = orders.reduce((sum, order) => sum + order.pageCount, 0)
+  const totalAmountKopeks = orders.reduce((sum, order) => sum + order.amountKopeks, 0)
+
+  return prisma.orderBatch.update({
+    where: { id: batchId },
+    data: { totalPages, totalAmountKopeks },
+  })
+}
+
+export async function getActiveCollectingBatch(
+  userId: string,
+  pointId: string,
+): Promise<(OrderBatch & { orders: Order[] }) | null> {
+  return prisma.orderBatch.findFirst({
+    where: {
+      userId,
+      pointId,
+      status: OrderBatchStatus.COLLECTING,
+    },
+    include: {
+      orders: { orderBy: { batchIndex: 'asc' } },
+    },
+    orderBy: { createdAt: 'desc' },
+  })
+}
+
+export async function getOrCreateCollectingBatch(
+  userId: string,
+  pointId: string,
+): Promise<OrderBatch & { orders: Order[] }> {
+  const existing = await getActiveCollectingBatch(userId, pointId)
+  if (existing) {
+    return existing
+  }
+
+  const batch = await prisma.orderBatch.create({
+    data: {
+      userId,
+      pointId,
+      status: OrderBatchStatus.COLLECTING,
+    },
+    include: { orders: true },
+  })
+  batchLog(batch.id, 'created collecting batch')
+  return batch
+}
+
+export async function getNextBatchIndex(batchId: string): Promise<number> {
+  const last = await prisma.order.findFirst({
+    where: { batchId },
+    orderBy: { batchIndex: 'desc' },
+    select: { batchIndex: true },
+  })
+  return (last?.batchIndex ?? 0) + 1
+}
+
+export async function expireStaleCollectingBatches(): Promise<void> {
+  const timeoutMin = getBatchBuildTimeoutMin()
+  const cutoff = new Date(Date.now() - timeoutMin * 60 * 1000)
+
+  const staleBatches = await prisma.orderBatch.findMany({
+    where: {
+      status: OrderBatchStatus.COLLECTING,
+      updatedAt: { lt: cutoff },
+    },
+    include: { orders: true, user: true },
+  })
+
+  for (const batch of staleBatches) {
+    batchLog(batch.id, 'auto-cancel due to timeout')
+    await cancelBatch(batch.id, 'Пачка отменена: время сбора истекло')
+  }
+}
+
+export async function cancelBatch(
+  batchId: string,
+  reason = 'batch cancelled',
+): Promise<void> {
+  const batch = await prisma.orderBatch.findUnique({
+    where: { id: batchId },
+    include: { orders: true, user: true },
+  })
+  if (!batch || batch.status === OrderBatchStatus.CANCELLED) {
+    return
+  }
+
+  if (batch.status !== OrderBatchStatus.COLLECTING) {
+    throw createError({
+      statusCode: 400,
+      data: { error: 'Only collecting batches can be cancelled', code: 'INVALID_BATCH_STATUS' },
+    })
+  }
+
+  for (const order of batch.orders) {
+    if (order.filePath) {
+      await deleteOrderFile(order.filePath)
+    }
+    await prisma.order.update({
+      where: { id: order.id },
+      data: {
+        status: OrderStatus.FAILED,
+        errorMessage: reason,
+      },
+    })
+  }
+
+  await prisma.orderBatch.update({
+    where: { id: batchId },
+    data: { status: OrderBatchStatus.CANCELLED },
+  })
+
+  try {
+    const { notifyBatchCancelled } = await import('./bot/core')
+    await notifyBatchCancelled(batch.user, reason)
+  } catch (error) {
+    console.error('[batch] cancel notify failed:', batchId, error)
+  }
+}
+
+export interface FinalizeBatchResult {
+  batch: OrderBatch & { orders: Order[] }
+}
+
+export async function finalizeBatch(batchId: string): Promise<FinalizeBatchResult> {
+  const batch = await prisma.orderBatch.findUnique({
+    where: { id: batchId },
+    include: {
+      orders: { orderBy: { batchIndex: 'asc' } },
+      user: true,
+      point: true,
+    },
+  })
+
+  if (!batch) {
+    throw createError({
+      statusCode: 404,
+      data: { error: 'Batch not found', code: 'BATCH_NOT_FOUND' },
+    })
+  }
+
+  if (batch.status !== OrderBatchStatus.COLLECTING) {
+    throw createError({
+      statusCode: 400,
+      data: { error: 'Batch is not collecting', code: 'INVALID_BATCH_STATUS' },
+    })
+  }
+
+  if (batch.orders.length === 0) {
+    throw createError({
+      statusCode: 400,
+      data: { error: 'Batch has no files', code: 'EMPTY_BATCH' },
+    })
+  }
+
+  const calculating = batch.orders.filter((o) => o.status === OrderStatus.CALCULATING)
+  if (calculating.length > 0) {
+    throw createError({
+      statusCode: 400,
+      data: {
+        error: 'Some files are still being calculated',
+        code: 'BATCH_CALCULATING',
+      },
+    })
+  }
+
+  const failed = batch.orders.filter((o) => o.status === OrderStatus.CALCULATION_FAILED)
+  if (failed.length > 0) {
+    throw createError({
+      statusCode: 400,
+      data: {
+        error: `Failed to process: ${failed.map((o) => o.fileName).join(', ')}`,
+        code: 'BATCH_CALCULATION_FAILED',
+      },
+    })
+  }
+
+  const pricePerPage = getPricePerPageKopeks()
+  for (const order of batch.orders) {
+    if (order.amountKopeks === 0 && order.pageCount > 0) {
+      await prisma.order.update({
+        where: { id: order.id },
+        data: {
+          amountKopeks: order.pageCount * pricePerPage,
+          status: OrderStatus.AWAITING_PAYMENT,
+        },
+      })
+    } else if (order.status !== OrderStatus.AWAITING_PAYMENT) {
+      await prisma.order.update({
+        where: { id: order.id },
+        data: { status: OrderStatus.AWAITING_PAYMENT },
+      })
+    }
+  }
+
+  const updatedBatch = await recalculateBatchTotals(batchId)
+  const finalBatch = await prisma.orderBatch.update({
+    where: { id: batchId },
+    data: { status: OrderBatchStatus.AWAITING_PAYMENT },
+    include: {
+      orders: { orderBy: { batchIndex: 'asc' } },
+      user: true,
+      point: true,
+    },
+  })
+
+  batchLog(batchId, 'finalized', {
+    files: finalBatch.orders.length,
+    totalPages: updatedBatch.totalPages,
+    totalAmountKopeks: updatedBatch.totalAmountKopeks,
+  })
+
+  return { batch: finalBatch }
+}
+
+export async function confirmBatchPayment(batchId: string) {
+  const batch = await prisma.orderBatch.findUnique({
+    where: { id: batchId },
+    include: {
+      orders: { orderBy: { batchIndex: 'asc' } },
+      user: true,
+      point: true,
+    },
+  })
+
+  if (!batch) {
+    throw createError({
+      statusCode: 404,
+      data: { error: 'Batch not found', code: 'BATCH_NOT_FOUND' },
+    })
+  }
+
+  if (batch.status === OrderBatchStatus.PAID) {
+    return {
+      id: batch.id,
+      status: batch.status,
+      paidAt: batch.paidAt?.toISOString() ?? null,
+    }
+  }
+
+  if (batch.status !== OrderBatchStatus.AWAITING_PAYMENT) {
+    throw createError({
+      statusCode: 400,
+      data: { error: 'Batch is not awaiting payment', code: 'INVALID_BATCH_STATUS' },
+    })
+  }
+
+  const now = new Date()
+  await prisma.$transaction([
+    prisma.orderBatch.update({
+      where: { id: batchId },
+      data: { status: OrderBatchStatus.PAID, paidAt: now },
+    }),
+    prisma.order.updateMany({
+      where: { batchId },
+      data: {
+        status: OrderStatus.PAID,
+        paidAt: now,
+        paymentConfirmedAt: now,
+      },
+    }),
+  ])
+
+  batchLog(batchId, 'payment confirmed, all orders PAID')
+
+  try {
+    const { notifyBatchPaymentConfirmed } = await import('./bot/core')
+    await notifyBatchPaymentConfirmed(batch.user, batchId, batch.orders.length)
+  } catch (error) {
+    console.error('[batch] payment notify failed:', batchId, error)
+  }
+
+  return {
+    id: batch.id,
+    status: OrderBatchStatus.PAID,
+    paidAt: now.toISOString(),
+  }
+}
+
+export async function getBatchWithOrders(batchId: string) {
+  const batch = await prisma.orderBatch.findUnique({
+    where: { id: batchId },
+    include: {
+      orders: { orderBy: { batchIndex: 'asc' } },
+      user: true,
+      point: true,
+    },
+  })
+
+  if (!batch) {
+    throw createError({
+      statusCode: 404,
+      data: { error: 'Batch not found', code: 'BATCH_NOT_FOUND' },
+    })
+  }
+
+  return batch
+}
+
+export async function checkBatchCompletion(batchId: string): Promise<void> {
+  const batch = await prisma.orderBatch.findUnique({
+    where: { id: batchId },
+    include: {
+      orders: { orderBy: { batchIndex: 'asc' } },
+      user: true,
+    },
+  })
+
+  if (!batch || batch.status !== OrderBatchStatus.PAID) {
+    return
+  }
+
+  const terminal = batch.orders.every(
+    (o) => o.status === OrderStatus.PRINTED || o.status === OrderStatus.FAILED,
+  )
+  if (!terminal) {
+    return
+  }
+
+  const allPrinted = batch.orders.every((o) => o.status === OrderStatus.PRINTED)
+  const failedOrders = batch.orders.filter((o) => o.status === OrderStatus.FAILED)
+  const newStatus = allPrinted
+    ? OrderBatchStatus.COMPLETED
+    : OrderBatchStatus.PARTIALLY_FAILED
+
+  await prisma.orderBatch.update({
+    where: { id: batchId },
+    data: { status: newStatus },
+  })
+
+  batchLog(batchId, `batch finished: ${newStatus}`)
+
+  try {
+    const { notifyBatchPrintComplete, notifyBatchPrintPartialFailure } = await import('./bot/core')
+    if (allPrinted) {
+      await notifyBatchPrintComplete(batch.user, batchId, batch.orders.length)
+    } else {
+      await notifyBatchPrintPartialFailure(
+        batch.user,
+        batchId,
+        failedOrders.map((o) => o.fileName),
+        batch.orders.length,
+      )
+    }
+  } catch (error) {
+    console.error('[batch] completion notify failed:', batchId, error)
+  }
+}
+
+export async function notifyBatchPrintStartedIfNeeded(batchId: string, orderId: string): Promise<void> {
+  const batch = await prisma.orderBatch.findUnique({
+    where: { id: batchId },
+    include: { orders: true, user: true },
+  })
+  if (!batch) {
+    return
+  }
+
+  const printingOrDone = batch.orders.filter(
+    (o) =>
+      o.status === OrderStatus.PRINTING
+      || o.status === OrderStatus.PRINTED
+      || o.status === OrderStatus.FAILED,
+  )
+
+  if (printingOrDone.length !== 1 || printingOrDone[0]?.id !== orderId) {
+    return
+  }
+
+  try {
+    const { notifyBatchPrintStarted } = await import('./bot/core')
+    await notifyBatchPrintStarted(batch.user, batchId, 1, batch.orders.length)
+  } catch (error) {
+    console.error('[batch] print started notify failed:', batchId, error)
+  }
+}

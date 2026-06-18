@@ -35,6 +35,16 @@ export async function confirmOrderPayment(orderId: string) {
     throw invalidStatus('Order is not awaiting payment')
   }
 
+  if (order.batchId) {
+    throw createError({
+      statusCode: 400,
+      data: {
+        error: 'Use batch payment confirmation for orders in a batch',
+        code: 'BATCH_ORDER',
+      },
+    })
+  }
+
   if (order.paymentConfirmedAt) {
     if (order.status === OrderStatus.AWAITING_PAYMENT) {
       return startOrderPrint(orderId)
@@ -101,6 +111,16 @@ export async function startOrderPrint(orderId: string) {
 
   if (order.status !== OrderStatus.AWAITING_PAYMENT) {
     throw invalidStatus('Order is not awaiting payment')
+  }
+
+  if (order.batchId) {
+    throw createError({
+      statusCode: 400,
+      data: {
+        error: 'Use batch payment confirmation for orders in a batch',
+        code: 'BATCH_ORDER',
+      },
+    })
   }
 
   if (isTerminalPaymentMode() && !order.paymentConfirmedAt) {

@@ -1,17 +1,36 @@
 import { timingSafeEqual } from 'node:crypto'
 import type { H3Event } from 'h3'
 import { detectDocumentKind, mimeTypeForKind } from '../file-types'
+import { BTN_CANCEL_BATCH, BTN_FINALIZE_BATCH } from '../bot/messages'
 import { getStaffMaxUserId } from '../payment-mode'
 import type { MessengerAdapter, MessengerReplyTarget } from '../bot/types'
 import { getMaxClient } from './client'
-import type { MaxAttachment, MaxUpdate } from './types'
+import type { MaxAttachment, MaxInlineKeyboardAttachment, MaxUpdate } from './types'
+
+function batchInlineKeyboard(): MaxInlineKeyboardAttachment {
+  return {
+    type: 'inline_keyboard',
+    payload: {
+      buttons: [
+        [
+          { type: 'callback', text: BTN_FINALIZE_BATCH, payload: 'batch_finalize', intent: 'default' },
+          { type: 'callback', text: BTN_CANCEL_BATCH, payload: 'batch_cancel', intent: 'default' },
+        ],
+      ],
+    },
+  }
+}
 
 function createMaxAdapter(): MessengerAdapter {
   const client = getMaxClient()
   return {
     platform: 'max',
-    async sendText(target: MessengerReplyTarget, text: string) {
-      await client.sendMessage({ chatId: Number(target.chatId) }, text)
+    async sendText(target: MessengerReplyTarget, text: string, options?) {
+      await client.sendMessage(
+        { chatId: Number(target.chatId) },
+        text,
+        options?.showBatchActions ? [batchInlineKeyboard()] : undefined,
+      )
     },
   }
 }
@@ -42,6 +61,17 @@ function parseStartPayload(text: string | undefined): string | undefined {
 
 function findFileAttachment(attachments: MaxAttachment[] | undefined) {
   return attachments?.find((attachment) => attachment.type === 'file')
+}
+
+function isBatchActionText(text: string): 'finalize' | 'cancel' | null {
+  const trimmed = text.trim()
+  if (trimmed === BTN_FINALIZE_BATCH) {
+    return 'finalize'
+  }
+  if (trimmed === BTN_CANCEL_BATCH) {
+    return 'cancel'
+  }
+  return null
 }
 
 export async function handleMaxUpdate(update: MaxUpdate): Promise<void> {
@@ -87,6 +117,13 @@ export async function handleMaxUpdate(update: MaxUpdate): Promise<void> {
         return
       }
 
+      const textAction = message.body?.text ? isBatchActionText(message.body.text) : null
+      if (textAction) {
+        const { handleBatchAction } = await import('../bot/core')
+        await handleBatchAction('max', target, user, textAction, adapter)
+        return
+      }
+
       const fileAttachment = findFileAttachment(message.body?.attachments)
       if (!fileAttachment?.payload?.url) {
         return
@@ -118,7 +155,40 @@ export async function handleMaxUpdate(update: MaxUpdate): Promise<void> {
       }
 
       const staffMaxUserId = getStaffMaxUserId()
-      if (!staffMaxUserId || callback.user.user_id !== staffMaxUserId) {
+      const isStaff = staffMaxUserId && callback.user.user_id === staffMaxUserId
+
+      if (callback.payload === 'batch_finalize' || callback.payload === 'batch_cancel') {
+        if (isStaff) {
+          await client.answerCallback(callback.callback_id, 'Нет доступа')
+          return
+        }
+        const chatId = update.message?.recipient?.chat_id ?? update.chat_id
+        if (!chatId) {
+          await client.answerCallback(callback.callback_id, 'Ошибка чата')
+          return
+        }
+        const target: MessengerReplyTarget = {
+          platform: 'max',
+          chatId: String(chatId),
+        }
+        const user = {
+          externalId: String(callback.user.user_id),
+          username: callback.user.username ?? null,
+          firstName: callback.user.first_name ?? callback.user.name ?? null,
+        }
+        const action = callback.payload === 'batch_finalize' ? 'finalize' : 'cancel'
+        try {
+          const { handleBatchAction } = await import('../bot/core')
+          await handleBatchAction('max', target, user, action, adapter)
+          await client.answerCallback(callback.callback_id, action === 'finalize' ? 'Пачка собрана' : 'Пачка отменена')
+        } catch (error) {
+          const text = error instanceof Error ? error.message : 'Ошибка'
+          await client.answerCallback(callback.callback_id, text)
+        }
+        return
+      }
+
+      if (!isStaff) {
         await client.answerCallback(callback.callback_id, 'Нет доступа')
         return
       }

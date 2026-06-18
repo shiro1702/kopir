@@ -41,13 +41,13 @@
 
 | # | Задача | Статус | Файл |
 |---|--------|--------|------|
-| 01 | Prisma: `OrderBatch` + связь с `Order` | ⬜ | [tasks/01-schema-order-batch.md](./tasks/01-schema-order-batch.md) |
-| 02 | Бот: режим «собираем пачку» + команды завершения | ⬜ | [tasks/02-bot-batch-flow.md](./tasks/02-bot-batch-flow.md) |
-| 03 | API: batch summary + подтверждение оплаты пачки | ⬜ | [tasks/03-api-batch-payment.md](./tasks/03-api-batch-payment.md) |
-| 04 | Agent queue: выдача файлов по `batchId` и порядку | ⬜ | [tasks/04-agent-batch-queue.md](./tasks/04-agent-batch-queue.md) |
-| 05 | Staff/admin: один action «Оплачено» на всю пачку | ⬜ | [tasks/05-admin-batch-confirm.md](./tasks/05-admin-batch-confirm.md) |
-| 06 | Уведомления клиенту: принято/оплачено/готово по пачке | ⬜ | [tasks/06-bot-batch-notifications.md](./tasks/06-bot-batch-notifications.md) |
-| 07 | E2E: 2–5 файлов в одном платеже | ⬜ | [tasks/07-e2e-batch-payment.md](./tasks/07-e2e-batch-payment.md) |
+| 01 | Prisma: `OrderBatch` + связь с `Order` | ✅ | [tasks/01-schema-order-batch.md](./tasks/01-schema-order-batch.md) |
+| 02 | Бот: режим «собираем пачку» + команды завершения | ✅ | [tasks/02-bot-batch-flow.md](./tasks/02-bot-batch-flow.md) |
+| 03 | API: batch summary + подтверждение оплаты пачки | ✅ | [tasks/03-api-batch-payment.md](./tasks/03-api-batch-payment.md) |
+| 04 | Agent queue: выдача файлов по `batchId` и порядку | ✅ | [tasks/04-agent-batch-queue.md](./tasks/04-agent-batch-queue.md) |
+| 05 | Staff/admin: один action «Оплачено» на всю пачку | ✅ | [tasks/05-admin-batch-confirm.md](./tasks/05-admin-batch-confirm.md) |
+| 06 | Уведомления клиенту: принято/оплачено/готово по пачке | ✅ | [tasks/06-bot-batch-notifications.md](./tasks/06-bot-batch-notifications.md) |
+| 07 | E2E: 2–5 файлов в одном платеже | 🔵 | [tasks/07-e2e-batch-payment.md](./tasks/07-e2e-batch-payment.md) |
 
 ## Порядок выполнения
 

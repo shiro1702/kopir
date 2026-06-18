@@ -22,5 +22,9 @@ export type IncomingPdf = IncomingDocument
 
 export interface MessengerAdapter {
   platform: MessengerPlatform
-  sendText(target: MessengerReplyTarget, text: string): Promise<void>
+  sendText(
+    target: MessengerReplyTarget,
+    text: string,
+    options?: { showBatchActions?: boolean },
+  ): Promise<void>
 }

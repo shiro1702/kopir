@@ -1,14 +1,15 @@
 import { isTerminalPaymentMode } from '../payment-mode'
 
+export const BTN_FINALIZE_BATCH = '✅ Завершить и оплатить'
+export const BTN_CANCEL_BATCH = '❌ Отменить пачку'
+
 export const MSG_START =
-  'Привет! Отправь PDF или Word-документ (.doc, .docx) для печати.\n\n'
-  + 'После загрузки мы сообщим стоимость и дальнейшие шаги по оплате.'
+  'Привет! Отправляйте файлы по одному (PDF или Word).\n\n'
+  + 'Когда всё готово — нажмите «Завершить и оплатить».\n'
+  + 'Можно добавить до 5 файлов в одну пачку.'
 
 export const MSG_UNSUPPORTED_FILE =
   'Пока принимаем только PDF и Word (.doc, .docx). Отправьте файл в одном из этих форматов.'
-
-/** @deprecated Use MSG_UNSUPPORTED_FILE */
-export const MSG_PDF_ONLY = MSG_UNSUPPORTED_FILE
 
 export const MSG_CALCULATING =
   'Считаем страницы на принтере… Это может занять до 20 секунд.'
@@ -19,16 +20,92 @@ export const MSG_CALCULATION_FAILED =
 export const MSG_UPLOAD_FAILED =
   'Не удалось сохранить файл. Попробуйте отправить документ ещё раз через минуту.'
 
+export const MSG_BATCH_LIMIT =
+  'Достигнут лимит файлов в пачке. Нажмите «Завершить и оплатить» или «Отменить пачку».'
+
+export const MSG_BATCH_CANCELLED =
+  'Пачка отменена. Отправьте файлы заново, когда будете готовы.'
+
 function clientPaymentHint(): string {
   if (isTerminalPaymentMode()) {
     return (
       'Оплатите на терминале копицентра.\n'
-      + 'Сотрудник получит уведомление — после оплаты документ сразу отправится на печать.'
+      + 'Сотрудник получит уведомление — после оплаты подтвердит её и запустит печать.'
     )
   }
   return 'Оплата в боте скоро будет доступна. Пока обратитесь к сотруднику копицентра.'
 }
 
+export function formatBatchFileAdded(
+  fileName: string,
+  fileIndex: number,
+  maxFiles: number,
+  isCalculating: boolean,
+): string {
+  const status = isCalculating
+    ? MSG_CALCULATING
+    : `Файл ${fileIndex}/${maxFiles}: ${fileName}`
+  return (
+    `📎 ${status}\n\n`
+    + `В пачке: ${fileIndex} из ${maxFiles}.\n`
+    + 'Добавьте ещё файлы или нажмите «Завершить и оплатить».'
+  )
+}
+
+export function formatBatchSummary(
+  fileNames: string[],
+  totalPages: number,
+  totalAmountKopeks: number,
+): string {
+  const amountRub = Math.round(totalAmountKopeks / 100)
+  const filesList = fileNames.map((name, i) => `${i + 1}. ${name}`).join('\n')
+  return (
+    `📦 Пачка собрана (${fileNames.length} файлов)\n\n`
+    + `${filesList}\n\n`
+    + `Страниц: ${totalPages}\n`
+    + `Итого: ${amountRub} ₽\n\n`
+    + clientPaymentHint()
+  )
+}
+
+export function formatBatchPaymentConfirmed(batchShortId: string, fileCount: number): string {
+  return (
+    `✅ Оплата принята!\n`
+    + `Пачка #${batchShortId} (${fileCount} файлов)\n`
+    + 'Сотрудник запустит печать.'
+  )
+}
+
+export function formatBatchPrintStarted(batchShortId: string, current: number, total: number): string {
+  return (
+    `🖨 Печать пачки #${batchShortId} началась (${current}/${total}).\n`
+    + 'Заберите документы у принтера, когда будут готовы.'
+  )
+}
+
+export function formatBatchPrintComplete(batchShortId: string, fileCount: number): string {
+  return (
+    `✅ Готово!\n`
+    + `Пачка #${batchShortId} (${fileCount} файлов)\n`
+    + 'Заберите документы у принтера.'
+  )
+}
+
+export function formatBatchPrintPartialFailure(
+  batchShortId: string,
+  failedFileNames: string[],
+  totalFiles: number,
+): string {
+  const failedList = failedFileNames.map((n) => `• ${n}`).join('\n')
+  return (
+    `⚠️ Пачка #${batchShortId}: печать завершена с ошибками.\n\n`
+    + `Не удалось напечатать:\n${failedList}\n\n`
+    + `Успешно: ${totalFiles - failedFileNames.length} из ${totalFiles}.\n`
+    + 'Обратитесь к сотруднику копицентра.'
+  )
+}
+
+/** @deprecated Single-order flow; batch uses formatBatchFileAdded */
 export function formatOrderReceived(fileName: string, shortId: string): string {
   return (
     `📄 Файл получен: ${fileName}\n`
@@ -116,7 +193,39 @@ export function formatStaffOrderAwaitingPayment(order: StaffOrderInfo): string {
     + `Страниц: ${order.pageCount} | ${amountText}\n`
     + `Клиент: ${userLabel}\n`
     + `Точка: ${order.point.name}\n\n`
-    + 'Примите оплату на терминале и нажмите «Оплата получена» — печать запустится автоматически.'
+    + 'Примите оплату на терминале, затем:\n'
+    + '1️⃣ «Оплата получена»\n'
+    + '2️⃣ «Печать»'
+  )
+}
+
+export function formatStaffBatchAwaitingPayment(batch: {
+  id: string
+  totalPages: number
+  totalAmountKopeks: number
+  orders: Array<{ fileName: string, batchIndex: number | null }>
+  user: { username?: string | null, firstName?: string | null }
+  point: { name: string }
+}): string {
+  const shortId = batch.id.slice(-6)
+  const amountText = batch.totalAmountKopeks > 0
+    ? `${Math.round(batch.totalAmountKopeks / 100)} ₽`
+    : 'уточните у клиента'
+  const userLabel = batch.user.username
+    ? `@${batch.user.username}`
+    : batch.user.firstName ?? 'клиент'
+  const filesList = batch.orders
+    .map((o) => `${o.batchIndex}. ${o.fileName}`)
+    .join('\n')
+
+  return (
+    `🆕 Новая пачка #${shortId}\n`
+    + `Файлов: ${batch.orders.length}\n`
+    + `${filesList}\n\n`
+    + `Страниц: ${batch.totalPages} | ${amountText}\n`
+    + `Клиент: ${userLabel}\n`
+    + `Точка: ${batch.point.name}\n\n`
+    + 'Примите оплату на терминале и подтвердите пачку целиком.'
   )
 }
 

@@ -1,5 +1,6 @@
 import { OrderStatus } from '@prisma/client'
 import { assertAgentAuth } from '../../../../utils/agent-auth'
+import { notifyBatchPrintStartedIfNeeded } from '../../../../utils/batch'
 import { prisma } from '../../../../utils/prisma'
 
 export default defineEventHandler(async (event) => {
@@ -36,6 +37,10 @@ export default defineEventHandler(async (event) => {
     where: { id },
     data: { status: OrderStatus.PRINTING },
   })
+
+  if (order.batchId) {
+    await notifyBatchPrintStartedIfNeeded(order.batchId, order.id)
+  }
 
   return { id: updated.id, status: updated.status }
 })

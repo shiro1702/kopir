@@ -95,6 +95,11 @@ export default defineEventHandler(async (event) => {
     },
   })
 
+  if (order.batchId) {
+    const { recalculateBatchTotals } = await import('../../../../utils/batch')
+    await recalculateBatchTotals(order.batchId)
+  }
+
   try {
     await notifyQuoteReady(order.user, updated)
   } catch (error) {

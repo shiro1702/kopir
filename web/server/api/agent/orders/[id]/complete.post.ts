@@ -1,5 +1,6 @@
 import { OrderStatus } from '@prisma/client'
 import { assertAgentAuth } from '../../../../utils/agent-auth'
+import { checkBatchCompletion } from '../../../../utils/batch'
 import { notifyPrintComplete } from '../../../../utils/bot/core'
 import { deleteOrderFile } from '../../../../utils/blob'
 import { prisma } from '../../../../utils/prisma'
@@ -64,7 +65,9 @@ export default defineEventHandler(async (event) => {
 
   await deleteOrderFile(order.filePath)
 
-  if (targetStatus === OrderStatus.PRINTED) {
+  if (order.batchId) {
+    await checkBatchCompletion(order.batchId)
+  } else if (targetStatus === OrderStatus.PRINTED) {
     try {
       await notifyPrintComplete(order.user, order.id)
     } catch (error) {

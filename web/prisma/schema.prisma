@@ -18,45 +18,77 @@ enum OrderStatus {
   FAILED
 }
 
+enum OrderBatchStatus {
+  COLLECTING
+  AWAITING_PAYMENT
+  PAID
+  COMPLETED
+  PARTIALLY_FAILED
+  CANCELLED
+}
+
 model User {
-  id         String   @id @default(cuid())
-  telegramId BigInt?  @unique
-  maxUserId  BigInt?  @unique
+  id         String       @id @default(cuid())
+  telegramId BigInt?      @unique
+  maxUserId  BigInt?      @unique
   username   String?
   firstName  String?
-  createdAt  DateTime @default(now())
+  createdAt  DateTime     @default(now())
   orders     Order[]
+  batches    OrderBatch[]
 }
 
 model Point {
-  id        String   @id @default(cuid())
-  slug      String   @unique
+  id        String       @id @default(cuid())
+  slug      String       @unique
   name      String
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
+  isActive  Boolean      @default(true)
+  createdAt DateTime     @default(now())
   orders    Order[]
+  batches   OrderBatch[]
+}
+
+model OrderBatch {
+  id                String           @id @default(cuid())
+  status            OrderBatchStatus @default(COLLECTING)
+  userId            String
+  user              User             @relation(fields: [userId], references: [id])
+  pointId           String
+  point             Point            @relation(fields: [pointId], references: [id])
+  totalPages        Int              @default(0)
+  totalAmountKopeks Int              @default(0)
+  paidAt            DateTime?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  orders            Order[]
+
+  @@index([status, pointId, createdAt])
 }
 
 model Order {
-  id           String      @id @default(cuid())
-  status       OrderStatus @default(AWAITING_PAYMENT)
-  fileName     String
-  filePath     String
-  mimeType     String?
-  pageCount    Int         @default(1)
-  amountKopeks Int         @default(0)
-  calculatedAt DateTime?
+  id                 String      @id @default(cuid())
+  status             OrderStatus @default(AWAITING_PAYMENT)
+  fileName           String
+  filePath           String
+  mimeType           String?
+  pageCount          Int         @default(1)
+  amountKopeks       Int         @default(0)
+  calculatedAt       DateTime?
   paymentConfirmedAt DateTime?
-  userId       String
-  user         User        @relation(fields: [userId], references: [id])
-  pointId      String
-  point        Point       @relation(fields: [pointId], references: [id])
-  paidAt       DateTime?
-  printedAt    DateTime?
-  errorMessage String?
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
+  userId             String
+  user               User        @relation(fields: [userId], references: [id])
+  pointId            String
+  point              Point       @relation(fields: [pointId], references: [id])
+  batchId            String?
+  batch              OrderBatch? @relation(fields: [batchId], references: [id])
+  batchIndex         Int?
+  paidAt             DateTime?
+  printedAt          DateTime?
+  errorMessage       String?
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
 
   @@index([status, pointId])
   @@index([createdAt])
+  @@index([batchId, batchIndex])
 }

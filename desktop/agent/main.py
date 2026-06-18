@@ -60,8 +60,11 @@ def process_calculation(client: ApiClient, config, order: dict) -> None:
 
 def process_order(client: ApiClient, config, order: dict) -> None:
     order_id = order["id"]
+    batch_id = order.get("batchId")
+    batch_index = order.get("batchIndex")
+    batch_label = f" batch={batch_id}#{batch_index}" if batch_id else ""
     client.claim(order_id)
-    log(f"Claimed order {order_id}")
+    log(f"Claimed order {order_id}{batch_label}")
 
     temp_path = temp_path_for_order(order)
 
