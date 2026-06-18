@@ -36,21 +36,25 @@ export async function confirmOrderPayment(orderId: string) {
   }
 
   if (order.paymentConfirmedAt) {
+    if (order.status === OrderStatus.AWAITING_PAYMENT) {
+      return startOrderPrint(orderId)
+    }
     return {
       id: order.id,
       status: order.status,
       paymentConfirmedAt: order.paymentConfirmedAt.toISOString(),
+      paidAt: order.paidAt?.toISOString() ?? null,
     }
   }
 
-  const updated = await prisma.order.update({
+  const paymentConfirmedAt = new Date()
+  await prisma.order.update({
     where: { id: orderId },
-    data: { paymentConfirmedAt: new Date() },
+    data: { paymentConfirmedAt },
   })
 
   try {
-    const { notifyPaymentReceivedByStaff } = await import('./bot/core')
-    await notifyPaymentReceivedByStaff(order.user, order.id)
+    const printResult = await startOrderPrint(orderId)
     const fullOrder = await prisma.order.findUnique({
       where: { id: orderId },
       include: { user: true, point: true },
@@ -59,14 +63,19 @@ export async function confirmOrderPayment(orderId: string) {
       const { notifyStaffPaymentConfirmed } = await import('./staff-notify')
       await notifyStaffPaymentConfirmed(fullOrder)
     }
+    return {
+      id: printResult.id,
+      status: printResult.status,
+      paymentConfirmedAt: paymentConfirmedAt.toISOString(),
+      paidAt: printResult.paidAt,
+    }
   } catch (error) {
     console.error('[staff] payment confirmed notify failed:', orderId, error)
-  }
-
-  return {
-    id: updated.id,
-    status: updated.status,
-    paymentConfirmedAt: updated.paymentConfirmedAt!.toISOString(),
+    return {
+      id: order.id,
+      status: order.status,
+      paymentConfirmedAt: paymentConfirmedAt.toISOString(),
+    }
   }
 }
 

@@ -25,8 +25,9 @@ function telegramStaffKeyboard(order: Pick<Order, 'id' | 'paymentConfirmedAt'>) 
   const keyboard = new InlineKeyboard()
   if (!order.paymentConfirmedAt) {
     keyboard.text('✅ Оплата получена', `staff_pay:${order.id}`)
+  } else {
+    keyboard.text('🖨 Печать', `staff_print:${order.id}`)
   }
-  keyboard.text('🖨 Печать', `staff_print:${order.id}`)
   return keyboard
 }
 
@@ -39,20 +40,25 @@ function maxStaffKeyboard(order: Pick<Order, 'id' | 'paymentConfirmedAt'>): MaxI
       payload: `staff_pay:${order.id}`,
       intent: 'default',
     }])
+  } else {
+    buttons.push([{
+      type: 'callback',
+      text: '🖨 Печать',
+      payload: `staff_print:${order.id}`,
+      intent: 'default',
+    }])
   }
-  buttons.push([{
-    type: 'callback',
-    text: '🖨 Печать',
-    payload: `staff_print:${order.id}`,
-    intent: 'default',
-  }])
   return {
     type: 'inline_keyboard',
     payload: { buttons },
   }
 }
 
-async function notifyStaffTelegram(order: OrderForStaff, text: string): Promise<void> {
+async function notifyStaffTelegram(
+  order: OrderForStaff,
+  text: string,
+  withKeyboard = true,
+): Promise<void> {
   const chatId = getStaffTelegramChatId()
   if (!chatId) {
     return
@@ -60,32 +66,44 @@ async function notifyStaffTelegram(order: OrderForStaff, text: string): Promise<
 
   const { getBot } = await import('./telegram/bot')
   const bot = getBot()
-  await bot.api.sendMessage(chatId, text, {
-    reply_markup: telegramStaffKeyboard(order),
-  })
+  await bot.api.sendMessage(chatId, text, withKeyboard
+    ? { reply_markup: telegramStaffKeyboard(order) }
+    : undefined)
 }
 
-async function notifyStaffMax(order: OrderForStaff, text: string): Promise<void> {
+async function notifyStaffMax(
+  order: OrderForStaff,
+  text: string,
+  withKeyboard = true,
+): Promise<void> {
   const userId = getStaffMaxUserId()
   if (!userId) {
     return
   }
 
   const client = getMaxClient()
-  await client.sendMessage({ userId }, text, [maxStaffKeyboard(order)])
+  await client.sendMessage(
+    { userId },
+    text,
+    withKeyboard ? [maxStaffKeyboard(order)] : undefined,
+  )
 }
 
-async function notifyStaffAll(order: OrderForStaff, text: string): Promise<void> {
+async function notifyStaffAll(
+  order: OrderForStaff,
+  text: string,
+  withKeyboard = true,
+): Promise<void> {
   const errors: Error[] = []
 
   try {
-    await notifyStaffTelegram(order, text)
+    await notifyStaffTelegram(order, text, withKeyboard)
   } catch (error) {
     errors.push(error instanceof Error ? error : new Error(String(error)))
   }
 
   try {
-    await notifyStaffMax(order, text)
+    await notifyStaffMax(order, text, withKeyboard)
   } catch (error) {
     errors.push(error instanceof Error ? error : new Error(String(error)))
   }
@@ -118,6 +136,6 @@ export async function notifyStaffPaymentConfirmed(order: OrderForStaff): Promise
   }
 
   const shortId = order.id.slice(-6)
-  const text = `✅ Оплата по заказу #${shortId} отмечена.\nМожно нажать «Печать».`
-  await notifyStaffAll(order, text)
+  const text = `✅ Оплата по заказу #${shortId} принята.\n🖨 Печать запущена.`
+  await notifyStaffAll(order, text, false)
 }

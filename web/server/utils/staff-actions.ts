@@ -4,7 +4,7 @@ export async function handleStaffCallbackPayload(data: string): Promise<string> 
   if (data.startsWith('staff_pay:')) {
     const orderId = data.slice('staff_pay:'.length)
     await confirmOrderPayment(orderId)
-    return 'Оплата отмечена'
+    return 'Оплата принята, печать запущена'
   }
 
   if (data.startsWith('staff_print:')) {
