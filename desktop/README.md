@@ -24,6 +24,10 @@ python -m agent.main
 python scripts/test_print.py path/to/test.pdf
 ```
 
+```bash
+python scripts/test_print.py scripts/test/Баранзаев Арсалан Баярович.pdf
+```
+
 ## Platform notes
 
 ### macOS / Linux
