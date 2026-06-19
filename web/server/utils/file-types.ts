@@ -45,6 +45,17 @@ export function mimeTypeForKind(kind: DocumentKind, fileName: string): string {
   return DOCX_MIME
 }
 
+/** RFC 5987 — safe Content-Disposition for non-ASCII filenames (e.g. Cyrillic). */
+export function contentDispositionAttachment(fileName: string): string {
+  const ext = getFileExtension(fileName)
+  const asciiFallback = fileName
+    .replace(/[^\x20-\x7E]/g, '_')
+    .replace(/["\\]/g, '_')
+    .trim() || `download${ext}`
+  const encoded = encodeURIComponent(fileName)
+  return `attachment; filename="${asciiFallback}"; filename*=UTF-8''${encoded}`
+}
+
 export function extensionForKind(kind: DocumentKind, fileName: string): string {
   if (kind === 'pdf') {
     return '.pdf'

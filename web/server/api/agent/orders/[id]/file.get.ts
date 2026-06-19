@@ -1,6 +1,7 @@
 import { OrderStatus } from '@prisma/client'
 import { assertAgentAuth } from '../../../../utils/agent-auth'
 import { downloadOrderFile } from '../../../../utils/blob'
+import { contentDispositionAttachment } from '../../../../utils/file-types'
 import { prisma } from '../../../../utils/prisma'
 import { touchPointAgentSeen } from '../../../../utils/points'
 
@@ -42,6 +43,6 @@ export default defineEventHandler(async (event) => {
   const contentType = order.mimeType || 'application/octet-stream'
 
   setHeader(event, 'Content-Type', contentType)
-  setHeader(event, 'Content-Disposition', `attachment; filename="${order.fileName}"`)
+  setHeader(event, 'Content-Disposition', contentDispositionAttachment(order.fileName))
   return buffer
 })
