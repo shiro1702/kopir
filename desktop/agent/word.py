@@ -18,6 +18,7 @@ def _require_win32():
         raise WordError("pywin32 is not installed") from exc
 
 
+def count_pages(path: str) -> int:
     _require_win32()
     import win32com.client
 

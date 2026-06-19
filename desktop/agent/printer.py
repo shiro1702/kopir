@@ -10,6 +10,22 @@ class PrintError(Exception):
     pass
 
 
+_SUMATRA_EXIT_MESSAGES = {
+    2: "could not open PDF (file missing or corrupt)",
+    3: "PDF does not allow printing",
+    4: "printer not found (check PRINTER_NAME or default printer in Windows)",
+    5: "printer driver error",
+    6: "printing disabled by system policy",
+}
+
+
+def _sumatra_failure_message(returncode: int) -> str:
+    detail = _SUMATRA_EXIT_MESSAGES.get(returncode)
+    if detail:
+        return f"SumatraPDF failed (exit {returncode}): {detail}"
+    return f"SumatraPDF failed (exit {returncode})"
+
+
 def _extension_for_order(order: dict) -> str:
     file_name = str(order.get("fileName") or "document.pdf")
     ext = Path(file_name).suffix.lower()
@@ -38,8 +54,12 @@ def print_pdf(pdf_path: str, config: Config) -> None:
         if not sumatra.is_file():
             raise PrintError(f"SumatraPDF not found at {sumatra}")
 
-        printer = config.printer_name or "default"
-        cmd = [str(sumatra), "-print-to", printer, "-silent", str(path)]
+        cmd = [str(sumatra), "-silent"]
+        if config.printer_name:
+            cmd.extend(["-print-to", config.printer_name])
+        else:
+            cmd.append("-print-to-default")
+        cmd.append(str(path))
     elif platform in ("darwin", "linux"):
         cmd = ["lp"]
         if config.printer_name:
@@ -49,11 +69,11 @@ def print_pdf(pdf_path: str, config: Config) -> None:
         raise PrintError(f"Unsupported platform: {platform}")
 
     try:
-        subprocess.run(cmd, check=True, timeout=timeout)
+        result = subprocess.run(cmd, check=False, timeout=timeout)
+        if result.returncode != 0:
+            raise PrintError(_sumatra_failure_message(result.returncode))
     except subprocess.TimeoutExpired as exc:
         raise PrintError(f"Print timed out after {timeout}s") from exc
-    except subprocess.CalledProcessError as exc:
-        raise PrintError(f"Print command failed: {exc}") from exc
 
 
 def print_order(file_path: str, order: dict, config: Config) -> None:
