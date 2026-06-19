@@ -39,13 +39,14 @@ model User {
 }
 
 model Point {
-  id        String       @id @default(cuid())
-  slug      String       @unique
-  name      String
-  isActive  Boolean      @default(true)
-  createdAt DateTime     @default(now())
-  orders    Order[]
-  batches   OrderBatch[]
+  id         String       @id @default(cuid())
+  slug       String       @unique
+  name       String
+  isActive   Boolean      @default(true)
+  lastSeenAt DateTime?
+  createdAt  DateTime     @default(now())
+  orders     Order[]
+  batches    OrderBatch[]
 }
 
 model OrderBatch {

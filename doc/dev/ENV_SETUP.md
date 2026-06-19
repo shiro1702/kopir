@@ -17,6 +17,7 @@
 | 7 | `AGENT_API_KEY` | Сгенерировать самому | `web/.env` + Vercel + `desktop/.env` |
 | 8 | `SERVER_URL` | URL деплоя Vercel | `desktop/.env` |
 | 9 | `POINT_ID` | Константа `point_dev_1` | `desktop/.env` |
+| 10 | `POINT_OFFLINE_THRESHOLD_SEC` | `20` (опционально) | `web/.env` + Vercel |
 
 ---
 
@@ -187,6 +188,29 @@ AGENT_API_KEY="f7e8d9c0..."
 
 Агент шлёт заголовок: `Authorization: Bearer <AGENT_API_KEY>`.
 
+При каждом запросе к `/api/agent/*` сервер обновляет `Point.lastSeenAt`. По этому полю определяется, подключён ли агент (см. §9).
+
+---
+
+## 9. `POINT_OFFLINE_THRESHOLD_SEC` — статус агента печати
+
+**Зачем:** сервер и админка понимают, жив ли десктоп-агент на точке. Если агент не обращался к API дольше порога — точка считается offline.
+
+```env
+POINT_OFFLINE_THRESHOLD_SEC=20
+```
+
+**Как работает (polling MVP):**
+
+- Агент при poll (`POLL_INTERVAL_SEC`, default 5) и при печати (claim, download, complete) обновляет `lastSeenAt` на сервере.
+- Если `now - lastSeenAt > POINT_OFFLINE_THRESHOLD_SEC` → offline.
+- **Админка** (`/admin`): 🟢/🔴 у каждой точки.
+- **Бот:** после подтверждения оплаты клиенту дописывается предупреждение, если агент offline.
+
+**Рекомендация:** держать порог ≥ `2 × POLL_INTERVAL_SEC` агента (при poll=5 → 15–20 сек).
+
+Полная версия с WebSocket heartbeat — Sprint 1, задача [04-heartbeat-offline](../sprints/sprint-1/tasks/04-heartbeat-offline.md).
+
 ---
 
 ## 7. Vercel — деплой и env
@@ -207,6 +231,7 @@ AGENT_API_KEY="f7e8d9c0..."
 | `MAX_WEBHOOK_SECRET` | Production, Preview, Development (рекомендуется) |
 | `ADMIN_SECRET` | Production, Preview, Development |
 | `AGENT_API_KEY` | Production, Preview, Development |
+| `POINT_OFFLINE_THRESHOLD_SEC` | Production, Preview, Development (опционально, default 20) |
 
 5. Deploy
 
@@ -280,6 +305,7 @@ MAX_BOT_TOKEN="..."              # опционально
 MAX_WEBHOOK_SECRET="..."         # опционально, для prod
 ADMIN_SECRET="..."
 AGENT_API_KEY="..."
+POINT_OFFLINE_THRESHOLD_SEC=20
 PRICE_PER_PAGE_KOPEKS=1000
 CALCULATION_TIMEOUT_SEC=120
 PAYMENT_MODE=terminal
@@ -339,6 +365,7 @@ cd desktop && python -m agent.main
 | Prisma error | Нет миграций | `npm run db:deploy` |
 | Blob upload fail | Нет `BLOB_READ_WRITE_TOKEN` | Создать Blob store в Vercel |
 | Агент idle, заказы не печатаются | Заказ не `PAID` | В `/admin`: «Оплата получена» → «Печать» (или кнопки в TG сотрудника) |
+| Админка 🔴, агент запущен | Порог offline слишком мал / нет миграции | `npm run db:deploy`; `POINT_OFFLINE_THRESHOLD_SEC` ≥ 2× `POLL_INTERVAL_SEC` |
 | `Point not found` | Нет seed | `npm run db:seed` |
 
 ---

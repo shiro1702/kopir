@@ -2,7 +2,7 @@ import { OrderStatus } from '@prisma/client'
 import { assertAgentAuth } from '../../utils/agent-auth'
 import { expireStaleCalculations } from '../../utils/calculation'
 import { prisma } from '../../utils/prisma'
-import { resolvePointBySlug } from '../../utils/points'
+import { resolvePointBySlug, touchPointAgentSeen } from '../../utils/points'
 
 type QueueKind = 'calculate' | 'print'
 
@@ -49,6 +49,7 @@ export default defineEventHandler(async (event) => {
 
   const kind = parseQueueKind(query.kind as string | undefined)
   const point = await resolvePointBySlug(pointSlug)
+  await touchPointAgentSeen(point.id)
 
   if (kind === 'calculate') {
     await expireStaleCalculations(point.id)

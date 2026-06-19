@@ -116,7 +116,7 @@
 | ⬜ todo | AGT-05 | Авторизация по токену (6 цифр) | 3 | |
 | ⬜ todo | AGT-06 | Windows Service + трей | 3 | нельзя закрыть |
 | ⬜ todo | AGT-07 | Кнопка «Пауза приёма заказов» | 3 | status: paused |
-| ⬜ todo | AGT-08 | Heartbeat каждые 15 сек | 2 | ready/printing/error |
+| ⬜ todo | AGT-08 | Heartbeat каждые 15 сек | 2 | Sprint 1 WS; polling MVP: `lastSeenAt` ✅ |
 | ⬜ todo | AGT-09 | Мониторинг очереди Windows Spooler | 3 | нагрузка на карту |
 | ⬜ todo | AGT-10 | Разделительный лист (toggle) | 2 | `USE_SEPARATOR_PAGE` |
 | ⬜ todo | AGT-11 | «Печать QR-материалов» из программы | 2 | PDF с point_id |
@@ -131,8 +131,8 @@
 
 | Статус | ID | Фича | Этап | Примечание |
 |--------|-----|------|------|------------|
-| ⬜ todo | MON-01 | Offline если нет ping > 30 сек | 2 | |
-| ⬜ todo | MON-02 | Блокировка заказа на offline-точку | 2 | |
+| 🟡 partial | MON-01 | Offline если нет ping > порога | 2 | polling: `lastSeenAt` + админка 🟢/🔴 |
+| ⬜ todo | MON-02 | Блокировка заказа на offline-точку | 2 | до оплаты — Sprint 1 |
 | ⬜ todo | MON-03 | Алерт партнёру: оффлайн | 3 | Telegram admin |
 | ⬜ todo | MON-04 | Алерт: закончилась бумага | 3 | |
 | ⬜ todo | MON-05 | Предупреждение: мало бумаги/тонера | 3 | 10% лотка |

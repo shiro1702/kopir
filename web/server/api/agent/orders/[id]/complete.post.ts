@@ -4,6 +4,7 @@ import { checkBatchCompletion } from '../../../../utils/batch'
 import { notifyPrintComplete } from '../../../../utils/bot/core'
 import { deleteOrderFile } from '../../../../utils/blob'
 import { prisma } from '../../../../utils/prisma'
+import { touchPointAgentSeen } from '../../../../utils/points'
 
 interface CompleteBody {
   status: 'PRINTED' | 'FAILED'
@@ -50,6 +51,8 @@ export default defineEventHandler(async (event) => {
       data: { error: 'Order is not in PRINTING status', code: 'INVALID_STATUS' },
     })
   }
+
+  await touchPointAgentSeen(order.pointId)
 
   const targetStatus =
     body.status === 'PRINTED' ? OrderStatus.PRINTED : OrderStatus.FAILED

@@ -2,6 +2,7 @@ import { OrderStatus } from '@prisma/client'
 import { assertAgentAuth } from '../../../../utils/agent-auth'
 import { notifyBatchPrintStartedIfNeeded } from '../../../../utils/batch'
 import { prisma } from '../../../../utils/prisma'
+import { touchPointAgentSeen } from '../../../../utils/points'
 
 export default defineEventHandler(async (event) => {
   assertAgentAuth(event)
@@ -32,6 +33,8 @@ export default defineEventHandler(async (event) => {
       data: { error: 'Order cannot be claimed', code: 'INVALID_STATUS' },
     })
   }
+
+  await touchPointAgentSeen(order.pointId)
 
   const updated = await prisma.order.update({
     where: { id },

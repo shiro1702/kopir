@@ -3,6 +3,7 @@ import { assertAgentAuth } from '../../../../utils/agent-auth'
 import { notifyCalculationFailed, notifyQuoteReady } from '../../../../utils/bot/core'
 import { getPricePerPageKopeks } from '../../../../utils/calculation'
 import { prisma } from '../../../../utils/prisma'
+import { touchPointAgentSeen } from '../../../../utils/points'
 
 interface CalculationBody {
   status: 'OK' | 'FAILED'
@@ -53,6 +54,8 @@ export default defineEventHandler(async (event) => {
       data: { error: 'Order is not in CALCULATING status', code: 'INVALID_STATUS' },
     })
   }
+
+  await touchPointAgentSeen(order.pointId)
 
   if (body.status === 'FAILED') {
     const updated = await prisma.order.update({

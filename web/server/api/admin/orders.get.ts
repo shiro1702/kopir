@@ -1,5 +1,6 @@
 import { OrderStatus } from '@prisma/client'
 import { assertAdminAuth } from '../../utils/admin-auth'
+import { pointAgentStatusPayload } from '../../utils/points'
 import { prisma } from '../../utils/prisma'
 
 const VALID_STATUSES = new Set<string>(Object.values(OrderStatus))
@@ -78,10 +79,7 @@ export default defineEventHandler(async (event) => {
         username: order.user.username,
         firstName: order.user.firstName,
       },
-      point: {
-        slug: order.point.slug,
-        name: order.point.name,
-      },
+      point: pointAgentStatusPayload(order.point),
     })),
   }
 })

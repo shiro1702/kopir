@@ -284,6 +284,27 @@ function canPrint(order) {
   return Boolean(order.paymentConfirmedAt)
 }
 
+function pointAgentIndicator(point) {
+  if (!point) return '⚪'
+  return point.agentOnline ? '🟢' : '🔴'
+}
+
+function pointAgentTitle(point) {
+  if (!point) return 'Точка неизвестна'
+  if (point.agentOnline) {
+    return `Агент печати подключён (${point.name})`
+  }
+  if (point.lastSeenAt) {
+    return `Агент печати не подключён (${point.name}). Последний контакт: ${formatDateTime(point.lastSeenAt)}`
+  }
+  return `Агент печати не подключён (${point.name}). Контактов ещё не было`
+}
+
+function formatPointCell(point) {
+  if (!point) return '—'
+  return `${pointAgentIndicator(point)} ${point.name}`
+}
+
 </script>
 
 <template>
@@ -302,6 +323,26 @@ function canPrint(order) {
             <span v-if="adminConfig.staffTelegramConfigured"> · TG-сотрудник</span>
             <span v-if="adminConfig.staffMaxConfigured"> · MAX-сотрудник</span>
           </p>
+          <div
+            v-if="adminConfig?.points?.length"
+            class="mt-2 flex flex-wrap gap-2"
+          >
+            <span
+              v-for="point in adminConfig.points"
+              :key="point.slug"
+              class="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs"
+              :class="point.agentOnline
+                ? 'border-green-200 bg-green-50 text-green-800'
+                : 'border-red-200 bg-red-50 text-red-800'"
+              :title="pointAgentTitle(point)"
+            >
+              <span aria-hidden="true">{{ pointAgentIndicator(point) }}</span>
+              <span>{{ point.name }}</span>
+              <span class="text-[11px] opacity-80">
+                {{ point.agentOnline ? 'онлайн' : 'офлайн' }}
+              </span>
+            </span>
+          </div>
         </div>
         <button
           class="rounded bg-gray-200 px-3 py-1.5 text-sm hover:bg-gray-300 disabled:opacity-50"
@@ -427,8 +468,11 @@ function canPrint(order) {
                   <td class="px-4 py-3">
                     {{ formatUser(group.user) }}
                   </td>
-                  <td class="px-4 py-3">
-                    {{ group.point?.name }}
+                  <td
+                    class="px-4 py-3"
+                    :title="pointAgentTitle(group.point)"
+                  >
+                    {{ formatPointCell(group.point) }}
                   </td>
                   <td class="px-4 py-3 text-gray-500">
                     {{ formatDateTime(group.createdAt) }}
@@ -489,8 +533,11 @@ function canPrint(order) {
                   <td class="px-4 py-3">
                     {{ formatUser(group.order.user) }}
                   </td>
-                  <td class="px-4 py-3">
-                    {{ group.order.point.name }}
+                  <td
+                    class="px-4 py-3"
+                    :title="pointAgentTitle(group.order.point)"
+                  >
+                    {{ formatPointCell(group.order.point) }}
                   </td>
                   <td class="px-4 py-3 text-gray-500">
                     {{ formatDateTime(group.order.createdAt) }}
@@ -543,8 +590,11 @@ function canPrint(order) {
                 <td class="px-4 py-3">
                   {{ formatUser(order.user) }}
                 </td>
-                <td class="px-4 py-3">
-                  {{ order.point.name }}
+                <td
+                  class="px-4 py-3"
+                  :title="pointAgentTitle(order.point)"
+                >
+                  {{ formatPointCell(order.point) }}
                 </td>
                 <td class="px-4 py-3 text-gray-500">
                   {{ formatDateTime(activeTab === 'history' ? (order.printedAt ?? order.createdAt) : (order.paidAt ?? order.createdAt)) }}

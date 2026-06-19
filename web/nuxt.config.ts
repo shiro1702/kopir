@@ -53,6 +53,7 @@ export default defineNuxtConfig({
     staffMaxUserId: process.env.STAFF_MAX_USER_ID ?? '',
     batchMaxFiles: process.env.BATCH_MAX_FILES ?? '5',
     batchBuildTimeoutMin: process.env.BATCH_BUILD_TIMEOUT_MIN ?? '15',
+    pointOfflineThresholdSec: process.env.POINT_OFFLINE_THRESHOLD_SEC ?? '20',
     public: {
       appVersion: '0.0.1',
     },

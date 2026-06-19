@@ -288,10 +288,11 @@ export async function notifyBatchPaymentConfirmed(
   user: Pick<User, 'telegramId' | 'maxUserId'>,
   batchId: string,
   fileCount: number,
+  agentOffline = false,
 ): Promise<void> {
   await sendToUser(
     user,
-    messages.formatBatchPaymentConfirmed(batchId.slice(-6), fileCount),
+    messages.formatBatchPaymentConfirmed(batchId.slice(-6), fileCount, agentOffline),
   )
 }
 
@@ -352,8 +353,9 @@ export async function notifyPaymentReceivedByStaff(
 export async function notifyPrintStarted(
   user: Pick<User, 'telegramId' | 'maxUserId'>,
   orderId: string,
+  agentOffline = false,
 ): Promise<void> {
-  await sendToUser(user, messages.formatPrintStarted(orderId.slice(-6)))
+  await sendToUser(user, messages.formatPrintStarted(orderId.slice(-6), agentOffline))
 }
 
 /** @deprecated Use notifyPrintStarted */

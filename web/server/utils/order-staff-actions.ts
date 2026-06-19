@@ -1,6 +1,7 @@
 import { OrderStatus } from '@prisma/client'
 import { isTerminalPaymentMode } from './payment-mode'
 import { prisma } from './prisma'
+import { isPointAgentOnline } from './points'
 
 function invalidStatus(message: string) {
   return createError({
@@ -142,8 +143,13 @@ export async function startOrderPrint(orderId: string) {
   })
 
   try {
+    const fullOrder = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: { user: true, point: true },
+    })
+    const agentOffline = fullOrder?.point ? !isPointAgentOnline(fullOrder.point) : true
     const { notifyPrintStarted } = await import('./bot/core')
-    await notifyPrintStarted(order.user, order.id)
+    await notifyPrintStarted(order.user, order.id, agentOffline)
   } catch (error) {
     console.error('[staff] print started notify failed:', orderId, error)
   }

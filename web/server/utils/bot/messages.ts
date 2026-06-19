@@ -20,6 +20,11 @@ export const MSG_CALCULATION_FAILED =
 export const MSG_UPLOAD_FAILED =
   'Не удалось сохранить файл. Попробуйте отправить документ ещё раз через минуту.'
 
+export const MSG_AGENT_OFFLINE_AFTER_PAYMENT =
+  '⚠️ Сейчас принтер не подключён к системе. '
+  + 'Печать начнётся автоматически, когда компьютер копицентра снова будет в сети. '
+  + 'Если прошло несколько минут — обратитесь к сотруднику.'
+
 export const MSG_BATCH_LIMIT =
   'Достигнут лимит файлов в пачке. Нажмите «Завершить и оплатить» или «Отменить пачку».'
 
@@ -68,12 +73,17 @@ export function formatBatchSummary(
   )
 }
 
-export function formatBatchPaymentConfirmed(batchShortId: string, fileCount: number): string {
-  return (
+export function formatBatchPaymentConfirmed(
+  batchShortId: string,
+  fileCount: number,
+  agentOffline = false,
+): string {
+  const base = (
     `✅ Оплата принята!\n`
     + `Пачка #${batchShortId} (${fileCount} файлов)\n`
     + 'Сотрудник запустит печать.'
   )
+  return agentOffline ? `${base}\n\n${MSG_AGENT_OFFLINE_AFTER_PAYMENT}` : base
 }
 
 export function formatBatchPrintStarted(batchShortId: string, current: number, total: number): string {
@@ -148,11 +158,12 @@ export function formatPaymentReceivedByStaff(shortId: string): string {
   )
 }
 
-export function formatPrintStarted(shortId: string): string {
-  return (
+export function formatPrintStarted(shortId: string, agentOffline = false): string {
+  const base = (
     `🖨 Заказ #${shortId} отправлен на печать.\n`
     + 'Заберите документ у принтера, когда будет готово.'
   )
+  return agentOffline ? `${base}\n\n${MSG_AGENT_OFFLINE_AFTER_PAYMENT}` : base
 }
 
 /** @deprecated Use formatPrintStarted */
