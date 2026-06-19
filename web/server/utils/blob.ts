@@ -6,29 +6,30 @@ const BLOB_ACCESS = 'private' as const
 
 function getBlobAuthOptions(): BlobCommandOptions {
   const config = useRuntimeConfig()
-  const storeId = process.env.BLOB_STORE_ID ?? config.blobStoreId
-  const oidcToken = process.env.VERCEL_OIDC_TOKEN
-  const token = config.blobReadWriteToken
+  const storeId = (process.env.BLOB_STORE_ID ?? config.blobStoreId)?.trim()
+  const oidcToken = process.env.VERCEL_OIDC_TOKEN?.trim()
 
-  if (storeId && oidcToken) {
-    return { storeId, oidcToken }
+  if (!storeId) {
+    throw createError({
+      statusCode: 500,
+      data: {
+        error: 'BLOB_STORE_ID is not set. In Vercel: Storage → Blob → Connect to Project.',
+        code: 'BLOB_NOT_CONFIGURED',
+      },
+    })
   }
 
-  if (token) {
-    return { token }
+  if (!oidcToken) {
+    throw createError({
+      statusCode: 500,
+      data: {
+        error: 'VERCEL_OIDC_TOKEN is missing. On Vercel it is injected automatically; locally run: vercel env pull',
+        code: 'BLOB_OIDC_MISSING',
+      },
+    })
   }
 
-  if (storeId) {
-    return { storeId }
-  }
-
-  throw createError({
-    statusCode: 500,
-    data: {
-      error: 'Blob storage not configured. Connect a private Blob store (BLOB_STORE_ID) or set BLOB_READ_WRITE_TOKEN for local dev.',
-      code: 'BLOB_NOT_CONFIGURED',
-    },
-  })
+  return { storeId, oidcToken }
 }
 
 export interface UploadOrderFileOptions {
@@ -62,10 +63,29 @@ export async function uploadOrderPdf(orderId: string, data: Buffer | ArrayBuffer
 }
 
 export async function downloadOrderFile(filePathOrUrl: string): Promise<Buffer> {
-  const result = await get(filePathOrUrl, {
-    ...getBlobAuthOptions(),
-    access: BLOB_ACCESS,
-  })
+  if (!filePathOrUrl?.trim()) {
+    throw createError({
+      statusCode: 500,
+      data: { error: 'Order file path is empty', code: 'FILE_PATH_MISSING' },
+    })
+  }
+
+  let result
+  try {
+    result = await get(filePathOrUrl, {
+      ...getBlobAuthOptions(),
+      access: BLOB_ACCESS,
+    })
+  } catch (error) {
+    console.error('[blob] download failed:', filePathOrUrl, error)
+    throw createError({
+      statusCode: 500,
+      data: {
+        error: 'Failed to read file from blob storage. Check BLOB_STORE_ID and OIDC on Vercel.',
+        code: 'BLOB_DOWNLOAD_FAILED',
+      },
+    })
+  }
 
   if (!result || result.statusCode !== 200 || !result.stream) {
     throw createError({

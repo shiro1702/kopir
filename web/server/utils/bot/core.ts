@@ -151,7 +151,7 @@ export async function handleDocument(
     })
     await prisma.order.update({
       where: { id: order.id },
-      data: { filePath: blob.pathname },
+      data: { filePath: blob.url },
     })
 
     await prisma.orderBatch.update({
