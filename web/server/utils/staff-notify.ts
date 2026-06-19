@@ -1,10 +1,11 @@
 import type { Order, OrderBatch } from '@prisma/client'
-import { InlineKeyboard } from 'grammy'
+import { InlineKeyboard, InputFile } from 'grammy'
 import {
   formatStaffBatchAwaitingPayment,
   formatStaffOrderAwaitingPayment,
   formatStaffPrintFailed,
 } from './bot/messages'
+import { downloadOrderFile } from './blob'
 import {
   getStaffMaxUserId,
   getStaffTelegramChatId,
@@ -82,6 +83,24 @@ function maxBatchKeyboard(batchId: string): MaxInlineKeyboardAttachment {
         type: 'callback',
         text: '✅ Оплатить пачку',
         payload: `staff_batch_confirm:${batchId}`,
+        intent: 'default',
+      }]],
+    },
+  }
+}
+
+function telegramStaffManualPrintKeyboard(orderId: string) {
+  return new InlineKeyboard().text('✅ Печать готова', `staff_manual_print:${orderId}`)
+}
+
+function maxStaffManualPrintKeyboard(orderId: string): MaxInlineKeyboardAttachment {
+  return {
+    type: 'inline_keyboard',
+    payload: {
+      buttons: [[{
+        type: 'callback',
+        text: '✅ Печать готова',
+        payload: `staff_manual_print:${orderId}`,
         intent: 'default',
       }]],
     },
@@ -182,7 +201,9 @@ export async function notifyStaffPaymentConfirmed(order: OrderForStaff): Promise
   await notifyStaffAll(text)
 }
 
-export async function notifyStaffPrintFailed(order: OrderForStaff): Promise<void> {
+export async function notifyStaffPrintFailed(
+  order: OrderForStaff & { filePath: string },
+): Promise<void> {
   if (!isStaffChannelConfigured()) {
     console.warn(
       '[staff] STAFF_TELEGRAM_CHAT_ID / STAFF_MAX_USER_ID are not set — skipping print failure notification',
@@ -191,5 +212,61 @@ export async function notifyStaffPrintFailed(order: OrderForStaff): Promise<void
   }
 
   const text = formatStaffPrintFailed(order, order.errorMessage)
-  await notifyStaffAll(text)
+  const tgKeyboard = telegramStaffManualPrintKeyboard(order.id)
+  const maxKeyboard = maxStaffManualPrintKeyboard(order.id)
+
+  let fileBuffer: Buffer | null = null
+  if (order.filePath?.trim()) {
+    try {
+      fileBuffer = await downloadOrderFile(order.filePath)
+    } catch (error) {
+      console.error('[staff] failed to load order file for manual print:', order.id, error)
+    }
+  }
+
+  const errors: Error[] = []
+
+  const chatId = getStaffTelegramChatId()
+  if (chatId) {
+    try {
+      const { getBot } = await import('./telegram/bot')
+      const bot = getBot()
+      if (fileBuffer) {
+        await bot.api.sendDocument(
+          chatId,
+          new InputFile(fileBuffer, order.fileName),
+          { caption: text, reply_markup: tgKeyboard },
+        )
+      } else {
+        await bot.api.sendMessage(chatId, text, { reply_markup: tgKeyboard })
+      }
+    } catch (error) {
+      errors.push(error instanceof Error ? error : new Error(String(error)))
+    }
+  }
+
+  const maxUserId = getStaffMaxUserId()
+  if (maxUserId) {
+    try {
+      const client = getMaxClient()
+      if (fileBuffer) {
+        await client.sendFileMessage(
+          { userId: maxUserId },
+          text,
+          order.fileName,
+          fileBuffer,
+          [maxKeyboard],
+        )
+      } else {
+        await client.sendMessage({ userId: maxUserId }, text, [maxKeyboard])
+      }
+    } catch (error) {
+      errors.push(error instanceof Error ? error : new Error(String(error)))
+    }
+  }
+
+  if (errors.length > 0) {
+    console.error('[staff] print failure notify failed:', errors)
+    throw errors[0]
+  }
 }

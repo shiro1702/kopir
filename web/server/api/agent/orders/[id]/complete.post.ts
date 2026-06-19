@@ -67,7 +67,9 @@ export default defineEventHandler(async (event) => {
     },
   })
 
-  await deleteOrderFile(order.filePath)
+  if (targetStatus === OrderStatus.PRINTED) {
+    await deleteOrderFile(order.filePath)
+  }
 
   if (order.batchId) {
     await checkBatchCompletion(order.batchId)

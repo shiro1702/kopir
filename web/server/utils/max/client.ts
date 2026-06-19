@@ -101,6 +101,42 @@ export class MaxClient {
     }
     return Buffer.from(await response.arrayBuffer())
   }
+
+  /** Upload binary to MAX and return token for file attachment in messages. */
+  async uploadFile(buffer: Buffer, fileName: string): Promise<string> {
+    const meta = await this.request<{ url: string }>('POST', '/uploads', {
+      query: { type: 'file' },
+    })
+
+    const form = new FormData()
+    form.append('data', new Blob([buffer]), fileName)
+
+    const uploadResponse = await fetch(meta.url, { method: 'POST', body: form })
+    if (!uploadResponse.ok) {
+      const body = await uploadResponse.text()
+      throw new Error(`MAX file upload failed: ${uploadResponse.status} ${body}`)
+    }
+
+    const uploaded = await uploadResponse.json() as { token?: string, payload?: { token?: string } }
+    const token = uploaded.token ?? uploaded.payload?.token
+    if (!token) {
+      throw new Error('MAX file upload response missing token')
+    }
+    return token
+  }
+
+  async sendFileMessage(
+    target: { chatId?: number, userId?: number },
+    text: string,
+    fileName: string,
+    data: Buffer,
+    extraAttachments?: unknown[],
+  ): Promise<void> {
+    const token = await this.uploadFile(data, fileName)
+    const fileAttachment = { type: 'file', payload: { token } }
+    const attachments = [fileAttachment, ...(extraAttachments ?? [])]
+    await this.sendMessage(target, text, attachments)
+  }
 }
 
 let maxClientInstance: MaxClient | null = null

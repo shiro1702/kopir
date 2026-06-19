@@ -226,10 +226,11 @@ export function formatStaffPrintFailed(
   const batchLine = order.batchId ? `\nПачка #${order.batchId.slice(-6)}` : ''
   const reason = errorMessage?.trim()
   return (
-    `⚠️ Ошибка печати #${shortId}${batchLine}\n`
+    `⚠️ Ошибка автопечати #${shortId}${batchLine}\n`
     + `📄 ${order.fileName}\n`
     + `Точка: ${order.point.name}`
     + (reason ? `\n\nПричина: ${reason}` : '')
+    + '\n\nОплата уже принята — распечатайте файл вручную и нажмите «Печать готова».'
   )
 }
 

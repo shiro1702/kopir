@@ -63,6 +63,7 @@
 | 07 | QR deep link + приветствие точки | ⬜ | [tasks/07-qr-deeplink.md](./tasks/07-qr-deeplink.md) |
 | 08 | PDF-плакат с QR для стойки | ⬜ | [tasks/08-qr-poster.md](./tasks/08-qr-poster.md) |
 | 09 | Уведомление «Готово!» (polish + E2E) | ⬜ | [tasks/09-ready-notification.md](./tasks/09-ready-notification.md) |
+| 12 | Ручная печать при сбое агента | ✅ | [tasks/12-manual-print-fallback.md](./tasks/12-manual-print-fallback.md) |
 | 10 | Бета-тест + метрики + разделитель в лотке | ⬜ | [tasks/10-beta-e2e.md](./tasks/10-beta-e2e.md) |
 
 ## Порядок выполнения
