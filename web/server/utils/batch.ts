@@ -103,10 +103,26 @@ export async function expireStaleCollectingBatches(): Promise<void> {
   }
 }
 
+export interface CancelBatchOptions {
+  /** Stored on failed orders */
+  internalReason?: string
+  /** Extra line for async notification (timeout); omitted for plain cancel text */
+  userMessage?: string
+  /** When false, caller sends the in-chat message */
+  notifyUser?: boolean
+}
+
 export async function cancelBatch(
   batchId: string,
-  reason = 'batch cancelled',
+  options: CancelBatchOptions | string = {},
 ): Promise<void> {
+  const opts: CancelBatchOptions = typeof options === 'string'
+    ? { userMessage: options, notifyUser: true }
+    : options
+
+  const internalReason = opts.internalReason ?? opts.userMessage ?? 'batch cancelled'
+  const notifyUser = opts.notifyUser ?? true
+
   const batch = await prisma.orderBatch.findUnique({
     where: { id: batchId },
     include: { orders: true, user: true },
@@ -130,7 +146,7 @@ export async function cancelBatch(
       where: { id: order.id },
       data: {
         status: OrderStatus.FAILED,
-        errorMessage: reason,
+        errorMessage: internalReason,
       },
     })
   }
@@ -140,11 +156,13 @@ export async function cancelBatch(
     data: { status: OrderBatchStatus.CANCELLED },
   })
 
-  try {
-    const { notifyBatchCancelled } = await import('./bot/core')
-    await notifyBatchCancelled(batch.user, reason)
-  } catch (error) {
-    console.error('[batch] cancel notify failed:', batchId, error)
+  if (notifyUser) {
+    try {
+      const { notifyBatchCancelled } = await import('./bot/core')
+      await notifyBatchCancelled(batch.user, opts.userMessage)
+    } catch (error) {
+      console.error('[batch] cancel notify failed:', batchId, error)
+    }
   }
 }
 

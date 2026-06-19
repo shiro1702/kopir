@@ -207,7 +207,7 @@ export async function handleBatchAction(
   }
 
   if (action === 'cancel') {
-    await cancelBatch(batch.id)
+    await cancelBatch(batch.id, { notifyUser: false })
     await adapter.sendText(target, messages.MSG_BATCH_CANCELLED)
     return
   }
@@ -276,9 +276,12 @@ export async function notifyStaffAfterBatchReady(batchId: string): Promise<void>
 
 export async function notifyBatchCancelled(
   user: Pick<User, 'telegramId' | 'maxUserId'>,
-  reason: string,
+  extraMessage?: string,
 ): Promise<void> {
-  await sendToUser(user, `${messages.MSG_BATCH_CANCELLED}\n\n${reason}`)
+  const text = extraMessage
+    ? `${messages.MSG_BATCH_CANCELLED}\n\n${extraMessage}`
+    : messages.MSG_BATCH_CANCELLED
+  await sendToUser(user, text)
 }
 
 export async function notifyBatchPaymentConfirmed(

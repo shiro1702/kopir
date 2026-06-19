@@ -7,7 +7,6 @@ const BLOB_ACCESS = 'private' as const
 function getBlobAuthOptions(): BlobCommandOptions {
   const config = useRuntimeConfig()
   const storeId = (process.env.BLOB_STORE_ID ?? config.blobStoreId)?.trim()
-  const oidcToken = process.env.VERCEL_OIDC_TOKEN?.trim()
 
   if (!storeId) {
     throw createError({
@@ -19,17 +18,9 @@ function getBlobAuthOptions(): BlobCommandOptions {
     })
   }
 
-  if (!oidcToken) {
-    throw createError({
-      statusCode: 500,
-      data: {
-        error: 'VERCEL_OIDC_TOKEN is missing. On Vercel it is injected automatically; locally run: vercel env pull',
-        code: 'BLOB_OIDC_MISSING',
-      },
-    })
-  }
-
-  return { storeId, oidcToken }
+  // SDK resolves OIDC from Vercel runtime (x-vercel-oidc-token header or VERCEL_OIDC_TOKEN).
+  // VERCEL_OIDC_TOKEN is not listed in the dashboard — it is injected per deployment.
+  return { storeId }
 }
 
 export interface UploadOrderFileOptions {
@@ -81,7 +72,7 @@ export async function downloadOrderFile(filePathOrUrl: string): Promise<Buffer> 
     throw createError({
       statusCode: 500,
       data: {
-        error: 'Failed to read file from blob storage. Check BLOB_STORE_ID and OIDC on Vercel.',
+        error: 'Failed to read file from blob storage. Check BLOB_STORE_ID and Blob store connection on Vercel.',
         code: 'BLOB_DOWNLOAD_FAILED',
       },
     })
