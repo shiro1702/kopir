@@ -1,6 +1,10 @@
 import type { Order, OrderBatch } from '@prisma/client'
 import { InlineKeyboard } from 'grammy'
-import { formatStaffBatchAwaitingPayment, formatStaffOrderAwaitingPayment } from './bot/messages'
+import {
+  formatStaffBatchAwaitingPayment,
+  formatStaffOrderAwaitingPayment,
+  formatStaffPrintFailed,
+} from './bot/messages'
 import {
   getStaffMaxUserId,
   getStaffTelegramChatId,
@@ -10,7 +14,7 @@ import {
 import type { MaxInlineKeyboardAttachment } from './max/types'
 import { getMaxClient } from './max/client'
 
-type OrderForStaff = Pick<Order, 'id' | 'fileName' | 'pageCount' | 'amountKopeks' | 'paymentConfirmedAt' | 'batchId'>
+type OrderForStaff = Pick<Order, 'id' | 'fileName' | 'pageCount' | 'amountKopeks' | 'paymentConfirmedAt' | 'batchId' | 'errorMessage'>
   & {
     user: {
       username?: string | null
@@ -175,5 +179,17 @@ export async function notifyStaffPaymentConfirmed(order: OrderForStaff): Promise
 
   const shortId = order.id.slice(-6)
   const text = `✅ Оплата по заказу #${shortId} принята.\n🖨 Печать запущена.`
+  await notifyStaffAll(text)
+}
+
+export async function notifyStaffPrintFailed(order: OrderForStaff): Promise<void> {
+  if (!isStaffChannelConfigured()) {
+    console.warn(
+      '[staff] STAFF_TELEGRAM_CHAT_ID / STAFF_MAX_USER_ID are not set — skipping print failure notification',
+    )
+    return
+  }
+
+  const text = formatStaffPrintFailed(order, order.errorMessage)
   await notifyStaffAll(text)
 }

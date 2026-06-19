@@ -7,6 +7,7 @@ from pathlib import Path
 
 from .api_client import ApiClient
 from .config import load_config
+from .errors import reportable_error
 from .printer import PrintError, _extension_for_order, print_order
 from . import word
 
@@ -20,6 +21,18 @@ def temp_path_for_order(order: dict) -> Path:
     temp_dir = Path(tempfile.gettempdir())
     ext = _extension_for_order(order)
     return temp_dir / f"kopir_{order['id']}{ext}"
+
+
+def report_order_failed(client: ApiClient, order_id: str, error_message: str) -> None:
+    for attempt in range(5):
+        try:
+            client.complete(order_id, "FAILED", error_message)
+            return
+        except Exception as exc:
+            log(f"Failed to report error for order {order_id} (attempt {attempt + 1}): {exc}")
+            if attempt < 4:
+                time.sleep(2 ** attempt)
+    log(f"Giving up reporting failure for order {order_id}")
 
 
 def process_calculation(client: ApiClient, config, order: dict) -> None:
@@ -45,12 +58,15 @@ def process_calculation(client: ApiClient, config, order: dict) -> None:
         log(f"Submitted calculation OK for order {order_id}: {page_count} pages")
     except word.WordError as exc:
         log(f"Calculation failed for order {order_id}: {exc}")
-        client.submit_calculation(order_id, error_message=str(exc))
+        client.submit_calculation(order_id, error_message=reportable_error(exc, phase="calculation"))
     except Exception as exc:
         log(f"Error calculating order {order_id}: {exc}")
         traceback.print_exc()
         try:
-            client.submit_calculation(order_id, error_message=str(exc))
+            client.submit_calculation(
+                order_id,
+                error_message=reportable_error(exc, phase="calculation"),
+            )
         except Exception:
             log(f"Failed to report calculation error for order {order_id}")
     finally:
@@ -76,14 +92,12 @@ def process_order(client: ApiClient, config, order: dict) -> None:
         log(f"Completed PRINTED order {order_id}")
     except PrintError as exc:
         log(f"Print failed for order {order_id}: {exc}")
-        client.complete(order_id, "FAILED", str(exc))
+        report_order_failed(client, order_id, reportable_error(exc, phase="print"))
     except Exception as exc:
         log(f"Error processing order {order_id}: {exc}")
         traceback.print_exc()
-        try:
-            client.complete(order_id, "FAILED", str(exc))
-        except Exception:
-            log(f"Failed to report error for order {order_id}")
+        phase = "download" if "download" in str(exc).lower() or "/file" in str(exc) else "print"
+        report_order_failed(client, order_id, reportable_error(exc, phase=phase))
     finally:
         if temp_path.exists():
             temp_path.unlink()

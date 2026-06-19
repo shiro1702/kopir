@@ -62,7 +62,7 @@ class ApiClient:
                 if attempt < retries - 1:
                     time.sleep(2 ** attempt)
 
-        raise RuntimeError(f"API request failed: {method} {path}") from last_error
+        raise RuntimeError(f"API request failed: {method} {path}: {last_error}") from last_error
 
     def get_queue(self, kind: QueueKind = "print") -> list[dict[str, Any]]:
         response = self._request(

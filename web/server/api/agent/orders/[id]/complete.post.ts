@@ -1,7 +1,8 @@
 import { OrderStatus } from '@prisma/client'
 import { assertAgentAuth } from '../../../../utils/agent-auth'
 import { checkBatchCompletion } from '../../../../utils/batch'
-import { notifyPrintComplete } from '../../../../utils/bot/core'
+import { notifyPrintComplete, notifyPrintFailed } from '../../../../utils/bot/core'
+import { notifyStaffPrintFailed } from '../../../../utils/staff-notify'
 import { deleteOrderFile } from '../../../../utils/blob'
 import { prisma } from '../../../../utils/prisma'
 import { touchPointAgentSeen } from '../../../../utils/points'
@@ -32,7 +33,7 @@ export default defineEventHandler(async (event) => {
 
   const order = await prisma.order.findUnique({
     where: { id },
-    include: { user: true },
+    include: { user: true, point: true },
   })
   if (!order) {
     throw createError({
@@ -70,11 +71,31 @@ export default defineEventHandler(async (event) => {
 
   if (order.batchId) {
     await checkBatchCompletion(order.batchId)
+    if (targetStatus === OrderStatus.FAILED) {
+      try {
+        await notifyStaffPrintFailed({
+          ...order,
+          errorMessage: updated.errorMessage,
+        })
+      } catch (error) {
+        console.error('[complete] staff print failure notify error:', order.id, error)
+      }
+    }
   } else if (targetStatus === OrderStatus.PRINTED) {
     try {
       await notifyPrintComplete(order.user, order.id)
     } catch (error) {
       console.error('[complete] print notify error:', order.id, error)
+    }
+  } else {
+    try {
+      await notifyPrintFailed(order.user, order)
+      await notifyStaffPrintFailed({
+        ...order,
+        errorMessage: updated.errorMessage,
+      })
+    } catch (error) {
+      console.error('[complete] print failure notify error:', order.id, error)
     }
   }
 

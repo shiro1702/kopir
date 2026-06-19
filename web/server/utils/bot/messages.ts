@@ -175,6 +175,14 @@ export function formatPrintComplete(shortId: string): string {
   return `✅ Готово!\nЗаказ #${shortId}\nЗаберите документ у принтера.`
 }
 
+export function formatPrintFailed(shortId: string, fileName: string): string {
+  return (
+    `⚠️ Не удалось напечатать заказ #${shortId}.\n`
+    + `📄 ${fileName}\n\n`
+    + 'Обратитесь к сотруднику копицентра — он поможет распечатать документ.'
+  )
+}
+
 interface StaffOrderInfo {
   id: string
   fileName: string
@@ -207,6 +215,21 @@ export function formatStaffOrderAwaitingPayment(order: StaffOrderInfo): string {
     + 'Примите оплату на терминале, затем:\n'
     + '1️⃣ «Оплата получена»\n'
     + '2️⃣ «Печать»'
+  )
+}
+
+export function formatStaffPrintFailed(
+  order: StaffOrderInfo & { batchId?: string | null },
+  errorMessage?: string | null,
+): string {
+  const shortId = order.id.slice(-6)
+  const batchLine = order.batchId ? `\nПачка #${order.batchId.slice(-6)}` : ''
+  const reason = errorMessage?.trim()
+  return (
+    `⚠️ Ошибка печати #${shortId}${batchLine}\n`
+    + `📄 ${order.fileName}\n`
+    + `Точка: ${order.point.name}`
+    + (reason ? `\n\nПричина: ${reason}` : '')
   )
 }
 

@@ -406,3 +406,10 @@ export async function notifyPrintComplete(
 ): Promise<void> {
   await sendToUser(user, messages.formatPrintComplete(orderId.slice(-6)))
 }
+
+export async function notifyPrintFailed(
+  user: Pick<User, 'telegramId' | 'maxUserId'>,
+  order: Pick<Order, 'id' | 'fileName'>,
+): Promise<void> {
+  await sendToUser(user, messages.formatPrintFailed(order.id.slice(-6), order.fileName))
+}
