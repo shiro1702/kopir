@@ -77,33 +77,6 @@ function createBot(): Bot {
     await handleStart('telegram', target, ctx.match?.trim(), adapter)
   })
 
-  bot.on('message:text', async (ctx) => {
-    const text = ctx.message.text
-    const action = isBatchActionText(text)
-    if (!action) {
-      return
-    }
-
-    const telegramUser = ctx.from!
-    const target: MessengerReplyTarget = {
-      platform: 'telegram',
-      chatId: String(telegramUser.id),
-    }
-
-    const { handleBatchAction } = await import('../bot/core')
-    await handleBatchAction(
-      'telegram',
-      target,
-      {
-        externalId: String(telegramUser.id),
-        username: telegramUser.username ?? null,
-        firstName: telegramUser.first_name ?? null,
-      },
-      action,
-      adapter,
-    )
-  })
-
   bot.on('message:document', async (ctx) => {
     const document = ctx.message.document
     const telegramUser = ctx.from!
@@ -128,6 +101,33 @@ function createBot(): Bot {
         mimeType: document.mime_type ?? '',
         download: () => downloadTelegramFile(file.file_path ?? ''),
       },
+      adapter,
+    )
+  })
+
+  bot.on('message:text', async (ctx) => {
+    const text = ctx.message.text
+    const action = isBatchActionText(text)
+    if (!action) {
+      return
+    }
+
+    const telegramUser = ctx.from!
+    const target: MessengerReplyTarget = {
+      platform: 'telegram',
+      chatId: String(telegramUser.id),
+    }
+
+    const { handleBatchAction } = await import('../bot/core')
+    await handleBatchAction(
+      'telegram',
+      target,
+      {
+        externalId: String(telegramUser.id),
+        username: telegramUser.username ?? null,
+        firstName: telegramUser.first_name ?? null,
+      },
+      action,
       adapter,
     )
   })

@@ -5,7 +5,7 @@ import { BTN_CANCEL_BATCH, BTN_FINALIZE_BATCH } from '../bot/messages'
 import { getStaffMaxUserId } from '../payment-mode'
 import type { MessengerAdapter, MessengerReplyTarget } from '../bot/types'
 import { getMaxClient } from './client'
-import type { MaxAttachment, MaxInlineKeyboardAttachment, MaxUpdate } from './types'
+import type { MaxAttachment, MaxInlineKeyboardAttachment, MaxMessage, MaxUpdate } from './types'
 
 function batchInlineKeyboard(): MaxInlineKeyboardAttachment {
   return {
@@ -59,8 +59,14 @@ function parseStartPayload(text: string | undefined): string | undefined {
   return parts[1]
 }
 
-function findFileAttachment(attachments: MaxAttachment[] | undefined) {
+function findFileAttachment(attachments: MaxAttachment[] | undefined | null) {
   return attachments?.find((attachment) => attachment.type === 'file')
+}
+
+/** Direct uploads use body.attachments; forwarded files live in link.message.attachments. */
+function resolveMaxFileAttachment(message: MaxMessage): MaxAttachment | undefined {
+  return findFileAttachment(message.body?.attachments)
+    ?? findFileAttachment(message.link?.message?.attachments)
 }
 
 function isBatchActionText(text: string): 'finalize' | 'cancel' | null {
@@ -124,7 +130,7 @@ export async function handleMaxUpdate(update: MaxUpdate): Promise<void> {
         return
       }
 
-      const fileAttachment = findFileAttachment(message.body?.attachments)
+      const fileAttachment = resolveMaxFileAttachment(message)
       if (!fileAttachment?.payload?.url) {
         return
       }

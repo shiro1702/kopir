@@ -50,13 +50,21 @@ export interface MaxMessageBody {
   attachments?: MaxAttachment[]
 }
 
+export interface MaxLinkedMessage {
+  type?: string
+  sender?: MaxUser
+  chat_id?: number
+  message?: MaxMessageBody
+}
+
 export interface MaxMessage {
   sender?: MaxUser
   recipient?: {
     chat_id?: number
     chat_type?: string
   }
-  body?: MaxMessageBody
+  link?: MaxLinkedMessage | null
+  body?: MaxMessageBody | null
 }
 
 export interface MaxUpdate {
