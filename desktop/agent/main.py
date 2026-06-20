@@ -7,6 +7,7 @@ from pathlib import Path
 
 from .api_client import ApiClient
 from .config import load_config
+from .console_win import disable_console_quick_edit
 from .errors import reportable_error
 from .printer import PrintError, _extension_for_order, print_order
 from . import word
@@ -110,6 +111,7 @@ def process_order(client: ApiClient, config, order: dict) -> None:
 
 
 def main() -> None:
+    disable_console_quick_edit()
     config = load_config()
     client = ApiClient(config)
 
