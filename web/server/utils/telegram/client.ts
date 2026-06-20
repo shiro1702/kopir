@@ -21,6 +21,27 @@ export async function sendTelegramText(chatId: number, text: string): Promise<vo
   }
 }
 
+import type { BatchKeyboardMode } from '../bot/types'
+
+export async function sendTelegramBatchMessage(
+  chatId: number,
+  text: string,
+  mode: BatchKeyboardMode,
+): Promise<void> {
+  const { getInitializedBot } = await import('./bot')
+  const bot = await getInitializedBot()
+  const { BTN_CANCEL_BATCH, BTN_FINALIZE_BATCH } = await import('../bot/messages')
+  const { Keyboard } = await import('grammy')
+
+  const keyboard = new Keyboard()
+  if (mode === 'ready') {
+    keyboard.text(BTN_FINALIZE_BATCH)
+  }
+  keyboard.text(BTN_CANCEL_BATCH).resized()
+
+  await bot.api.sendMessage(chatId, text, { reply_markup: keyboard })
+}
+
 export async function downloadTelegramFile(filePath: string): Promise<Buffer> {
   const token = getTelegramBotToken()
   const fileUrl = `https://api.telegram.org/file/bot${token}/${filePath}`

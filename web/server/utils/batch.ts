@@ -3,6 +3,11 @@ import { deleteOrderFile } from './blob'
 import { getPricePerPageKopeks } from './calculation'
 import { prisma } from './prisma'
 import { isPointAgentOnline } from './points'
+import type { BatchKeyboardMode } from './bot/types'
+import {
+  MSG_BATCH_CALCULATION_FAILED,
+  MSG_BATCH_STILL_CALCULATING,
+} from './bot/messages'
 
 export function getBatchMaxFiles(): number {
   const config = useRuntimeConfig()
@@ -22,6 +27,13 @@ function batchLog(batchId: string, message: string, extra?: unknown) {
   } else {
     console.log(`[batch:${batchId}] ${message}`)
   }
+}
+
+export async function getBatchKeyboardMode(batchId: string): Promise<BatchKeyboardMode> {
+  const calculating = await prisma.order.count({
+    where: { batchId, status: OrderStatus.CALCULATING },
+  })
+  return calculating > 0 ? 'calculating' : 'ready'
 }
 
 export async function recalculateBatchTotals(batchId: string): Promise<OrderBatch> {
@@ -207,7 +219,7 @@ export async function finalizeBatch(batchId: string): Promise<FinalizeBatchResul
     throw createError({
       statusCode: 400,
       data: {
-        error: 'Some files are still being calculated',
+        error: MSG_BATCH_STILL_CALCULATING,
         code: 'BATCH_CALCULATING',
       },
     })
@@ -218,7 +230,7 @@ export async function finalizeBatch(batchId: string): Promise<FinalizeBatchResul
     throw createError({
       statusCode: 400,
       data: {
-        error: `Failed to process: ${failed.map((o) => o.fileName).join(', ')}`,
+        error: `${MSG_BATCH_CALCULATION_FAILED}\n\nФайлы: ${failed.map((o) => o.fileName).join(', ')}`,
         code: 'BATCH_CALCULATION_FAILED',
       },
     })

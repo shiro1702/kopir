@@ -139,6 +139,30 @@ export class MaxClient {
   }
 }
 
+import type { BatchKeyboardMode } from '../bot/types'
+
+export async function sendMaxBatchMessage(
+  userId: number,
+  text: string,
+  mode: BatchKeyboardMode,
+): Promise<void> {
+  const { BTN_CANCEL_BATCH, BTN_FINALIZE_BATCH } = await import('../bot/messages')
+  const buttons = mode === 'ready'
+    ? [
+        { type: 'callback', text: BTN_FINALIZE_BATCH, payload: 'batch_finalize', intent: 'default' },
+        { type: 'callback', text: BTN_CANCEL_BATCH, payload: 'batch_cancel', intent: 'default' },
+      ]
+    : [
+        { type: 'callback', text: BTN_CANCEL_BATCH, payload: 'batch_cancel', intent: 'default' },
+      ]
+
+  await getMaxClient().sendMessage(
+    { userId },
+    text,
+    [{ type: 'inline_keyboard', payload: { buttons: [buttons] } }],
+  )
+}
+
 let maxClientInstance: MaxClient | null = null
 
 export function getMaxClient(): MaxClient {

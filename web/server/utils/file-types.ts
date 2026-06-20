@@ -12,6 +12,47 @@ export function getFileExtension(fileName: string): string {
   return fileName.slice(dot).toLowerCase()
 }
 
+export function sniffDocumentKind(buffer: Buffer): DocumentKind {
+  if (buffer.length >= 4 && buffer.subarray(0, 4).toString() === '%PDF') {
+    return 'pdf'
+  }
+
+  if (buffer.length >= 4 && buffer[0] === 0xD0 && buffer[1] === 0xCF && buffer[2] === 0x11 && buffer[3] === 0xE0) {
+    return 'word'
+  }
+
+  if (buffer.length >= 2 && buffer[0] === 0x50 && buffer[1] === 0x4B) {
+    return 'word'
+  }
+
+  return 'unsupported'
+}
+
+export function ensureFileExtension(fileName: string, kind: DocumentKind): string {
+  const ext = getFileExtension(fileName)
+  if (kind === 'pdf' && ext !== '.pdf') {
+    const base = ext ? fileName.slice(0, fileName.length - ext.length) : fileName
+    return `${base || 'document'}.pdf`
+  }
+  if (kind === 'word' && ext !== '.doc' && ext !== '.docx') {
+    const base = ext ? fileName.slice(0, fileName.length - ext.length) : fileName
+    return `${base || 'document'}.docx`
+  }
+  return fileName
+}
+
+export function guessFileNameFromUrl(url: string): string | undefined {
+  try {
+    const base = new URL(url).pathname.split('/').pop()
+    if (!base?.includes('.')) {
+      return undefined
+    }
+    return decodeURIComponent(base)
+  } catch {
+    return undefined
+  }
+}
+
 export function detectDocumentKind(fileName: string, mimeType?: string | null): DocumentKind {
   const ext = getFileExtension(fileName)
   const mime = (mimeType ?? '').toLowerCase()

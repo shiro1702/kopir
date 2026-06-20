@@ -1,23 +1,25 @@
 import { timingSafeEqual } from 'node:crypto'
 import type { H3Event } from 'h3'
-import { detectDocumentKind, mimeTypeForKind } from '../file-types'
+import { detectDocumentKind, guessFileNameFromUrl, mimeTypeForKind } from '../file-types'
 import { BTN_CANCEL_BATCH, BTN_FINALIZE_BATCH } from '../bot/messages'
 import { getStaffMaxUserId } from '../payment-mode'
-import type { MessengerAdapter, MessengerReplyTarget } from '../bot/types'
+import type { BatchKeyboardMode, MessengerAdapter, MessengerReplyTarget } from '../bot/types'
 import { getMaxClient } from './client'
 import type { MaxAttachment, MaxInlineKeyboardAttachment, MaxMessage, MaxUpdate } from './types'
 
-function batchInlineKeyboard(): MaxInlineKeyboardAttachment {
+function batchInlineKeyboard(mode: BatchKeyboardMode): MaxInlineKeyboardAttachment {
+  const buttons = mode === 'ready'
+    ? [
+        { type: 'callback' as const, text: BTN_FINALIZE_BATCH, payload: 'batch_finalize', intent: 'default' as const },
+        { type: 'callback' as const, text: BTN_CANCEL_BATCH, payload: 'batch_cancel', intent: 'default' as const },
+      ]
+    : [
+        { type: 'callback' as const, text: BTN_CANCEL_BATCH, payload: 'batch_cancel', intent: 'default' as const },
+      ]
+
   return {
     type: 'inline_keyboard',
-    payload: {
-      buttons: [
-        [
-          { type: 'callback', text: BTN_FINALIZE_BATCH, payload: 'batch_finalize', intent: 'default' },
-          { type: 'callback', text: BTN_CANCEL_BATCH, payload: 'batch_cancel', intent: 'default' },
-        ],
-      ],
-    },
+    payload: { buttons: [buttons] },
   }
 }
 
@@ -29,7 +31,7 @@ function createMaxAdapter(): MessengerAdapter {
       await client.sendMessage(
         { chatId: Number(target.chatId) },
         text,
-        options?.showBatchActions ? [batchInlineKeyboard()] : undefined,
+        options?.batchKeyboard ? [batchInlineKeyboard(options.batchKeyboard)] : undefined,
       )
     },
   }
@@ -135,7 +137,9 @@ export async function handleMaxUpdate(update: MaxUpdate): Promise<void> {
         return
       }
 
-      const fileName = fileAttachment.filename ?? 'document.pdf'
+      const fileName = fileAttachment.filename
+        ?? (fileAttachment.payload?.url ? guessFileNameFromUrl(fileAttachment.payload.url) : undefined)
+        ?? 'document.pdf'
       const kind = detectDocumentKind(fileName)
       const mimeType = mimeTypeForKind(kind === 'unsupported' ? 'pdf' : kind, fileName)
 

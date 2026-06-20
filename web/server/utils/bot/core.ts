@@ -4,6 +4,7 @@ import {
   cancelBatch,
   expireStaleCollectingBatches,
   finalizeBatch,
+  getBatchKeyboardMode,
   getBatchMaxFiles,
   getNextBatchIndex,
   getOrCreateCollectingBatch,
@@ -11,13 +12,19 @@ import {
 } from '../batch'
 import { uploadOrderFile } from '../blob'
 import { getPricePerPageKopeks } from '../calculation'
-import { detectDocumentKind, mimeTypeForKind } from '../file-types'
+import {
+  detectDocumentKind,
+  ensureFileExtension,
+  mimeTypeForKind,
+  sniffDocumentKind,
+} from '../file-types'
 import { prisma } from '../prisma'
 import { resolvePointBySlug } from '../points'
 import { DEFAULT_POINT_SLUG } from './constants'
 import * as messages from './messages'
 import { getPointPreference, setPointPreference } from './preferences'
 import type {
+  BatchKeyboardMode,
   BotUser,
   IncomingDocument,
   MessengerAdapter,
@@ -45,6 +52,37 @@ async function upsertBotUser(platform: MessengerPlatform, user: BotUser) {
     update: profile,
     create: { maxUserId: messengerUserId, ...profile },
   })
+}
+
+async function sendBatchUiToUser(
+  user: Pick<User, 'telegramId' | 'maxUserId'>,
+  text: string,
+  batchKeyboard: BatchKeyboardMode,
+): Promise<void> {
+  const errors: Error[] = []
+
+  if (user.telegramId) {
+    try {
+      const { sendTelegramBatchMessage } = await import('../telegram/client')
+      await sendTelegramBatchMessage(Number(user.telegramId), text, batchKeyboard)
+    } catch (error) {
+      errors.push(error instanceof Error ? error : new Error(String(error)))
+    }
+  }
+
+  if (user.maxUserId) {
+    try {
+      const { sendMaxBatchMessage } = await import('../max/client')
+      await sendMaxBatchMessage(Number(user.maxUserId), text, batchKeyboard)
+    } catch (error) {
+      errors.push(error instanceof Error ? error : new Error(String(error)))
+    }
+  }
+
+  if (errors.length > 0) {
+    console.error('[bot] batch ui notify failed:', errors)
+    throw errors[0]
+  }
 }
 
 async function sendToUser(user: Pick<User, 'telegramId' | 'maxUserId'>, text: string): Promise<void> {
@@ -101,13 +139,28 @@ export async function handleDocument(
 ): Promise<void> {
   await expireStaleCollectingBatches()
 
-  const fileName = document.fileName
-  const kind = detectDocumentKind(fileName, document.mimeType)
+  let fileName = document.fileName
+  let buffer: Buffer
+  try {
+    buffer = await document.download()
+  } catch (error) {
+    console.error('[bot] document download failed:', error)
+    await adapter.sendText(target, messages.MSG_UPLOAD_FAILED)
+    return
+  }
+
+  let kind = detectDocumentKind(fileName, document.mimeType)
+  const sniffed = sniffDocumentKind(buffer)
+  if (sniffed !== 'unsupported') {
+    kind = sniffed
+  }
 
   if (kind === 'unsupported') {
     await adapter.sendText(target, messages.MSG_UNSUPPORTED_FILE)
     return
   }
+
+  fileName = ensureFileExtension(fileName, kind)
 
   const pointSlug = getPointPreference(platform, target.chatId) ?? DEFAULT_POINT_SLUG
   const point = await resolvePointBySlug(pointSlug)
@@ -118,7 +171,8 @@ export async function handleDocument(
 
   const batch = await getOrCreateCollectingBatch(dbUser.id, point.id)
   if (batch.orders.length >= maxFiles) {
-    await adapter.sendText(target, messages.MSG_BATCH_LIMIT, { showBatchActions: true })
+    const keyboardMode = await getBatchKeyboardMode(batch.id)
+    await adapter.sendText(target, messages.MSG_BATCH_LIMIT, { batchKeyboard: keyboardMode })
     return
   }
 
@@ -143,7 +197,6 @@ export async function handleDocument(
   })
 
   try {
-    const buffer = await document.download()
     const blob = await uploadOrderFile(order.id, buffer, {
       fileName,
       mimeType,
@@ -160,11 +213,12 @@ export async function handleDocument(
     })
     await recalculateBatchTotals(batch.id)
 
-    await adapter.sendText(
-      target,
-      messages.formatBatchFileAdded(fileName, batchIndex, maxFiles, isWord),
-      { showBatchActions: true },
-    )
+    const keyboardMode = await getBatchKeyboardMode(batch.id)
+    const text = isWord
+      ? messages.formatBatchFileCalculating(fileName, batchIndex, maxFiles)
+      : messages.formatBatchFileReady(fileName, batchIndex, maxFiles, pageCount, keyboardMode === 'ready')
+
+    await adapter.sendText(target, text, { batchKeyboard: keyboardMode })
   } catch (error) {
     console.error('[bot] document upload failed:', order.id, error)
     await prisma.order.update({
@@ -174,7 +228,8 @@ export async function handleDocument(
         errorMessage: error instanceof Error ? error.message : 'upload failed',
       },
     })
-    await adapter.sendText(target, messages.MSG_UPLOAD_FAILED, { showBatchActions: true })
+    const keyboardMode = await getBatchKeyboardMode(batch.id)
+    await adapter.sendText(target, messages.MSG_UPLOAD_FAILED, { batchKeyboard: keyboardMode })
   }
 }
 
@@ -225,15 +280,19 @@ export async function handleBatchAction(
     await notifyStaffAfterBatchReady(finalized.id)
   } catch (error) {
     let text = 'Не удалось завершить пачку.'
+    let keyboardMode: BatchKeyboardMode = 'ready'
     if (error && typeof error === 'object' && 'data' in error) {
-      const data = (error as { data?: { error?: string } }).data
+      const data = (error as { data?: { error?: string, code?: string } }).data
       if (data?.error) {
         text = data.error
+      }
+      if (data?.code === 'BATCH_CALCULATING') {
+        keyboardMode = 'calculating'
       }
     } else if (error instanceof Error) {
       text = error.message
     }
-    await adapter.sendText(target, text, { showBatchActions: true })
+    await adapter.sendText(target, text, { batchKeyboard: keyboardMode })
   }
 }
 
@@ -336,10 +395,20 @@ export async function notifyBatchFileCalculated(
   fileName: string,
   fileIndex: number,
   maxFiles: number,
+  pageCount: number,
+  batchId: string,
 ): Promise<void> {
-  await sendToUser(
+  const keyboardMode = await getBatchKeyboardMode(batchId)
+  await sendBatchUiToUser(
     user,
-    messages.formatBatchFileAdded(fileName, fileIndex, maxFiles, false),
+    messages.formatBatchFileReady(
+      fileName,
+      fileIndex,
+      maxFiles,
+      pageCount,
+      keyboardMode === 'ready',
+    ),
+    keyboardMode,
   )
 }
 
@@ -381,6 +450,8 @@ export async function notifyQuoteReady(
         order.fileName,
         order.batchIndex ?? 1,
         getBatchMaxFiles(),
+        order.pageCount,
+        order.batchId,
       )
       return
     }

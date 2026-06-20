@@ -1,14 +1,15 @@
 import { Bot, Keyboard } from 'grammy'
-import type { MessengerAdapter, MessengerReplyTarget } from '../bot/types'
+import type { BatchKeyboardMode, MessengerAdapter, MessengerReplyTarget } from '../bot/types'
 import { BTN_CANCEL_BATCH, BTN_FINALIZE_BATCH } from '../bot/messages'
 import { getStaffTelegramChatId } from '../payment-mode'
 import { downloadTelegramFile, getTelegramBotToken } from './client'
 
-function batchReplyKeyboard() {
-  return new Keyboard()
-    .text(BTN_FINALIZE_BATCH)
-    .text(BTN_CANCEL_BATCH)
-    .resized()
+function batchReplyKeyboard(mode: BatchKeyboardMode) {
+  const keyboard = new Keyboard()
+  if (mode === 'ready') {
+    keyboard.text(BTN_FINALIZE_BATCH)
+  }
+  return keyboard.text(BTN_CANCEL_BATCH).resized()
 }
 
 function createTelegramAdapter(): MessengerAdapter {
@@ -16,8 +17,8 @@ function createTelegramAdapter(): MessengerAdapter {
     platform: 'telegram',
     async sendText(target: MessengerReplyTarget, text: string, options?) {
       const bot = getBot()
-      await bot.api.sendMessage(Number(target.chatId), text, options?.showBatchActions
-        ? { reply_markup: batchReplyKeyboard() }
+      await bot.api.sendMessage(Number(target.chatId), text, options?.batchKeyboard
+        ? { reply_markup: batchReplyKeyboard(options.batchKeyboard) }
         : undefined)
     },
   }

@@ -20,11 +20,13 @@ export interface IncomingDocument {
 /** @deprecated Use IncomingDocument */
 export type IncomingPdf = IncomingDocument
 
+export type BatchKeyboardMode = 'calculating' | 'ready'
+
 export interface MessengerAdapter {
   platform: MessengerPlatform
   sendText(
     target: MessengerReplyTarget,
     text: string,
-    options?: { showBatchActions?: boolean },
+    options?: { batchKeyboard?: BatchKeyboardMode },
   ): Promise<void>
 }

@@ -5,7 +5,8 @@ export const BTN_CANCEL_BATCH = '❌ Отменить пачку'
 
 export const MSG_START =
   'Привет! Отправляйте файлы по одному (PDF или Word).\n\n'
-  + 'Когда всё готово — нажмите «Завершить и оплатить».\n'
+  + 'Word-файлы сначала считаются на принтере — это может занять до 20 секунд.\n'
+  + 'Когда все файлы готовы, появится кнопка «Завершить и оплатить».\n'
   + 'Можно добавить до 5 файлов в одну пачку.'
 
 export const MSG_UNSUPPORTED_FILE =
@@ -26,7 +27,16 @@ export const MSG_AGENT_OFFLINE_AFTER_PAYMENT =
   + 'Если прошло несколько минут — обратитесь к сотруднику.'
 
 export const MSG_BATCH_LIMIT =
-  'Достигнут лимит файлов в пачке. Нажмите «Завершить и оплатить» или «Отменить пачку».'
+  'Достигнут лимит файлов в пачке. '
+  + 'Дождитесь подсчёта страниц или нажмите «Отменить пачку».'
+
+export const MSG_BATCH_STILL_CALCULATING =
+  'Подождите: идёт подсчёт страниц. '
+  + 'Когда все файлы будут готовы, появится кнопка «Завершить и оплатить».'
+
+export const MSG_BATCH_CALCULATION_FAILED =
+  'Не удалось обработать один или несколько файлов. '
+  + 'Удалите проблемные файлы (отмените пачку) и отправьте документы заново.'
 
 export const MSG_BATCH_CANCELLED =
   'Пачка отменена. Отправьте файлы заново, когда будете готовы.'
@@ -41,20 +51,49 @@ function clientPaymentHint(): string {
   return 'Оплата в боте скоро будет доступна. Пока обратитесь к сотруднику копицентра.'
 }
 
+export function formatBatchFileCalculating(
+  fileName: string,
+  fileIndex: number,
+  maxFiles: number,
+): string {
+  return (
+    `${MSG_CALCULATING}\n\n`
+    + `Файл: ${fileName}\n\n`
+    + `В пачке: ${fileIndex} из ${maxFiles}.\n`
+    + 'Можно добавить ещё файлы в пачку.'
+  )
+}
+
+export function formatBatchFileReady(
+  fileName: string,
+  fileIndex: number,
+  maxFiles: number,
+  pageCount: number,
+  canFinalize: boolean,
+): string {
+  const footer = canFinalize
+    ? 'Нажмите «Завершить и оплатить», когда будете готовы.'
+    : 'Можно добавить ещё файлы в пачку.'
+
+  return (
+    `📎 Файл готов: ${fileName}\n`
+    + `Страниц: ${pageCount}\n\n`
+    + `В пачке: ${fileIndex} из ${maxFiles}.\n`
+    + footer
+  )
+}
+
+/** @deprecated Use formatBatchFileCalculating or formatBatchFileReady */
 export function formatBatchFileAdded(
   fileName: string,
   fileIndex: number,
   maxFiles: number,
   isCalculating: boolean,
 ): string {
-  const status = isCalculating
-    ? MSG_CALCULATING
-    : `Файл ${fileIndex}/${maxFiles}: ${fileName}`
-  return (
-    `📎 ${status}\n\n`
-    + `В пачке: ${fileIndex} из ${maxFiles}.\n`
-    + 'Добавьте ещё файлы или нажмите «Завершить и оплатить».'
-  )
+  if (isCalculating) {
+    return formatBatchFileCalculating(fileName, fileIndex, maxFiles)
+  }
+  return formatBatchFileReady(fileName, fileIndex, maxFiles, 1, true)
 }
 
 export function formatBatchSummary(
