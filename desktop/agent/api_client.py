@@ -7,6 +7,10 @@ from .config import Config
 
 QueueKind = Literal["calculate", "print"]
 
+CONNECT_TIMEOUT_SEC = 10
+READ_TIMEOUT_SEC = 60
+DEFAULT_TIMEOUT = (CONNECT_TIMEOUT_SEC, READ_TIMEOUT_SEC)
+
 
 class ApiClient:
     def __init__(self, config: Config) -> None:
@@ -15,6 +19,18 @@ class ApiClient:
         self.session.headers.update(
             {"Authorization": f"Bearer {config.agent_api_key}"}
         )
+
+    def _connection_error_message(self, exc: requests.RequestException) -> str:
+        if isinstance(exc, requests.ConnectTimeout):
+            return (
+                f"server unreachable (connect timeout {CONNECT_TIMEOUT_SEC}s): "
+                f"{self.config.server_url}"
+            )
+        if isinstance(exc, requests.ConnectionError):
+            return f"connection failed: {self.config.server_url} ({exc})"
+        if isinstance(exc, requests.Timeout):
+            return f"request timed out: {self.config.server_url}{exc}"
+        return str(exc)
 
     def _request(
         self,
@@ -25,6 +41,7 @@ class ApiClient:
         json: dict[str, Any] | None = None,
         stream: bool = False,
         retries: int = 3,
+        timeout: tuple[int, int] = DEFAULT_TIMEOUT,
     ) -> requests.Response:
         url = f"{self.config.server_url}{path}"
         last_error: Exception | None = None
@@ -37,7 +54,7 @@ class ApiClient:
                     params=params,
                     json=json,
                     stream=stream,
-                    timeout=60,
+                    timeout=timeout,
                 )
                 response.raise_for_status()
                 return response
@@ -58,17 +75,22 @@ class ApiClient:
                 if attempt < retries - 1:
                     time.sleep(2 ** attempt)
             except requests.RequestException as exc:
-                last_error = exc
+                last_error = RuntimeError(self._connection_error_message(exc))
                 if attempt < retries - 1:
                     time.sleep(2 ** attempt)
 
         raise RuntimeError(f"API request failed: {method} {path}: {last_error}") from last_error
+
+    def ping(self) -> dict[str, Any]:
+        response = self._request("GET", "/api/health", retries=1)
+        return response.json()
 
     def get_queue(self, kind: QueueKind = "print") -> list[dict[str, Any]]:
         response = self._request(
             "GET",
             "/api/agent/queue",
             params={"pointId": self.config.point_id, "kind": kind},
+            retries=1,
         )
         data = response.json()
         return data.get("orders", [])

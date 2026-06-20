@@ -110,6 +110,19 @@ def process_order(client: ApiClient, config, order: dict) -> None:
             temp_path.unlink()
 
 
+def _is_connection_poll_error(exc: Exception) -> bool:
+    message = str(exc).lower()
+    return any(
+        token in message
+        for token in (
+            "server unreachable",
+            "connection failed",
+            "request timed out",
+            "connect timeout",
+        )
+    )
+
+
 def main() -> None:
     disable_console_quick_edit()
     config = load_config()
@@ -120,6 +133,13 @@ def main() -> None:
         f"point={config.point_id} poll={config.poll_interval_sec}s "
         f"use_word={config.use_word} separator={config.use_separator_page}"
     )
+
+    try:
+        health = client.ping()
+        log(f"Server OK | version={health.get('version', '?')}")
+    except Exception as exc:
+        log(f"WARNING: server check failed: {exc}")
+        log("Check SERVER_URL in desktop/.env, internet, and firewall on this PC")
 
     while True:
         try:
@@ -135,7 +155,8 @@ def main() -> None:
                     process_order(client, config, order)
         except Exception as exc:
             log(f"Poll error: {exc}")
-            traceback.print_exc()
+            if not _is_connection_poll_error(exc):
+                traceback.print_exc()
 
         time.sleep(config.poll_interval_sec)
 

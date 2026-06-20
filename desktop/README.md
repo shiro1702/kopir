@@ -80,6 +80,8 @@ List printers in PowerShell: `Get-Printer`
 
 **Console freezes between jobs?** Windows cmd “Quick Edit Mode” pauses the agent on accidental clicks until Enter. The agent disables this automatically on startup. If it still happens, uncheck **Quick Edit Mode** in the window Properties, or run via PowerShell / a scheduled task.
 
+**`ConnectTimeout` / `server unreachable`?** The agent cannot reach `SERVER_URL` from this PC (not a Word or printer issue). On the agent PC open `https://YOUR-DOMAIN.vercel.app/api/health` in a browser — you should see `{"ok":true,...}`. If the page does not load: check internet, firewall/antivirus, that the URL in `desktop/.env` matches Vercel Dashboard → Domains, and redeploy if needed.
+
 Word `.docx` files are opened headlessly for page count and print; keep MS Word installed and close stuck `WINWORD.EXE` processes if jobs hang.
 
 ## Environment
