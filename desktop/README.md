@@ -4,12 +4,35 @@ Polling print agent for Sprint 0. Fetches paid orders from the Kopir API and pri
 
 ## Setup
 
+### macOS / Linux
+
 ```bash
 cd desktop
 python3 -m venv .venv
-source .venv/bin/activate   # Windows: .venv\Scripts\activate
+source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env        # fill SERVER_URL, AGENT_API_KEY, POINT_ID
+```
+
+### Windows (PowerShell)
+
+```powershell
+cd desktop
+python -m venv .venv
+Set-ExecutionPolicy RemoteSigned -Scope CurrentUser -Force   # once, if Activate.ps1 is blocked
+.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+copy .env.example .env
+```
+
+### Windows (cmd — no ExecutionPolicy change)
+
+```cmd
+cd desktop
+python -m venv .venv
+.venv\Scripts\activate.bat
+pip install -r requirements.txt
+copy .env.example .env
 ```
 
 ## Run
@@ -17,6 +40,12 @@ cp .env.example .env        # fill SERVER_URL, AGENT_API_KEY, POINT_ID
 ```bash
 python -m agent.main
 ```
+
+### Windows — one-click
+
+Double-click `scripts/start-agent.bat` (or create a desktop shortcut to it).
+
+Requires completed setup: `.venv` and filled `.env`.
 
 ## Test print (no API)
 
@@ -45,6 +74,9 @@ Set `PRINTER_NAME` in `.env` or leave empty for default.
 1. Download [SumatraPDF](https://www.sumatrapdfreader.org/) portable
 2. Place `SumatraPDF.exe` in `desktop/bin/` or set `SUMATRA_PATH`
 3. Set `PRINTER_NAME` to your printer name (or leave empty for default)
+4. Run via `scripts/start-agent.bat` or activate venv and run `python -m agent.main`
+
+List printers in PowerShell: `Get-Printer`
 
 ## Environment
 
