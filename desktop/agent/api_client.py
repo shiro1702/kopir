@@ -88,6 +88,13 @@ class ApiClient:
                 if chunk:
                     file.write(chunk)
 
+    def claim_calculation(self, order_id: str) -> dict[str, Any]:
+        response = self._request(
+            "POST",
+            f"/api/agent/orders/{order_id}/claim-calculation",
+        )
+        return response.json()
+
     def submit_calculation(
         self,
         order_id: str,

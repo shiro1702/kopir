@@ -1,7 +1,8 @@
 import { timingSafeEqual } from 'node:crypto'
 import type { H3Event } from 'h3'
-import { detectDocumentKind, guessFileNameFromUrl, mimeTypeForKind } from '../file-types'
+import { detectDocumentKind, mimeTypeForKind } from '../file-types'
 import { BTN_CANCEL_BATCH, BTN_FINALIZE_BATCH } from '../bot/messages'
+import { downloadMaxFileAttachment, resolveFileAttachment } from './files'
 import { getStaffMaxUserId } from '../payment-mode'
 import type { BatchKeyboardMode, MessengerAdapter, MessengerReplyTarget } from '../bot/types'
 import { getMaxClient } from './client'
@@ -59,16 +60,6 @@ function parseStartPayload(text: string | undefined): string | undefined {
   }
   const parts = trimmed.split(/\s+/)
   return parts[1]
-}
-
-function findFileAttachment(attachments: MaxAttachment[] | undefined | null) {
-  return attachments?.find((attachment) => attachment.type === 'file')
-}
-
-/** Direct uploads use body.attachments; forwarded files live in link.message.attachments. */
-function resolveMaxFileAttachment(message: MaxMessage): MaxAttachment | undefined {
-  return findFileAttachment(message.body?.attachments)
-    ?? findFileAttachment(message.link?.message?.attachments)
 }
 
 function isBatchActionText(text: string): 'finalize' | 'cancel' | null {
@@ -132,16 +123,24 @@ export async function handleMaxUpdate(update: MaxUpdate): Promise<void> {
         return
       }
 
-      const fileAttachment = resolveMaxFileAttachment(message)
-      if (!fileAttachment?.payload?.url) {
+      const fileAttachment = resolveFileAttachment(message)
+      if (!fileAttachment || (!fileAttachment.payload?.url && !fileAttachment.payload?.token)) {
         return
       }
 
-      const fileName = fileAttachment.filename
-        ?? (fileAttachment.payload?.url ? guessFileNameFromUrl(fileAttachment.payload.url) : undefined)
-        ?? 'document.pdf'
-      const kind = detectDocumentKind(fileName)
-      const mimeType = mimeTypeForKind(kind === 'unsupported' ? 'pdf' : kind, fileName)
+      let downloaded: { buffer: Buffer, fileName: string }
+      try {
+        downloaded = await downloadMaxFileAttachment(client, message, fileAttachment)
+      } catch (error) {
+        console.error('[max] attachment download failed:', error)
+        const { MSG_UPLOAD_FAILED } = await import('../bot/messages')
+        await adapter.sendText(target, MSG_UPLOAD_FAILED)
+        return
+      }
+
+      const fileName = downloaded.fileName
+      const kindHint = detectDocumentKind(fileName)
+      const mimeType = mimeTypeForKind(kindHint === 'unsupported' ? 'pdf' : kindHint, fileName)
 
       const { handleDocument } = await import('../bot/core')
       await handleDocument(
@@ -151,7 +150,7 @@ export async function handleMaxUpdate(update: MaxUpdate): Promise<void> {
         {
           fileName,
           mimeType,
-          download: () => client.downloadFile(fileAttachment.payload!.url!),
+          download: async () => downloaded.buffer,
         },
         adapter,
       )

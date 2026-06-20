@@ -10,8 +10,10 @@ export function getPricePerPageKopeks(): number {
 export function getCalculationTimeoutSec(): number {
   const config = useRuntimeConfig()
   const value = Number(config.calculationTimeoutSec)
-  return Number.isFinite(value) && value > 0 ? value : 120
+  return Number.isFinite(value) && value > 0 ? value : 300
 }
+
+const CALCULATION_TIMEOUT_MESSAGE = 'Превышено время подсчёта страниц'
 
 export async function expireStaleCalculations(pointId?: string): Promise<void> {
   const timeoutSec = getCalculationTimeoutSec()
@@ -20,7 +22,7 @@ export async function expireStaleCalculations(pointId?: string): Promise<void> {
   const staleOrders = await prisma.order.findMany({
     where: {
       status: OrderStatus.CALCULATING,
-      createdAt: { lt: cutoff },
+      updatedAt: { lt: cutoff },
       ...(pointId ? { pointId } : {}),
     },
     include: { user: true },
@@ -31,7 +33,7 @@ export async function expireStaleCalculations(pointId?: string): Promise<void> {
       where: { id: order.id },
       data: {
         status: OrderStatus.CALCULATION_FAILED,
-        errorMessage: 'Calculation timed out',
+        errorMessage: CALCULATION_TIMEOUT_MESSAGE,
       },
     })
 
@@ -39,10 +41,18 @@ export async function expireStaleCalculations(pointId?: string): Promise<void> {
       const { notifyCalculationFailed } = await import('./bot/core')
       await notifyCalculationFailed(order.user, {
         fileName: order.fileName,
-        errorMessage: 'Calculation timed out',
+        errorMessage: CALCULATION_TIMEOUT_MESSAGE,
       })
     } catch (error) {
       console.error('[calculation] timeout notify failed:', order.id, error)
     }
   }
+}
+
+export function isCalculationTimeoutError(errorMessage: string | null | undefined): boolean {
+  if (!errorMessage) {
+    return false
+  }
+  return errorMessage === CALCULATION_TIMEOUT_MESSAGE
+    || errorMessage === 'Calculation timed out'
 }

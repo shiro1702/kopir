@@ -102,6 +102,19 @@ export class MaxClient {
     return Buffer.from(await response.arrayBuffer())
   }
 
+  async getMessageById(messageId: string): Promise<import('./types').MaxMessage> {
+    const data = await this.request<{ messages?: import('./types').MaxMessage[] }>(
+      'GET',
+      '/messages',
+      { query: { message_ids: messageId } },
+    )
+    const message = data.messages?.[0]
+    if (!message) {
+      throw new Error(`MAX message not found: ${messageId}`)
+    }
+    return message
+  }
+
   /** Upload binary to MAX and return token for file attachment in messages. */
   async uploadFile(buffer: Buffer, fileName: string): Promise<string> {
     const meta = await this.request<{ url: string }>('POST', '/uploads', {

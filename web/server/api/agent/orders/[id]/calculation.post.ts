@@ -1,7 +1,7 @@
 import { OrderStatus } from '@prisma/client'
 import { assertAgentAuth } from '../../../../utils/agent-auth'
 import { notifyCalculationFailed, notifyQuoteReady } from '../../../../utils/bot/core'
-import { getPricePerPageKopeks } from '../../../../utils/calculation'
+import { getPricePerPageKopeks, isCalculationTimeoutError } from '../../../../utils/calculation'
 import { prisma } from '../../../../utils/prisma'
 import { touchPointAgentSeen } from '../../../../utils/points'
 
@@ -48,7 +48,11 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  if (order.status !== OrderStatus.CALCULATING) {
+  const canAcceptResult = order.status === OrderStatus.CALCULATING
+    || (body.status === 'OK' && order.status === OrderStatus.CALCULATION_FAILED
+      && isCalculationTimeoutError(order.errorMessage))
+
+  if (!canAcceptResult) {
     throw createError({
       statusCode: 400,
       data: { error: 'Order is not in CALCULATING status', code: 'INVALID_STATUS' },

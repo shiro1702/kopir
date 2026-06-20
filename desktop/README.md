@@ -78,6 +78,10 @@ Set `PRINTER_NAME` in `.env` or leave empty for default.
 
 List printers in PowerShell: `Get-Printer`
 
+**Console freezes between jobs?** Windows cmd has “Quick Edit Mode”: a click in the window pauses the agent until you press Enter. Disable it: window title bar → Properties → uncheck **Quick Edit Mode** (and optionally **Insert Mode**). Or run the agent in PowerShell / as a scheduled task.
+
+Word `.docx` files are opened headlessly for page count and print; keep MS Word installed and close stuck `WINWORD.EXE` processes if jobs hang.
+
 ## Environment
 
 | Variable | Description |

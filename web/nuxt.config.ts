@@ -47,7 +47,7 @@ export default defineNuxtConfig({
     adminSecret: process.env.ADMIN_SECRET,
     agentApiKey: process.env.AGENT_API_KEY,
     pricePerPageKopeks: process.env.PRICE_PER_PAGE_KOPEKS ?? '1000',
-    calculationTimeoutSec: process.env.CALCULATION_TIMEOUT_SEC ?? '120',
+    calculationTimeoutSec: process.env.CALCULATION_TIMEOUT_SEC ?? '300',
     paymentMode: process.env.PAYMENT_MODE ?? 'terminal',
     staffTelegramChatId: process.env.STAFF_TELEGRAM_CHAT_ID ?? '',
     staffMaxUserId: process.env.STAFF_MAX_USER_ID ?? '',

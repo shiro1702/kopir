@@ -35,6 +35,17 @@ def report_order_failed(client: ApiClient, order_id: str, error_message: str) ->
     log(f"Giving up reporting failure for order {order_id}")
 
 
+def _submit_calculation_error(client: ApiClient, order_id: str, error_message: str) -> None:
+    try:
+        client.submit_calculation(order_id, error_message=error_message)
+    except Exception as exc:
+        detail = str(exc)
+        if "INVALID_STATUS" in detail or "already calculated" in detail.lower():
+            log(f"Calculation result for {order_id} was already recorded, skipping error report")
+            return
+        log(f"Failed to report calculation error for order {order_id}: {exc}")
+
+
 def process_calculation(client: ApiClient, config, order: dict) -> None:
     order_id = order["id"]
 
@@ -51,6 +62,7 @@ def process_calculation(client: ApiClient, config, order: dict) -> None:
     temp_path = temp_path_for_order(order)
 
     try:
+        client.claim_calculation(order_id)
         client.download_file(order_id, str(temp_path))
         log(f"Downloaded {order.get('fileName', 'file')} for calculation {order_id}")
         page_count = word.count_pages(str(temp_path))
@@ -58,17 +70,11 @@ def process_calculation(client: ApiClient, config, order: dict) -> None:
         log(f"Submitted calculation OK for order {order_id}: {page_count} pages")
     except word.WordError as exc:
         log(f"Calculation failed for order {order_id}: {exc}")
-        client.submit_calculation(order_id, error_message=reportable_error(exc, phase="calculation"))
+        _submit_calculation_error(client, order_id, reportable_error(exc, phase="calculation"))
     except Exception as exc:
         log(f"Error calculating order {order_id}: {exc}")
         traceback.print_exc()
-        try:
-            client.submit_calculation(
-                order_id,
-                error_message=reportable_error(exc, phase="calculation"),
-            )
-        except Exception:
-            log(f"Failed to report calculation error for order {order_id}")
+        _submit_calculation_error(client, order_id, reportable_error(exc, phase="calculation"))
     finally:
         if temp_path.exists():
             temp_path.unlink()
