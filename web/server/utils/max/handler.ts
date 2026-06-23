@@ -1,30 +1,35 @@
 import { timingSafeEqual } from 'node:crypto'
 import type { H3Event } from 'h3'
 import { detectDocumentKind, mimeTypeForKind } from '../file-types'
+import {
+  isBatchClientCallbackPayload,
+  maxBatchActionButtons,
+  parseBatchRemoveCancelOrderId,
+  parseBatchRemoveConfirmOrderId,
+  parseBatchRemoveOrderId,
+} from '../bot/keyboards'
+import type {
+  BatchKeyboardMode,
+  CallbackContext,
+  MessengerAdapterWithCallbacks,
+  MessengerReplyTarget,
+  SentMessage,
+} from '../bot/types'
+import { editMaxStatusMessage, getMaxClient, sendMaxStatusMessage } from './client'
+
 import { BTN_CANCEL_BATCH, BTN_FINALIZE_BATCH } from '../bot/messages'
 import { downloadMaxFileAttachment, resolveFileAttachment } from './files'
 import { getStaffMaxUserId } from '../payment-mode'
-import type { BatchKeyboardMode, MessengerAdapter, MessengerReplyTarget } from '../bot/types'
-import { getMaxClient } from './client'
-import type { MaxAttachment, MaxInlineKeyboardAttachment, MaxMessage, MaxUpdate } from './types'
+import type { MaxInlineKeyboardAttachment, MaxUpdate } from './types'
 
 function batchInlineKeyboard(mode: BatchKeyboardMode): MaxInlineKeyboardAttachment {
-  const buttons = mode === 'ready'
-    ? [
-        { type: 'callback' as const, text: BTN_FINALIZE_BATCH, payload: 'batch_finalize', intent: 'default' as const },
-        { type: 'callback' as const, text: BTN_CANCEL_BATCH, payload: 'batch_cancel', intent: 'default' as const },
-      ]
-    : [
-        { type: 'callback' as const, text: BTN_CANCEL_BATCH, payload: 'batch_cancel', intent: 'default' as const },
-      ]
-
   return {
     type: 'inline_keyboard',
-    payload: { buttons: [buttons] },
+    payload: { buttons: [maxBatchActionButtons(mode)] },
   }
 }
 
-function createMaxAdapter(): MessengerAdapter {
+function createMaxAdapter(): MessengerAdapterWithCallbacks {
   const client = getMaxClient()
   return {
     platform: 'max',
@@ -34,6 +39,15 @@ function createMaxAdapter(): MessengerAdapter {
         text,
         options?.batchKeyboard ? [batchInlineKeyboard(options.batchKeyboard)] : undefined,
       )
+    },
+    async sendStatus(target, text, options?) {
+      return sendMaxStatusMessage(Number(target.chatId), text, options)
+    },
+    async editStatus(target, message, text, options?) {
+      await editMaxStatusMessage(message, text, options)
+    },
+    async answerCallback(ctx: CallbackContext, text?: string) {
+      await client.answerCallback(ctx.callbackId, text ?? '')
     },
   }
 }
@@ -187,11 +201,91 @@ export async function handleMaxUpdate(update: MaxUpdate): Promise<void> {
         }
         const action = callback.payload === 'batch_finalize' ? 'finalize' : 'cancel'
         try {
+          if (action === 'finalize') {
+            await client.answerCallback(callback.callback_id, 'Собираем пачку…')
+          }
           const { handleBatchAction } = await import('../bot/core')
           await handleBatchAction('max', target, user, action, adapter)
-          await client.answerCallback(callback.callback_id, action === 'finalize' ? 'Пачка собрана' : 'Пачка отменена')
+          if (action === 'cancel') {
+            await client.answerCallback(callback.callback_id, 'Пачка отменена')
+          }
         } catch (error) {
           const text = error instanceof Error ? error.message : 'Ошибка'
+          await client.answerCallback(callback.callback_id, text)
+        }
+        return
+      }
+
+      if (!isStaff && isBatchClientCallbackPayload(callback.payload)) {
+        const chatId = update.message?.recipient?.chat_id ?? update.chat_id
+        if (!chatId) {
+          await client.answerCallback(callback.callback_id, 'Ошибка чата')
+          return
+        }
+        const target: MessengerReplyTarget = {
+          platform: 'max',
+          chatId: String(chatId),
+        }
+        const user = {
+          externalId: String(callback.user.user_id),
+          username: callback.user.username ?? null,
+          firstName: callback.user.first_name ?? callback.user.name ?? null,
+        }
+        const messageId = update.message?.body?.mid
+        const message: SentMessage | undefined = messageId
+          ? { messageId, chatId: String(chatId) }
+          : undefined
+        const callbackCtx: CallbackContext = {
+          callbackId: callback.callback_id,
+          chatId: String(chatId),
+          messageId,
+        }
+
+        try {
+          const payload = callback.payload
+          let toast = ''
+          if (parseBatchRemoveOrderId(payload)) {
+            const { handleBatchRemoveRequest } = await import('../bot/core')
+            toast = await handleBatchRemoveRequest(
+              target,
+              user,
+              parseBatchRemoveOrderId(payload)!,
+              adapter,
+              callbackCtx,
+              message,
+            )
+          } else if (parseBatchRemoveConfirmOrderId(payload)) {
+            const { handleBatchRemoveConfirm } = await import('../bot/core')
+            toast = await handleBatchRemoveConfirm(
+              target,
+              user,
+              parseBatchRemoveConfirmOrderId(payload)!,
+              adapter,
+              callbackCtx,
+              message,
+            )
+          } else if (parseBatchRemoveCancelOrderId(payload)) {
+            const { handleBatchRemoveCancel } = await import('../bot/core')
+            toast = await handleBatchRemoveCancel(
+              target,
+              user,
+              parseBatchRemoveCancelOrderId(payload)!,
+              adapter,
+              callbackCtx,
+              message,
+            )
+          }
+          await client.answerCallback(callback.callback_id, toast)
+        } catch (error) {
+          let text = 'Ошибка'
+          if (error && typeof error === 'object' && 'data' in error) {
+            const data = (error as { data?: { error?: string } }).data
+            if (data?.error) {
+              text = data.error
+            }
+          } else if (error instanceof Error) {
+            text = error.message
+          }
           await client.answerCallback(callback.callback_id, text)
         }
         return

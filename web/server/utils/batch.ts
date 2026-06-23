@@ -6,8 +6,131 @@ import { isPointAgentOnline } from './points'
 import type { BatchKeyboardMode } from './bot/types'
 import {
   MSG_BATCH_CALCULATION_FAILED,
+  MSG_BATCH_CANNOT_REMOVE_CALCULATING,
   MSG_BATCH_STILL_CALCULATING,
 } from './bot/messages'
+
+export const REMOVED_BY_USER = 'removed by user'
+
+export function isActiveBatchOrder(order: Pick<Order, 'status' | 'errorMessage'>): boolean {
+  return !(order.status === OrderStatus.FAILED && order.errorMessage === REMOVED_BY_USER)
+}
+
+export async function getActiveBatchOrders(batchId: string): Promise<Order[]> {
+  const orders = await prisma.order.findMany({
+    where: { batchId },
+    orderBy: { batchIndex: 'asc' },
+  })
+  return orders.filter(isActiveBatchOrder)
+}
+
+export async function countActiveBatchOrders(batchId: string): Promise<number> {
+  const orders = await getActiveBatchOrders(batchId)
+  return orders.length
+}
+
+export async function reindexBatchOrders(batchId: string): Promise<void> {
+  const active = await getActiveBatchOrders(batchId)
+  for (let i = 0; i < active.length; i++) {
+    const nextIndex = i + 1
+    if (active[i]!.batchIndex !== nextIndex) {
+      await prisma.order.update({
+        where: { id: active[i]!.id },
+        data: { batchIndex: nextIndex },
+      })
+    }
+  }
+}
+
+export interface RemoveOrderFromBatchResult {
+  batchId: string
+  removedFileName: string
+  remainingCount: number
+  batchCancelled: boolean
+}
+
+export async function removeOrderFromBatch(
+  orderId: string,
+  userId: string,
+): Promise<RemoveOrderFromBatchResult> {
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    include: { batch: true },
+  })
+
+  if (!order?.batchId || !order.batch) {
+    throw createError({
+      statusCode: 404,
+      data: { error: 'Order not found in batch', code: 'ORDER_NOT_FOUND' },
+    })
+  }
+
+  if (order.userId !== userId) {
+    throw createError({
+      statusCode: 403,
+      data: { error: 'Forbidden', code: 'FORBIDDEN' },
+    })
+  }
+
+  if (order.batch.status !== OrderBatchStatus.COLLECTING) {
+    throw createError({
+      statusCode: 400,
+      data: { error: 'Пачка уже завершена', code: 'INVALID_BATCH_STATUS' },
+    })
+  }
+
+  if (!isActiveBatchOrder(order)) {
+    return {
+      batchId: order.batchId,
+      removedFileName: order.fileName,
+      remainingCount: await countActiveBatchOrders(order.batchId),
+      batchCancelled: false,
+    }
+  }
+
+  if (order.status === OrderStatus.CALCULATING) {
+    throw createError({
+      statusCode: 409,
+      data: {
+        error: MSG_BATCH_CANNOT_REMOVE_CALCULATING,
+        code: 'BATCH_FILE_CALCULATING',
+      },
+    })
+  }
+
+  if (order.filePath) {
+    await deleteOrderFile(order.filePath)
+  }
+
+  await prisma.order.update({
+    where: { id: orderId },
+    data: {
+      status: OrderStatus.FAILED,
+      errorMessage: REMOVED_BY_USER,
+    },
+  })
+
+  await reindexBatchOrders(order.batchId)
+  await recalculateBatchTotals(order.batchId)
+
+  const remainingCount = await countActiveBatchOrders(order.batchId)
+  let batchCancelled = false
+
+  if (remainingCount === 0) {
+    await cancelBatch(order.batchId, {
+      internalReason: REMOVED_BY_USER,
+      notifyUser: false,
+    })
+    batchCancelled = true
+  }
+
+  return {
+    batchId: order.batchId,
+    removedFileName: order.fileName,
+    remainingCount,
+    batchCancelled,
+  }
+}
 
 export function getBatchMaxFiles(): number {
   const config = useRuntimeConfig()
@@ -30,17 +153,13 @@ function batchLog(batchId: string, message: string, extra?: unknown) {
 }
 
 export async function getBatchKeyboardMode(batchId: string): Promise<BatchKeyboardMode> {
-  const calculating = await prisma.order.count({
-    where: { batchId, status: OrderStatus.CALCULATING },
-  })
-  return calculating > 0 ? 'calculating' : 'ready'
+  const active = await getActiveBatchOrders(batchId)
+  const calculating = active.filter((o) => o.status === OrderStatus.CALCULATING)
+  return calculating.length > 0 ? 'calculating' : 'ready'
 }
 
 export async function recalculateBatchTotals(batchId: string): Promise<OrderBatch> {
-  const orders = await prisma.order.findMany({
-    where: { batchId },
-    orderBy: { batchIndex: 'asc' },
-  })
+  const orders = await getActiveBatchOrders(batchId)
 
   const totalPages = orders.reduce((sum, order) => sum + order.pageCount, 0)
   const totalAmountKopeks = orders.reduce((sum, order) => sum + order.amountKopeks, 0)
@@ -90,12 +209,11 @@ export async function getOrCreateCollectingBatch(
 }
 
 export async function getNextBatchIndex(batchId: string): Promise<number> {
-  const last = await prisma.order.findFirst({
-    where: { batchId },
-    orderBy: { batchIndex: 'desc' },
-    select: { batchIndex: true },
-  })
-  return (last?.batchIndex ?? 0) + 1
+  const active = await getActiveBatchOrders(batchId)
+  if (active.length === 0) {
+    return 1
+  }
+  return Math.max(...active.map((o) => o.batchIndex ?? 0)) + 1
 }
 
 export async function expireStaleCollectingBatches(): Promise<void> {
@@ -207,14 +325,16 @@ export async function finalizeBatch(batchId: string): Promise<FinalizeBatchResul
     })
   }
 
-  if (batch.orders.length === 0) {
+  const activeOrders = batch.orders.filter(isActiveBatchOrder)
+
+  if (activeOrders.length === 0) {
     throw createError({
       statusCode: 400,
       data: { error: 'Batch has no files', code: 'EMPTY_BATCH' },
     })
   }
 
-  const calculating = batch.orders.filter((o) => o.status === OrderStatus.CALCULATING)
+  const calculating = activeOrders.filter((o) => o.status === OrderStatus.CALCULATING)
   if (calculating.length > 0) {
     throw createError({
       statusCode: 400,
@@ -225,7 +345,7 @@ export async function finalizeBatch(batchId: string): Promise<FinalizeBatchResul
     })
   }
 
-  const failed = batch.orders.filter((o) => o.status === OrderStatus.CALCULATION_FAILED)
+  const failed = activeOrders.filter((o) => o.status === OrderStatus.CALCULATION_FAILED)
   if (failed.length > 0) {
     throw createError({
       statusCode: 400,
@@ -237,7 +357,7 @@ export async function finalizeBatch(batchId: string): Promise<FinalizeBatchResul
   }
 
   const pricePerPage = getPricePerPageKopeks()
-  for (const order of batch.orders) {
+  for (const order of activeOrders) {
     if (order.amountKopeks === 0 && order.pageCount > 0) {
       await prisma.order.update({
         where: { id: order.id },
@@ -266,12 +386,17 @@ export async function finalizeBatch(batchId: string): Promise<FinalizeBatchResul
   })
 
   batchLog(batchId, 'finalized', {
-    files: finalBatch.orders.length,
+    files: activeOrders.length,
     totalPages: updatedBatch.totalPages,
     totalAmountKopeks: updatedBatch.totalAmountKopeks,
   })
 
-  return { batch: finalBatch }
+  const finalBatchWithActive = {
+    ...finalBatch,
+    orders: finalBatch.orders.filter(isActiveBatchOrder),
+  }
+
+  return { batch: finalBatchWithActive }
 }
 
 export async function confirmBatchPayment(batchId: string) {

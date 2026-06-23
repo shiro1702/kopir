@@ -2,13 +2,16 @@ import type { Order, User } from '@prisma/client'
 import { OrderBatchStatus, OrderStatus } from '@prisma/client'
 import {
   cancelBatch,
+  countActiveBatchOrders,
   expireStaleCollectingBatches,
   finalizeBatch,
   getBatchKeyboardMode,
   getBatchMaxFiles,
   getNextBatchIndex,
   getOrCreateCollectingBatch,
+  isActiveBatchOrder,
   recalculateBatchTotals,
+  removeOrderFromBatch,
 } from '../batch'
 import { uploadOrderFile } from '../blob'
 import { getPricePerPageKopeks } from '../calculation'
@@ -22,15 +25,49 @@ import { prisma } from '../prisma'
 import { resolvePointBySlug } from '../points'
 import { DEFAULT_POINT_SLUG } from './constants'
 import * as messages from './messages'
-import { getPointPreference, setPointPreference } from './preferences'
+import { removeConfirmKeyboard, removeFileKeyboard } from './keyboards'
+import {
+  editOrderClientMessage,
+  editOrderClientMessageViaAdapter,
+  saveOrderClientMessage,
+  sendOrderClientMessageViaAdapter,
+} from './order-client-message'
 import type {
   BatchKeyboardMode,
   BotUser,
+  CallbackContext,
   IncomingDocument,
   MessengerAdapter,
   MessengerPlatform,
   MessengerReplyTarget,
+  SentMessage,
+  StatusMessageOptions,
 } from './types'
+import { getLastBatchKeyboardMode, getPointPreference, setLastBatchKeyboardMode, setPointPreference } from './preferences'
+
+async function syncBatchReplyKeyboard(
+  platform: MessengerPlatform,
+  target: MessengerReplyTarget,
+  adapter: MessengerAdapter,
+  keyboardMode: BatchKeyboardMode,
+): Promise<void> {
+  const previous = getLastBatchKeyboardMode(platform, target.chatId)
+  if (previous === keyboardMode) {
+    return
+  }
+  setLastBatchKeyboardMode(platform, target.chatId, keyboardMode)
+  await adapter.sendText(target, ' ', { batchKeyboard: keyboardMode })
+}
+
+function orderStatusOptions(
+  orderId: string,
+  withRemoveButton: boolean,
+): StatusMessageOptions {
+  if (!withRemoveButton) {
+    return {}
+  }
+  return { inlineKeyboard: removeFileKeyboard(orderId) }
+}
 
 async function upsertBotUser(platform: MessengerPlatform, user: BotUser) {
   const messengerUserId = BigInt(user.externalId)
@@ -139,6 +176,8 @@ export async function handleDocument(
 ): Promise<void> {
   await expireStaleCollectingBatches()
 
+  await adapter.sendTyping?.(target, 'upload_document')
+
   let fileName = document.fileName
   let buffer: Buffer
   try {
@@ -170,7 +209,8 @@ export async function handleDocument(
   const maxFiles = getBatchMaxFiles()
 
   const batch = await getOrCreateCollectingBatch(dbUser.id, point.id)
-  if (batch.orders.length >= maxFiles) {
+  const activeCount = await countActiveBatchOrders(batch.id)
+  if (activeCount >= maxFiles) {
     const keyboardMode = await getBatchKeyboardMode(batch.id)
     await adapter.sendText(target, messages.MSG_BATCH_LIMIT, { batchKeyboard: keyboardMode })
     return
@@ -196,6 +236,12 @@ export async function handleDocument(
     },
   })
 
+  const receivingText = messages.formatFileReceiving(fileName)
+  const statusMessage = await sendOrderClientMessageViaAdapter(adapter, target, receivingText)
+  if (statusMessage) {
+    await saveOrderClientMessage(order.id, statusMessage)
+  }
+
   try {
     const blob = await uploadOrderFile(order.id, buffer, {
       fileName,
@@ -214,11 +260,33 @@ export async function handleDocument(
     await recalculateBatchTotals(batch.id)
 
     const keyboardMode = await getBatchKeyboardMode(batch.id)
-    const text = isWord
-      ? messages.formatBatchFileCalculating(fileName, batchIndex, maxFiles)
-      : messages.formatBatchFileReady(fileName, batchIndex, maxFiles, pageCount, keyboardMode === 'ready')
+    const freshOrder = await prisma.order.findUnique({ where: { id: order.id } })
+    if (!freshOrder) {
+      return
+    }
 
-    await adapter.sendText(target, text, { batchKeyboard: keyboardMode })
+    const statusText = isWord
+      ? messages.formatFileCalculating(fileName, batchIndex, maxFiles)
+      : messages.formatBatchFileReady(
+          fileName,
+          batchIndex,
+          maxFiles,
+          pageCount,
+          keyboardMode === 'ready',
+        )
+
+    const edited = await editOrderClientMessageViaAdapter(
+      adapter,
+      target,
+      freshOrder,
+      statusText,
+      orderStatusOptions(order.id, !isWord),
+    )
+    if (!edited) {
+      await adapter.sendText(target, statusText, { batchKeyboard: keyboardMode })
+    }
+
+    await syncBatchReplyKeyboard(platform, target, adapter, keyboardMode)
   } catch (error) {
     console.error('[bot] document upload failed:', order.id, error)
     await prisma.order.update({
@@ -229,7 +297,21 @@ export async function handleDocument(
       },
     })
     const keyboardMode = await getBatchKeyboardMode(batch.id)
-    await adapter.sendText(target, messages.MSG_UPLOAD_FAILED, { batchKeyboard: keyboardMode })
+    const freshOrder = await prisma.order.findUnique({ where: { id: order.id } })
+    if (freshOrder) {
+      const edited = await editOrderClientMessageViaAdapter(
+        adapter,
+        target,
+        freshOrder,
+        messages.MSG_UPLOAD_FAILED,
+        { removeInlineKeyboard: true },
+      )
+      if (!edited) {
+        await adapter.sendText(target, messages.MSG_UPLOAD_FAILED, { batchKeyboard: keyboardMode })
+      }
+    } else {
+      await adapter.sendText(target, messages.MSG_UPLOAD_FAILED, { batchKeyboard: keyboardMode })
+    }
   }
 }
 
@@ -263,9 +345,12 @@ export async function handleBatchAction(
 
   if (action === 'cancel') {
     await cancelBatch(batch.id, { notifyUser: false })
+    setLastBatchKeyboardMode(platform, target.chatId, 'ready')
     await adapter.sendText(target, messages.MSG_BATCH_CANCELLED)
     return
   }
+
+  await adapter.sendTyping?.(target, 'typing')
 
   try {
     const { batch: finalized } = await finalizeBatch(batch.id)
@@ -277,6 +362,7 @@ export async function handleBatchAction(
         finalized.totalAmountKopeks,
       ),
     )
+    setLastBatchKeyboardMode(platform, target.chatId, 'ready')
     await notifyStaffAfterBatchReady(finalized.id)
   } catch (error) {
     let text = 'Не удалось завершить пачку.'
@@ -294,6 +380,163 @@ export async function handleBatchAction(
     }
     await adapter.sendText(target, text, { batchKeyboard: keyboardMode })
   }
+}
+
+async function loadOrderForUser(orderId: string, user: BotUser) {
+  const dbUser = await prisma.user.findFirst({
+    where: {
+      OR: [
+        { telegramId: BigInt(user.externalId) },
+        { maxUserId: BigInt(user.externalId) },
+      ],
+    },
+  })
+  if (!dbUser) {
+    throw createError({
+      statusCode: 403,
+      data: { error: 'Forbidden', code: 'FORBIDDEN' },
+    })
+  }
+
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    include: { batch: true },
+  })
+  if (!order || order.userId !== dbUser.id) {
+    throw createError({
+      statusCode: 404,
+      data: { error: 'Order not found', code: 'ORDER_NOT_FOUND' },
+    })
+  }
+  return { order, dbUser }
+}
+
+export async function handleBatchRemoveRequest(
+  target: MessengerReplyTarget,
+  user: BotUser,
+  orderId: string,
+  adapter: MessengerAdapter,
+  _callbackCtx: CallbackContext,
+  message?: SentMessage,
+): Promise<string> {
+  const { order } = await loadOrderForUser(orderId, user)
+
+  if (order.batch?.status === OrderBatchStatus.CANCELLED) {
+    return messages.MSG_BATCH_BATCH_CANCELLED_ACTION
+  }
+  if (order.batch?.status !== OrderBatchStatus.COLLECTING) {
+    return 'Пачка уже завершена'
+  }
+  if (!isActiveBatchOrder(order)) {
+    return messages.MSG_BATCH_FILE_ALREADY_REMOVED
+  }
+  if (order.status === OrderStatus.CALCULATING) {
+    return messages.MSG_BATCH_CANNOT_REMOVE_CALCULATING
+  }
+
+  const confirmText = messages.formatBatchRemoveConfirm(order.fileName)
+  const edited = message
+    ? await editOrderClientMessageViaAdapter(
+        adapter,
+        target,
+        { clientMessageId: message.messageId, clientMessageChatId: message.chatId },
+        confirmText,
+        { inlineKeyboard: removeConfirmKeyboard(orderId) },
+      )
+    : await editOrderClientMessageViaAdapter(
+        adapter,
+        target,
+        order,
+        confirmText,
+        { inlineKeyboard: removeConfirmKeyboard(orderId) },
+      )
+
+  if (!edited) {
+    await adapter.sendText(target, confirmText)
+  }
+
+  return 'Подтверждение…'
+}
+
+export async function handleBatchRemoveConfirm(
+  target: MessengerReplyTarget,
+  user: BotUser,
+  orderId: string,
+  adapter: MessengerAdapter,
+  _callbackCtx: CallbackContext,
+  message?: SentMessage,
+): Promise<string> {
+  const { order, dbUser } = await loadOrderForUser(orderId, user)
+  const result = await removeOrderFromBatch(orderId, dbUser.id)
+  const maxFiles = getBatchMaxFiles()
+
+  const removedText = messages.formatFileRemovedInline(result.removedFileName)
+  const msgRef = message ?? {
+    messageId: order.clientMessageId ?? '',
+    chatId: order.clientMessageChatId ?? target.chatId,
+  }
+
+  if (msgRef.messageId) {
+    await editOrderClientMessageViaAdapter(
+      adapter,
+      target,
+      { clientMessageId: msgRef.messageId, clientMessageChatId: msgRef.chatId },
+      removedText,
+      { removeInlineKeyboard: true },
+    )
+  }
+
+  if (result.batchCancelled) {
+    setLastBatchKeyboardMode(target.platform, target.chatId, 'ready')
+    await adapter.sendText(target, messages.MSG_BATCH_EMPTY_AFTER_REMOVE)
+    return messages.MSG_BATCH_EMPTY_AFTER_REMOVE
+  }
+
+  const keyboardMode = await getBatchKeyboardMode(result.batchId)
+  await syncBatchReplyKeyboard(target.platform, target, adapter, keyboardMode)
+
+  return messages.formatBatchFileRemovedToast(result.remainingCount, maxFiles)
+}
+
+export async function handleBatchRemoveCancel(
+  target: MessengerReplyTarget,
+  user: BotUser,
+  orderId: string,
+  adapter: MessengerAdapter,
+  _callbackCtx: CallbackContext,
+  message?: SentMessage,
+): Promise<string> {
+  const { order } = await loadOrderForUser(orderId, user)
+
+  if (!isActiveBatchOrder(order) || order.batch?.status !== OrderBatchStatus.COLLECTING) {
+    return messages.MSG_BATCH_FILE_ALREADY_REMOVED
+  }
+
+  const maxFiles = getBatchMaxFiles()
+  const keyboardMode = order.batchId
+    ? await getBatchKeyboardMode(order.batchId)
+    : 'ready'
+  const canFinalize = keyboardMode === 'ready'
+  const readyText = messages.formatBatchFileReady(
+    order.fileName,
+    order.batchIndex ?? 1,
+    maxFiles,
+    order.pageCount,
+    canFinalize,
+  )
+
+  const msgRef = message ?? order
+  if (msgRef && 'clientMessageId' in msgRef && msgRef.clientMessageId) {
+    await editOrderClientMessageViaAdapter(
+      adapter,
+      target,
+      msgRef as Pick<Order, 'clientMessageId' | 'clientMessageChatId'>,
+      readyText,
+      orderStatusOptions(orderId, order.status !== OrderStatus.CALCULATING),
+    )
+  }
+
+  return 'Отменено'
 }
 
 /** @deprecated Use handleDocument */
@@ -326,7 +569,11 @@ export async function notifyStaffAfterBatchReady(batchId: string): Promise<void>
     })
     if (batch?.status === OrderBatchStatus.AWAITING_PAYMENT) {
       const { notifyStaffBatchAwaitingPayment } = await import('../staff-notify')
-      await notifyStaffBatchAwaitingPayment(batch)
+      const { isActiveBatchOrder } = await import('../batch')
+      await notifyStaffBatchAwaitingPayment({
+        ...batch,
+        orders: batch.orders.filter(isActiveBatchOrder),
+      })
     }
   } catch (error) {
     console.error('[staff] batch notify failed:', batchId, error)
@@ -392,24 +639,24 @@ export async function notifyBatchPrintPartialFailure(
 
 export async function notifyBatchFileCalculated(
   user: Pick<User, 'telegramId' | 'maxUserId'>,
-  fileName: string,
-  fileIndex: number,
-  maxFiles: number,
-  pageCount: number,
-  batchId: string,
+  order: Pick<Order, 'id' | 'fileName' | 'pageCount' | 'batchId' | 'batchIndex' | 'clientMessageId' | 'clientMessageChatId'>,
 ): Promise<void> {
-  const keyboardMode = await getBatchKeyboardMode(batchId)
-  await sendBatchUiToUser(
-    user,
-    messages.formatBatchFileReady(
-      fileName,
-      fileIndex,
-      maxFiles,
-      pageCount,
-      keyboardMode === 'ready',
-    ),
-    keyboardMode,
+  if (!order.batchId) {
+    return
+  }
+  const keyboardMode = await getBatchKeyboardMode(order.batchId)
+  const maxFiles = getBatchMaxFiles()
+  const text = messages.formatBatchFileReady(
+    order.fileName,
+    order.batchIndex ?? 1,
+    maxFiles,
+    order.pageCount,
+    keyboardMode === 'ready',
   )
+  const edited = await editOrderClientMessage(user, order, text, orderStatusOptions(order.id, true))
+  if (!edited) {
+    await sendBatchUiToUser(user, text, keyboardMode)
+  }
 }
 
 export async function notifyPaymentReceivedByStaff(
@@ -437,7 +684,7 @@ export async function notifyPaymentConfirmed(
 
 export async function notifyQuoteReady(
   user: Pick<User, 'telegramId' | 'maxUserId'>,
-  order: Pick<Order, 'id' | 'fileName' | 'pageCount' | 'amountKopeks' | 'batchId' | 'batchIndex'>,
+  order: Pick<Order, 'id' | 'fileName' | 'pageCount' | 'amountKopeks' | 'batchId' | 'batchIndex' | 'clientMessageId' | 'clientMessageChatId'>,
 ): Promise<void> {
   if (order.batchId) {
     const batch = await prisma.orderBatch.findUnique({
@@ -445,14 +692,7 @@ export async function notifyQuoteReady(
     })
     if (batch?.status === OrderBatchStatus.COLLECTING) {
       await recalculateBatchTotals(order.batchId)
-      await notifyBatchFileCalculated(
-        user,
-        order.fileName,
-        order.batchIndex ?? 1,
-        getBatchMaxFiles(),
-        order.pageCount,
-        order.batchId,
-      )
+      await notifyBatchFileCalculated(user, order)
       return
     }
   }
@@ -466,8 +706,26 @@ export async function notifyQuoteReady(
 
 export async function notifyCalculationFailed(
   user: Pick<User, 'telegramId' | 'maxUserId'>,
-  order: Pick<Order, 'fileName' | 'errorMessage'>,
+  order: Pick<Order, 'id' | 'fileName' | 'errorMessage' | 'batchId' | 'batchIndex' | 'clientMessageId' | 'clientMessageChatId' | 'status'>,
 ): Promise<void> {
+  if (order.batchId) {
+    const batch = await prisma.orderBatch.findUnique({
+      where: { id: order.batchId },
+    })
+    if (batch?.status === OrderBatchStatus.COLLECTING) {
+      const text = messages.formatBatchCalculationFailedForFile(order.fileName, order.errorMessage)
+      const edited = await editOrderClientMessage(
+        user,
+        order,
+        text,
+        orderStatusOptions(order.id, true),
+      )
+      if (edited) {
+        return
+      }
+    }
+  }
+
   await sendToUser(user, messages.formatCalculationFailed(order.fileName, order.errorMessage))
 }
 

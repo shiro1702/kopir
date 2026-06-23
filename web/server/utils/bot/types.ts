@@ -22,6 +22,24 @@ export type IncomingPdf = IncomingDocument
 
 export type BatchKeyboardMode = 'calculating' | 'ready'
 
+export type TypingAction = 'typing' | 'upload_document'
+
+export interface InlineKeyboardButton {
+  text: string
+  callbackData: string
+}
+
+export interface SentMessage {
+  messageId: string
+  chatId: string
+}
+
+export interface StatusMessageOptions {
+  batchKeyboard?: BatchKeyboardMode
+  inlineKeyboard?: InlineKeyboardButton[][]
+  removeInlineKeyboard?: boolean
+}
+
 export interface MessengerAdapter {
   platform: MessengerPlatform
   sendText(
@@ -29,4 +47,26 @@ export interface MessengerAdapter {
     text: string,
     options?: { batchKeyboard?: BatchKeyboardMode },
   ): Promise<void>
+  sendStatus?(
+    target: MessengerReplyTarget,
+    text: string,
+    options?: StatusMessageOptions,
+  ): Promise<SentMessage>
+  editStatus?(
+    target: MessengerReplyTarget,
+    message: SentMessage,
+    text: string,
+    options?: StatusMessageOptions,
+  ): Promise<void>
+  sendTyping?(target: MessengerReplyTarget, action?: TypingAction): Promise<void>
+}
+
+export interface CallbackContext {
+  callbackId: string
+  messageId?: string
+  chatId?: string
+}
+
+export interface MessengerAdapterWithCallbacks extends MessengerAdapter {
+  answerCallback?(ctx: CallbackContext, text?: string): Promise<void>
 }

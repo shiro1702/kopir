@@ -1,5 +1,7 @@
 const MAX_API_BASE = 'https://platform-api.max.ru'
 
+import type { BatchKeyboardMode, InlineKeyboardButton, SentMessage, StatusMessageOptions } from '../bot/types'
+
 const MAX_UPDATE_TYPES = [
   'message_created',
   'message_callback',
@@ -66,7 +68,7 @@ export class MaxClient {
     target: { chatId?: number, userId?: number },
     text: string,
     attachments?: unknown[],
-  ): Promise<void> {
+  ): Promise<SentMessage> {
     const query: Record<string, string> = {}
     if (target.chatId !== undefined) {
       query.chat_id = String(target.chatId)
@@ -81,8 +83,35 @@ export class MaxClient {
       body.attachments = attachments
     }
 
-    await this.request('POST', '/messages', {
+    const data = await this.request<{ message?: { body?: { mid?: string } } }>('POST', '/messages', {
       query,
+      body,
+    })
+
+    const messageId = data.message?.body?.mid
+    if (!messageId) {
+      throw new Error('MAX sendMessage missing message id')
+    }
+
+    const chatId = target.chatId !== undefined
+      ? String(target.chatId)
+      : String(target.userId)
+
+    return { messageId, chatId }
+  }
+
+  async editMessage(
+    messageId: string,
+    text: string,
+    attachments?: unknown[] | null,
+  ): Promise<void> {
+    const body: Record<string, unknown> = { text }
+    if (attachments !== undefined) {
+      body.attachments = attachments
+    }
+
+    await this.request('PUT', '/messages', {
+      query: { message_id: messageId },
       body,
     })
   }
@@ -152,7 +181,51 @@ export class MaxClient {
   }
 }
 
-import type { BatchKeyboardMode } from '../bot/types'
+function maxInlineFromButtons(buttons: InlineKeyboardButton[][]) {
+  return [{
+    type: 'inline_keyboard',
+    payload: {
+      buttons: buttons.map((row) =>
+        row.map((btn) => ({
+          type: 'callback',
+          text: btn.text,
+          payload: btn.callbackData,
+          intent: 'default',
+        })),
+      ),
+    },
+  }]
+}
+
+export async function sendMaxStatusMessage(
+  chatId: number,
+  text: string,
+  options?: StatusMessageOptions,
+): Promise<SentMessage> {
+  const attachments = options?.removeInlineKeyboard
+    ? []
+    : options?.inlineKeyboard
+      ? maxInlineFromButtons(options.inlineKeyboard)
+      : undefined
+
+  return getMaxClient().sendMessage({ chatId }, text, attachments)
+}
+
+export async function editMaxStatusMessage(
+  message: SentMessage,
+  text: string,
+  options?: StatusMessageOptions,
+): Promise<void> {
+  const attachments = options?.removeInlineKeyboard
+    ? []
+    : options?.inlineKeyboard
+      ? maxInlineFromButtons(options.inlineKeyboard)
+      : options === undefined
+        ? undefined
+        : null
+
+  await getMaxClient().editMessage(message.messageId, text, attachments)
+}
 
 export async function sendMaxBatchMessage(
   userId: number,

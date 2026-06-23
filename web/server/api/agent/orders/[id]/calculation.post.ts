@@ -72,8 +72,14 @@ export default defineEventHandler(async (event) => {
 
     try {
       await notifyCalculationFailed(order.user, {
+        id: order.id,
         fileName: order.fileName,
         errorMessage: updated.errorMessage,
+        batchId: order.batchId,
+        batchIndex: order.batchIndex,
+        clientMessageId: order.clientMessageId,
+        clientMessageChatId: order.clientMessageChatId,
+        status: updated.status,
       })
     } catch (error) {
       console.error('[calculation] failed notify error:', order.id, error)
@@ -108,7 +114,16 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    await notifyQuoteReady(order.user, updated)
+    await notifyQuoteReady(order.user, {
+      id: updated.id,
+      fileName: updated.fileName,
+      pageCount: updated.pageCount,
+      amountKopeks: updated.amountKopeks,
+      batchId: order.batchId,
+      batchIndex: order.batchIndex,
+      clientMessageId: order.clientMessageId,
+      clientMessageChatId: order.clientMessageChatId,
+    })
   } catch (error) {
     console.error('[calculation] quote notify error:', order.id, error)
   }

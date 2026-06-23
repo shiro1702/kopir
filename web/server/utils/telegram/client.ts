@@ -1,3 +1,11 @@
+import type {
+  BatchKeyboardMode,
+  InlineKeyboardButton,
+  SentMessage,
+  StatusMessageOptions,
+  TypingAction,
+} from '../bot/types'
+
 export function getTelegramBotToken(): string {
   const config = useRuntimeConfig()
   const token = config.telegramBotToken
@@ -7,21 +15,132 @@ export function getTelegramBotToken(): string {
   return token
 }
 
-export async function sendTelegramText(chatId: number, text: string): Promise<void> {
-  const token = getTelegramBotToken()
-  const response = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: chatId, text }),
-  })
-
-  if (!response.ok) {
-    const body = await response.text()
-    throw new Error(`Telegram sendMessage failed: ${response.status} ${body}`)
+function buildInlineMarkup(buttons?: InlineKeyboardButton[][]) {
+  if (!buttons?.length) {
+    return undefined
+  }
+  return {
+    inline_keyboard: buttons.map((row) =>
+      row.map((btn) => ({ text: btn.text, callback_data: btn.callbackData })),
+    ),
   }
 }
 
-import type { BatchKeyboardMode } from '../bot/types'
+export async function sendTelegramText(chatId: number, text: string): Promise<void> {
+  await sendTelegramMessage(chatId, text)
+}
+
+export async function sendTelegramMessage(
+  chatId: number,
+  text: string,
+  extra?: {
+    replyMarkup?: object
+  },
+): Promise<SentMessage> {
+  const token = getTelegramBotToken()
+  const body: Record<string, unknown> = { chat_id: chatId, text }
+  if (extra?.replyMarkup) {
+    body.reply_markup = extra.replyMarkup
+  }
+
+  const response = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+
+  if (!response.ok) {
+    const errBody = await response.text()
+    throw new Error(`Telegram sendMessage failed: ${response.status} ${errBody}`)
+  }
+
+  const data = await response.json() as { result?: { message_id?: number } }
+  const messageId = data.result?.message_id
+  if (!messageId) {
+    throw new Error('Telegram sendMessage missing message_id')
+  }
+
+  return { messageId: String(messageId), chatId: String(chatId) }
+}
+
+export async function editTelegramMessage(
+  chatId: number,
+  messageId: string,
+  text: string,
+  extra?: {
+    replyMarkup?: object | null
+  },
+): Promise<void> {
+  const token = getTelegramBotToken()
+  const body: Record<string, unknown> = {
+    chat_id: chatId,
+    message_id: Number(messageId),
+    text,
+  }
+  if (extra && 'replyMarkup' in extra) {
+    body.reply_markup = extra.replyMarkup
+  }
+
+  const response = await fetch(`https://api.telegram.org/bot${token}/editMessageText`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+
+  if (!response.ok) {
+    const errBody = await response.text()
+    throw new Error(`Telegram editMessageText failed: ${response.status} ${errBody}`)
+  }
+}
+
+export async function sendTelegramChatAction(
+  chatId: number,
+  action: TypingAction = 'typing',
+): Promise<void> {
+  const token = getTelegramBotToken()
+  const response = await fetch(`https://api.telegram.org/bot${token}/sendChatAction`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ chat_id: chatId, action }),
+  })
+
+  if (!response.ok) {
+    const errBody = await response.text()
+    throw new Error(`Telegram sendChatAction failed: ${response.status} ${errBody}`)
+  }
+}
+
+export async function sendTelegramStatusMessage(
+  chatId: number,
+  text: string,
+  options?: StatusMessageOptions,
+): Promise<SentMessage> {
+  const replyMarkup = options?.removeInlineKeyboard
+    ? { inline_keyboard: [] }
+    : buildInlineMarkup(options?.inlineKeyboard)
+
+  return sendTelegramMessage(chatId, text, { replyMarkup })
+}
+
+export async function editTelegramStatusMessage(
+  chatId: number,
+  message: SentMessage,
+  text: string,
+  options?: StatusMessageOptions,
+): Promise<void> {
+  const replyMarkup = options?.removeInlineKeyboard
+    ? { inline_keyboard: [] }
+    : options?.inlineKeyboard
+      ? buildInlineMarkup(options.inlineKeyboard)
+      : undefined
+
+  await editTelegramMessage(
+    Number(message.chatId),
+    message.messageId,
+    text,
+    { replyMarkup: replyMarkup ?? null },
+  )
+}
 
 export async function sendTelegramBatchMessage(
   chatId: number,

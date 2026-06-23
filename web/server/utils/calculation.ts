@@ -40,8 +40,14 @@ export async function expireStaleCalculations(pointId?: string): Promise<void> {
     try {
       const { notifyCalculationFailed } = await import('./bot/core')
       await notifyCalculationFailed(order.user, {
+        id: order.id,
         fileName: order.fileName,
         errorMessage: CALCULATION_TIMEOUT_MESSAGE,
+        batchId: order.batchId,
+        batchIndex: order.batchIndex,
+        clientMessageId: order.clientMessageId,
+        clientMessageChatId: order.clientMessageChatId,
+        status: OrderStatus.CALCULATION_FAILED,
       })
     } catch (error) {
       console.error('[calculation] timeout notify failed:', order.id, error)

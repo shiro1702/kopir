@@ -2,6 +2,18 @@ import { isTerminalPaymentMode } from '../payment-mode'
 
 export const BTN_FINALIZE_BATCH = '✅ Завершить и оплатить'
 export const BTN_CANCEL_BATCH = '❌ Отменить пачку'
+export const BTN_REMOVE_FILE = '🗑 Удалить этот файл'
+export const BTN_REMOVE_CONFIRM = 'Да, удалить'
+export const BTN_REMOVE_CANCEL = 'Нет'
+
+export const MSG_FILE_RECEIVING = '📥 Принимаю'
+export const MSG_BATCH_FINALIZING = '⏳ Собираем пачку…'
+export const MSG_BATCH_FILE_ALREADY_REMOVED = 'Этот файл уже удалён из пачки.'
+export const MSG_BATCH_BATCH_CANCELLED_ACTION = 'Пачка отменена.'
+export const MSG_BATCH_EMPTY_AFTER_REMOVE =
+  'В пачке не осталось файлов. Отправьте документ, когда будете готовы.'
+export const MSG_BATCH_CANNOT_REMOVE_CALCULATING =
+  'Этот файл ещё считается на принтере. Подождите несколько секунд.'
 
 export const MSG_START =
   'Привет! Отправляйте файлы по одному (PDF или Word).\n\n'
@@ -36,7 +48,7 @@ export const MSG_BATCH_STILL_CALCULATING =
 
 export const MSG_BATCH_CALCULATION_FAILED =
   'Не удалось обработать один или несколько файлов. '
-  + 'Удалите проблемные файлы (отмените пачку) и отправьте документы заново.'
+  + 'Нажмите «Удалить этот файл» под проблемным документом и отправьте его снова.'
 
 export const MSG_BATCH_CANCELLED =
   'Пачка отменена. Отправьте файлы заново, когда будете готовы.'
@@ -49,6 +61,18 @@ function clientPaymentHint(): string {
     )
   }
   return 'Оплата в боте скоро будет доступна. Пока обратитесь к сотруднику копицентра.'
+}
+
+export function formatFileReceiving(fileName: string): string {
+  return `${MSG_FILE_RECEIVING} «${fileName}»…`
+}
+
+export function formatFileCalculating(fileName: string, fileIndex: number, maxFiles: number): string {
+  return (
+    `⏳ Считаем страницы «${fileName}»…\n`
+    + 'Это может занять до 20 секунд.\n\n'
+    + `В пачке: ${fileIndex} из ${maxFiles}.`
+  )
 }
 
 export function formatBatchFileCalculating(
@@ -94,6 +118,30 @@ export function formatBatchFileAdded(
     return formatBatchFileCalculating(fileName, fileIndex, maxFiles)
   }
   return formatBatchFileReady(fileName, fileIndex, maxFiles, 1, true)
+}
+
+export function formatBatchRemoveConfirm(fileName: string): string {
+  return `Удалить «${fileName}» из пачки? Остальные файлы сохранятся.`
+}
+
+export function formatFileRemovedInline(fileName: string): string {
+  return `🗑 «${fileName}» удалён из пачки.`
+}
+
+export function formatBatchFileRemovedToast(remainingCount: number, maxFiles: number): string {
+  return `Удалено. В пачке: ${remainingCount} из ${maxFiles}.`
+}
+
+export function formatBatchCalculationFailedForFile(
+  fileName: string,
+  errorMessage?: string | null,
+): string {
+  const detail = errorMessage?.trim()
+  const base = (
+    `❌ Не удалось обработать «${fileName}».\n`
+    + 'Нажмите «Удалить этот файл» и отправьте документ снова.'
+  )
+  return detail ? `${base}\n\nПричина: ${detail}` : base
 }
 
 export function formatBatchSummary(

@@ -46,7 +46,9 @@
 **Vercel** — боты, REST, Blob, админка (как в Sprint 0–0.1).  
 **VPS** (минимальный, ~500 ₽/мес) — стабильный WebSocket для агента; Vercel serverless не держит долгие WS-сессии.
 
-**Вне скоупа Sprint 1:** Т-Банк, Mini App, Redis (heartbeat в Postgres), GUI PySide6, карта точек, VK-бот, LibreOffice на сервере, `/bind` для staff-каналов.
+**Вне скоупа Sprint 1:** Т-Банк webhook, Mini App, Redis (heartbeat в Postgres), GUI PySide6, карта точек, VK-бот, LibreOffice на сервере, `/bind` для staff-каналов.
+
+**Оплата в пилоте:** ручной перевод + на месте ([payment-flow.md](../../product/payment-flow.md)); демо-кнопка (задача 06) — только для UX-тестов.
 
 **Позже:** Redis heartbeat → Sprint 3; реальная оплата → Sprint 2; привязка сотрудников через `/bind` → [Sprint 2, задача 11](../sprint-2/tasks/11-staff-bind-token.md).
 
@@ -60,10 +62,13 @@
 | 04 | Heartbeat + блокировка offline-точки | ⬜ | [tasks/04-heartbeat-offline.md](./tasks/04-heartbeat-offline.md) |
 | 05 | Разделительный лист (toggle) | ⬜ | [tasks/05-separator-page.md](./tasks/05-separator-page.md) |
 | 06 | Демо-оплата в боте | ⬜ | [tasks/06-demo-payment.md](./tasks/06-demo-payment.md) |
+| 13 | Выбор способа оплаты (перевод / на месте) | ⬜ | [tasks/13-payment-method-choice.md](./tasks/13-payment-method-choice.md) |
 | 07 | QR deep link + приветствие точки | ⬜ | [tasks/07-qr-deeplink.md](./tasks/07-qr-deeplink.md) |
 | 08 | PDF-плакат с QR для стойки | ⬜ | [tasks/08-qr-poster.md](./tasks/08-qr-poster.md) |
 | 09 | Уведомление «Готово!» (polish + E2E) | ⬜ | [tasks/09-ready-notification.md](./tasks/09-ready-notification.md) |
 | 12 | Ручная печать при сбое агента | ✅ | [tasks/12-manual-print-fallback.md](./tasks/12-manual-print-fallback.md) |
+| 14 | Удаление файла из пачки | ✅ | [tasks/14-batch-remove-file.md](./tasks/14-batch-remove-file.md) |
+| 15 | Статусные сообщения (edit + typing) | ✅ | [tasks/15-batch-status-messages.md](./tasks/15-batch-status-messages.md) |
 | 10 | Бета-тест + метрики + разделитель в лотке | ⬜ | [tasks/10-beta-e2e.md](./tasks/10-beta-e2e.md) |
 
 ## Порядок выполнения
