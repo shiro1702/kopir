@@ -1,6 +1,7 @@
 import { OrderStatus } from '@prisma/client'
 import { checkBatchCompletion } from './batch'
 import { deleteOrderFile } from './blob'
+import { assertReadyForStaffPaymentConfirm } from './payments/service'
 import { isTerminalPaymentMode } from './payment-mode'
 import { prisma } from './prisma'
 import { isPointAgentOnline } from './points'
@@ -47,6 +48,8 @@ export async function confirmOrderPayment(orderId: string) {
       },
     })
   }
+
+  assertReadyForStaffPaymentConfirm(order.paymentMethod, order.paymentClaimedAt)
 
   if (order.paymentConfirmedAt) {
     if (order.status === OrderStatus.AWAITING_PAYMENT) {

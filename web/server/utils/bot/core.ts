@@ -354,16 +354,9 @@ export async function handleBatchAction(
 
   try {
     const { batch: finalized } = await finalizeBatch(batch.id)
-    await adapter.sendText(
-      target,
-      messages.formatBatchSummary(
-        finalized.orders.map((o) => o.fileName),
-        finalized.totalPages,
-        finalized.totalAmountKopeks,
-      ),
-    )
     setLastBatchKeyboardMode(platform, target.chatId, 'ready')
-    await notifyStaffAfterBatchReady(finalized.id)
+    const { sendPaymentMethodChoiceForBatch } = await import('./payment-handlers')
+    await sendPaymentMethodChoiceForBatch(target, adapter, finalized)
   } catch (error) {
     let text = 'Не удалось завершить пачку.'
     let keyboardMode: BatchKeyboardMode = 'ready'
@@ -697,11 +690,19 @@ export async function notifyQuoteReady(
     }
   }
 
+  const fullOrder = await prisma.order.findUnique({
+    where: { id: order.id },
+    include: { point: true },
+  })
+  if (fullOrder && !fullOrder.batchId) {
+    const { sendPaymentMethodChoiceToUser } = await import('./payment-handlers')
+    await sendPaymentMethodChoiceToUser(user, fullOrder)
+    return
+  }
   await sendToUser(
     user,
     messages.formatQuote(order.fileName, order.pageCount, order.amountKopeks),
   )
-  await notifyStaffAfterOrderReady(order.id)
 }
 
 export async function notifyCalculationFailed(

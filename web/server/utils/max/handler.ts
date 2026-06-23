@@ -3,10 +3,14 @@ import type { H3Event } from 'h3'
 import { detectDocumentKind, mimeTypeForKind } from '../file-types'
 import {
   isBatchClientCallbackPayload,
+  isPaymentClientCallbackPayload,
   maxBatchActionButtons,
   parseBatchRemoveCancelOrderId,
   parseBatchRemoveConfirmOrderId,
   parseBatchRemoveOrderId,
+  parsePayChangeMethodPayload,
+  parsePayClaimedPayload,
+  parsePayMethodPayload,
 } from '../bot/keyboards'
 import type {
   BatchKeyboardMode,
@@ -34,10 +38,27 @@ function createMaxAdapter(): MessengerAdapterWithCallbacks {
   return {
     platform: 'max',
     async sendText(target: MessengerReplyTarget, text: string, options?) {
+      const attachments = options?.inlineKeyboard
+        ? [{
+            type: 'inline_keyboard',
+            payload: {
+              buttons: options.inlineKeyboard.map((row) =>
+                row.map((btn) => ({
+                  type: 'callback',
+                  text: btn.text,
+                  payload: btn.callbackData,
+                  intent: 'default',
+                })),
+              ),
+            },
+          }]
+        : options?.batchKeyboard
+          ? [batchInlineKeyboard(options.batchKeyboard)]
+          : undefined
       await client.sendMessage(
         { chatId: Number(target.chatId) },
         text,
-        options?.batchKeyboard ? [batchInlineKeyboard(options.batchKeyboard)] : undefined,
+        attachments,
       )
     },
     async sendStatus(target, text, options?) {
@@ -216,7 +237,7 @@ export async function handleMaxUpdate(update: MaxUpdate): Promise<void> {
         return
       }
 
-      if (!isStaff && isBatchClientCallbackPayload(callback.payload)) {
+      if (!isStaff && (isBatchClientCallbackPayload(callback.payload) || isPaymentClientCallbackPayload(callback.payload))) {
         const chatId = update.message?.recipient?.chat_id ?? update.chat_id
         if (!chatId) {
           await client.answerCallback(callback.callback_id, 'Ошибка чата')

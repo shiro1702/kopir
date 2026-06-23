@@ -28,6 +28,11 @@ enum OrderBatchStatus {
   CANCELLED
 }
 
+enum PaymentMethod {
+  SBP_TRANSFER
+  ON_SITE
+}
+
 model User {
   id         String       @id @default(cuid())
   telegramId BigInt?      @unique
@@ -40,14 +45,16 @@ model User {
 }
 
 model Point {
-  id         String       @id @default(cuid())
-  slug       String       @unique
-  name       String
-  isActive   Boolean      @default(true)
-  lastSeenAt DateTime?
-  createdAt  DateTime     @default(now())
-  orders     Order[]
-  batches    OrderBatch[]
+  id                String       @id @default(cuid())
+  slug              String       @unique
+  name              String
+  isActive          Boolean      @default(true)
+  transferPhone     String?
+  transferBankLabel String?
+  lastSeenAt        DateTime?
+  createdAt         DateTime     @default(now())
+  orders            Order[]
+  batches           OrderBatch[]
 }
 
 model OrderBatch {
@@ -59,6 +66,9 @@ model OrderBatch {
   point             Point            @relation(fields: [pointId], references: [id])
   totalPages        Int              @default(0)
   totalAmountKopeks Int              @default(0)
+  paymentMethod     PaymentMethod?
+  paymentMethodAt   DateTime?
+  paymentClaimedAt  DateTime?
   paidAt            DateTime?
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
@@ -77,6 +87,9 @@ model Order {
   amountKopeks       Int         @default(0)
   calculatedAt       DateTime?
   paymentConfirmedAt DateTime?
+  paymentMethod      PaymentMethod?
+  paymentMethodAt    DateTime?
+  paymentClaimedAt   DateTime?
   userId             String
   user               User        @relation(fields: [userId], references: [id])
   pointId            String

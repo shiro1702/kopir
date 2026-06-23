@@ -155,8 +155,7 @@ export function formatBatchSummary(
     `📦 Пачка собрана (${fileNames.length} файлов)\n\n`
     + `${filesList}\n\n`
     + `Страниц: ${totalPages}\n`
-    + `Итого: ${amountRub} ₽\n\n`
-    + clientPaymentHint()
+    + `Итого: ${amountRub} ₽`
   )
 }
 
@@ -224,8 +223,7 @@ export function formatQuote(fileName: string, pageCount: number, amountKopeks: n
   return (
     `📄 ${fileName}\n`
     + `Страниц: ${pageCount}\n`
-    + `Стоимость: ${amountRub} ₽\n\n`
-    + clientPaymentHint()
+    + `Стоимость: ${amountRub} ₽`
   )
 }
 
@@ -348,6 +346,139 @@ export function formatStaffBatchAwaitingPayment(batch: {
     + `Клиент: ${userLabel}\n`
     + `Точка: ${batch.point.name}\n\n`
     + 'Примите оплату на терминале и подтвердите пачку целиком.'
+  )
+}
+
+
+
+export function formatPaymentMethodChoice(amountKopeks: number, shortId: string): string {
+  const amountRub = Math.round(amountKopeks / 100)
+  return (
+    `💳 К оплате: ${amountRub} ₽\n`
+    + `Заказ #${shortId}\n\n`
+    + 'Выберите способ оплаты:'
+  )
+}
+
+export function formatTransferInstructions(
+  amountKopeks: number,
+  shortId: string,
+  phone: string,
+  bankLabel: string | null,
+): string {
+  const amountRub = Math.round(amountKopeks / 100)
+  const bankLine = bankLabel ? `\n(${bankLabel})` : ''
+  return (
+    `💳 К оплате: ${amountRub} ₽\n`
+    + `Заказ #${shortId}\n\n`
+    + 'Переведите через СБП на номер:\n'
+    + `${phone}${bankLine}\n\n`
+    + `⚠️ В комментарии к переводу укажите: ${shortId}\n\n`
+    + 'После перевода нажмите «Я оплатил».'
+  )
+}
+
+export function formatOnSiteInstructions(amountKopeks: number, shortId: string): string {
+  const amountRub = Math.round(amountKopeks / 100)
+  return (
+    `💳 К оплате: ${amountRub} ₽\n`
+    + `Заказ #${shortId}\n\n`
+    + 'Подойдите к стойке копицентра и оплатите у сотрудника.\n'
+    + `Назовите номер заказа: ${shortId}`
+  )
+}
+
+export function formatAwaitingStaffConfirm(shortId: string): string {
+  return (
+    `⏳ Ждём подтверждения оплаты по заказу #${shortId}.\n`
+    + 'Обычно это занимает 1–2 минуты.'
+  )
+}
+
+function staffUserLabel(user: { username?: string | null, firstName?: string | null }): string {
+  return user.username ? `@${user.username}` : user.firstName ?? 'клиент'
+}
+
+function staffAmountText(amountKopeks: number): string {
+  return amountKopeks > 0 ? `${Math.round(amountKopeks / 100)} ₽` : 'уточните у клиента'
+}
+
+export function formatStaffTransferAwaitingConfirm(order: StaffOrderInfo & {
+  transferPhoneMasked: string
+}): string {
+  const shortId = order.id.slice(-6)
+  return (
+    '🔔 Проверьте приложение банка\n\n'
+    + `Заказ #${shortId} | ${staffAmountText(order.amountKopeks)}\n`
+    + `📄 ${order.fileName}\n`
+    + `Страниц: ${order.pageCount}\n`
+    + `Клиент: ${staffUserLabel(order.user)}\n`
+    + `Точка: ${order.point.name}\n`
+    + 'Способ: перевод СБП\n\n'
+    + `Ожидаем поступление на ${order.transferPhoneMasked}\n`
+    + `Комментарий к переводу: ${shortId}`
+  )
+}
+
+export function formatStaffOnSiteAwaitingPayment(order: StaffOrderInfo): string {
+  const shortId = order.id.slice(-6)
+  return (
+    '🆕 Клиент идёт на стойку\n\n'
+    + `Заказ #${shortId} | ${staffAmountText(order.amountKopeks)}\n`
+    + `📄 ${order.fileName}\n`
+    + `Страниц: ${order.pageCount}\n`
+    + `Клиент: ${staffUserLabel(order.user)}\n`
+    + `Точка: ${order.point.name}\n`
+    + 'Способ: оплата на месте\n\n'
+    + 'Примите оплату и нажмите «Оплата получена».'
+  )
+}
+
+export function formatStaffBatchTransferAwaitingConfirm(batch: {
+  id: string
+  totalPages: number
+  totalAmountKopeks: number
+  transferPhoneMasked: string
+  orders: Array<{ fileName: string, batchIndex: number | null }>
+  user: { username?: string | null, firstName?: string | null }
+  point: { name: string }
+}): string {
+  const shortId = batch.id.slice(-6)
+  const filesList = batch.orders.map((o) => `${o.batchIndex}. ${o.fileName}`).join('\n')
+  return (
+    '🔔 Проверьте приложение банка\n\n'
+    + `Пачка #${shortId} | ${staffAmountText(batch.totalAmountKopeks)}\n`
+    + `Файлов: ${batch.orders.length}\n`
+    + `${filesList}\n\n`
+    + `Страниц: ${batch.totalPages}\n`
+    + `Клиент: ${staffUserLabel(batch.user)}\n`
+    + `Точка: ${batch.point.name}\n`
+    + 'Способ: перевод СБП\n\n'
+    + `Ожидаем поступление на ${batch.transferPhoneMasked}\n`
+    + `Комментарий к переводу: ${shortId}`
+  )
+}
+
+export function formatStaffBatchOnSiteAwaitingPayment(batch: {
+  id: string
+  totalPages: number
+  totalAmountKopeks: number
+  orders: Array<{ fileName: string, batchIndex: number | null }>
+  user: { username?: string | null, firstName?: string | null }
+  point: { name: string }
+}): string {
+  const shortId = batch.id.slice(-6)
+  const filesList = batch.orders.map((o) => `${o.batchIndex}. ${o.fileName}`).join('\n')
+  return (
+    '🆕 Клиент идёт на стойку\n\n'
+    + `Пачка #${shortId} | ${staffAmountText(batch.totalAmountKopeks)}\n`
+    + `Файлов: ${batch.orders.length}\n`
+    + `${filesList}\n\n`
+    + `Страниц: ${batch.totalPages}\n`
+    + `Клиент: ${staffUserLabel(batch.user)}\n`
+    + `Точка: ${batch.point.name}\n`
+    + 'Способ: оплата на месте\n\n'
+    + 'Примите оплату и подтвердите пачку целиком.'
   )
 }
 

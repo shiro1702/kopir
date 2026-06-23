@@ -12,9 +12,13 @@ import { BTN_CANCEL_BATCH, BTN_FINALIZE_BATCH } from '../bot/messages'
 import {
   BATCH_REMOVE_CANCEL_PREFIX,
   isBatchClientCallbackPayload,
+  isPaymentClientCallbackPayload,
   parseBatchRemoveCancelOrderId,
   parseBatchRemoveConfirmOrderId,
   parseBatchRemoveOrderId,
+  parsePayChangeMethodPayload,
+  parsePayClaimedPayload,
+  parsePayMethodPayload,
 } from '../bot/keyboards'
 import { getStaffTelegramChatId } from '../payment-mode'
 import {
@@ -37,6 +41,12 @@ function createTelegramAdapter(): MessengerAdapterWithCallbacks {
   return {
     platform: 'telegram',
     async sendText(target: MessengerReplyTarget, text: string, options?) {
+      if (options?.inlineKeyboard) {
+        await sendTelegramStatusMessage(Number(target.chatId), text, {
+          inlineKeyboard: options.inlineKeyboard,
+        })
+        return
+      }
       const bot = getBot()
       await bot.api.sendMessage(Number(target.chatId), text, options?.batchKeyboard
         ? { reply_markup: batchReplyKeyboard(options.batchKeyboard) }
@@ -109,10 +119,48 @@ async function handleClientCallback(
   if (data === BATCH_REMOVE_CANCEL_PREFIX || data.startsWith(BATCH_REMOVE_CANCEL_PREFIX)) {
     const orderId = parseBatchRemoveCancelOrderId(data)
     if (!orderId) {
-      throw new Error('Неизвестное действие')
+    
+  const payMethod = parsePayMethodPayload(data)
+  if (payMethod) {
+    const { handlePaymentMethodChoice } = await import("../bot/payment-handlers")
+    return handlePaymentMethodChoice(target, user, payMethod.method, payMethod.entityId, adapter)
+  }
+
+  const claimedId = parsePayClaimedPayload(data)
+  if (claimedId) {
+    const { handlePaymentClaimed } = await import("../bot/payment-handlers")
+    return handlePaymentClaimed(target, user, claimedId, adapter)
+  }
+
+  const changeId = parsePayChangeMethodPayload(data)
+  if (changeId) {
+    const { handlePaymentChangeMethod } = await import("../bot/payment-handlers")
+    return handlePaymentChangeMethod(target, user, changeId, adapter)
+  }
+
+  throw new Error('Неизвестное действие')
     }
     const { handleBatchRemoveCancel } = await import('../bot/core')
     return handleBatchRemoveCancel(target, user, orderId, adapter, callbackCtx, message)
+  }
+
+
+  const payMethod = parsePayMethodPayload(data)
+  if (payMethod) {
+    const { handlePaymentMethodChoice } = await import("../bot/payment-handlers")
+    return handlePaymentMethodChoice(target, user, payMethod.method, payMethod.entityId, adapter)
+  }
+
+  const claimedId = parsePayClaimedPayload(data)
+  if (claimedId) {
+    const { handlePaymentClaimed } = await import("../bot/payment-handlers")
+    return handlePaymentClaimed(target, user, claimedId, adapter)
+  }
+
+  const changeId = parsePayChangeMethodPayload(data)
+  if (changeId) {
+    const { handlePaymentChangeMethod } = await import("../bot/payment-handlers")
+    return handlePaymentChangeMethod(target, user, changeId, adapter)
   }
 
   throw new Error('Неизвестное действие')
@@ -229,7 +277,7 @@ function createBot(): Bot {
       : undefined
 
     try {
-      const toast = isBatchClientCallbackPayload(data)
+      const toast = (isBatchClientCallbackPayload(data) || isPaymentClientCallbackPayload(data))
         ? await handleClientCallback(data, target, user, adapter, callbackCtx, message)
         : await handleStaffCallback(data, chatId)
       await adapter.answerCallback?.(callbackCtx, toast)

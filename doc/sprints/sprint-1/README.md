@@ -62,7 +62,7 @@
 | 04 | Heartbeat + блокировка offline-точки | ⬜ | [tasks/04-heartbeat-offline.md](./tasks/04-heartbeat-offline.md) |
 | 05 | Разделительный лист (toggle) | ⬜ | [tasks/05-separator-page.md](./tasks/05-separator-page.md) |
 | 06 | Демо-оплата в боте | ⬜ | [tasks/06-demo-payment.md](./tasks/06-demo-payment.md) |
-| 13 | Выбор способа оплаты (перевод / на месте) | ⬜ | [tasks/13-payment-method-choice.md](./tasks/13-payment-method-choice.md) |
+| 13 | Выбор способа оплаты (перевод / на месте) | ✅ | [tasks/13-payment-method-choice.md](./tasks/13-payment-method-choice.md) |
 | 07 | QR deep link + приветствие точки | ⬜ | [tasks/07-qr-deeplink.md](./tasks/07-qr-deeplink.md) |
 | 08 | PDF-плакат с QR для стойки | ⬜ | [tasks/08-qr-poster.md](./tasks/08-qr-poster.md) |
 | 09 | Уведомление «Готово!» (polish + E2E) | ⬜ | [tasks/09-ready-notification.md](./tasks/09-ready-notification.md) |

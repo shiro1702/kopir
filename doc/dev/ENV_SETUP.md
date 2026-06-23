@@ -309,6 +309,9 @@ POINT_OFFLINE_THRESHOLD_SEC=20
 PRICE_PER_PAGE_KOPEKS=1000
 CALCULATION_TIMEOUT_SEC=120
 PAYMENT_MODE=terminal
+POINT_TRANSFER_PHONE="+79001234567"   # СБП-номер копицентра (пилот); fallback если Point.transferPhone пуст
+POINT_TRANSFER_BANK_LABEL="Сбербанк, ИП Иванов"
+PAYMENT_METHODS_ENABLED="SBP_TRANSFER,ON_SITE"
 STAFF_TELEGRAM_CHAT_ID="123456789"   # chat id сотрудника в Telegram
 STAFF_MAX_USER_ID="987654321"        # user_id сотрудника в MAX
 ```

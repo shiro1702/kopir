@@ -2,6 +2,7 @@ import { OrderBatchStatus, OrderStatus, type Order, type OrderBatch } from '@pri
 import { deleteOrderFile } from './blob'
 import { getPricePerPageKopeks } from './calculation'
 import { prisma } from './prisma'
+import { assertReadyForStaffPaymentConfirm } from './payments/service'
 import { isPointAgentOnline } from './points'
 import type { BatchKeyboardMode } from './bot/types'
 import {
@@ -430,6 +431,8 @@ export async function confirmBatchPayment(batchId: string) {
       data: { error: 'Batch is not awaiting payment', code: 'INVALID_BATCH_STATUS' },
     })
   }
+
+  assertReadyForStaffPaymentConfirm(batch.paymentMethod, batch.paymentClaimedAt)
 
   const now = new Date()
   await prisma.$transaction([

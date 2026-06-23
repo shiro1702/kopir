@@ -1,11 +1,14 @@
-import type { Order, OrderBatch } from '@prisma/client'
+import { PaymentMethod, type Order, type OrderBatch } from '@prisma/client'
 import { InlineKeyboard, InputFile } from 'grammy'
 import {
-  formatStaffBatchAwaitingPayment,
-  formatStaffOrderAwaitingPayment,
+  formatStaffBatchOnSiteAwaitingPayment,
+  formatStaffBatchTransferAwaitingConfirm,
+  formatStaffOnSiteAwaitingPayment,
   formatStaffPrintFailed,
+  formatStaffTransferAwaitingConfirm,
 } from './bot/messages'
 import { downloadOrderFile } from './blob'
+import { getTransferPhone, maskTransferPhone } from './payment-config'
 import {
   getStaffMaxUserId,
   getStaffTelegramChatId,
@@ -15,7 +18,7 @@ import {
 import type { MaxInlineKeyboardAttachment } from './max/types'
 import { getMaxClient } from './max/client'
 
-type OrderForStaff = Pick<Order, 'id' | 'fileName' | 'pageCount' | 'amountKopeks' | 'paymentConfirmedAt' | 'batchId' | 'errorMessage'>
+type OrderForStaff = Pick<Order, 'id' | 'fileName' | 'pageCount' | 'amountKopeks' | 'paymentConfirmedAt' | 'paymentMethod' | 'paymentClaimedAt' | 'batchId' | 'errorMessage'>
   & {
     user: {
       username?: string | null
@@ -23,10 +26,10 @@ type OrderForStaff = Pick<Order, 'id' | 'fileName' | 'pageCount' | 'amountKopeks
       telegramId?: bigint | null
       maxUserId?: bigint | null
     }
-    point: { name: string }
+    point: { name: string, transferPhone?: string | null, transferBankLabel?: string | null }
   }
 
-type BatchForStaff = Pick<OrderBatch, 'id' | 'totalPages' | 'totalAmountKopeks'>
+type BatchForStaff = Pick<OrderBatch, 'id' | 'totalPages' | 'totalAmountKopeks' | 'paymentMethod' | 'paymentClaimedAt'>
   & {
     orders: Array<Pick<Order, 'fileName' | 'batchIndex'>>
     user: {
@@ -35,7 +38,7 @@ type BatchForStaff = Pick<OrderBatch, 'id' | 'totalPages' | 'totalAmountKopeks'>
       telegramId?: bigint | null
       maxUserId?: bigint | null
     }
-    point: { name: string }
+    point: { name: string, transferPhone?: string | null, transferBankLabel?: string | null }
   }
 
 function telegramStaffKeyboard(order: Pick<Order, 'id' | 'paymentConfirmedAt'>) {
@@ -159,36 +162,70 @@ async function notifyStaffAll(
   }
 }
 
-export async function notifyStaffOrderAwaitingPayment(order: OrderForStaff): Promise<void> {
+export async function notifyStaffOrderPaymentPending(order: OrderForStaff): Promise<void> {
   if (!isTerminalPaymentMode() || order.batchId) {
     return
   }
-
   if (!isStaffChannelConfigured()) {
     console.warn(
       '[staff] STAFF_TELEGRAM_CHAT_ID / STAFF_MAX_USER_ID are not set — skipping staff notification',
     )
     return
   }
+  if (!order.paymentMethod) {
+    return
+  }
 
-  const text = formatStaffOrderAwaitingPayment(order)
-  await notifyStaffAll(text, telegramStaffKeyboard(order), maxStaffKeyboard(order))
+  let staffText: string
+  if (order.paymentMethod === PaymentMethod.SBP_TRANSFER) {
+    const phone = getTransferPhone({ transferPhone: order.point.transferPhone ?? null, transferBankLabel: order.point.transferBankLabel ?? null })
+    staffText = formatStaffTransferAwaitingConfirm({
+      ...order,
+      transferPhoneMasked: phone ? maskTransferPhone(phone) : '***',
+    })
+  } else {
+    staffText = formatStaffOnSiteAwaitingPayment(order)
+  }
+
+  await notifyStaffAll(staffText, telegramStaffKeyboard(order), maxStaffKeyboard(order))
 }
 
-export async function notifyStaffBatchAwaitingPayment(batch: BatchForStaff): Promise<void> {
+export async function notifyStaffBatchPaymentPending(batch: BatchForStaff): Promise<void> {
   if (!isTerminalPaymentMode()) {
     return
   }
-
   if (!isStaffChannelConfigured()) {
     console.warn(
       '[staff] STAFF_TELEGRAM_CHAT_ID / STAFF_MAX_USER_ID are not set — skipping staff notification',
     )
     return
   }
+  if (!batch.paymentMethod) {
+    return
+  }
 
-  const text = formatStaffBatchAwaitingPayment(batch)
-  await notifyStaffAll(text, telegramBatchKeyboard(batch.id), maxBatchKeyboard(batch.id))
+  let staffText: string
+  if (batch.paymentMethod === PaymentMethod.SBP_TRANSFER) {
+    const phone = getTransferPhone({ transferPhone: batch.point.transferPhone ?? null, transferBankLabel: batch.point.transferBankLabel ?? null })
+    staffText = formatStaffBatchTransferAwaitingConfirm({
+      ...batch,
+      transferPhoneMasked: phone ? maskTransferPhone(phone) : '***',
+    })
+  } else {
+    staffText = formatStaffBatchOnSiteAwaitingPayment(batch)
+  }
+
+  await notifyStaffAll(staffText, telegramBatchKeyboard(batch.id), maxBatchKeyboard(batch.id))
+}
+
+/** @deprecated Use notifyStaffOrderPaymentPending */
+export async function notifyStaffOrderAwaitingPayment(order: OrderForStaff): Promise<void> {
+  await notifyStaffOrderPaymentPending(order)
+}
+
+/** @deprecated Use notifyStaffBatchPaymentPending */
+export async function notifyStaffBatchAwaitingPayment(batch: BatchForStaff): Promise<void> {
+  await notifyStaffBatchPaymentPending(batch)
 }
 
 export async function notifyStaffPaymentConfirmed(order: OrderForStaff): Promise<void> {

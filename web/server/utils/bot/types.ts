@@ -45,7 +45,7 @@ export interface MessengerAdapter {
   sendText(
     target: MessengerReplyTarget,
     text: string,
-    options?: { batchKeyboard?: BatchKeyboardMode },
+    options?: { batchKeyboard?: BatchKeyboardMode, inlineKeyboard?: InlineKeyboardButton[][] },
   ): Promise<void>
   sendStatus?(
     target: MessengerReplyTarget,
