@@ -67,6 +67,10 @@ export interface CallbackContext {
   chatId?: string
 }
 
+export interface CallbackAnswerOptions {
+  showAlert?: boolean
+}
+
 export interface MessengerAdapterWithCallbacks extends MessengerAdapter {
-  answerCallback?(ctx: CallbackContext, text?: string): Promise<void>
+  answerCallback?(ctx: CallbackContext, text?: string, options?: CallbackAnswerOptions): Promise<void>
 }

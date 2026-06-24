@@ -2,8 +2,10 @@ import { PaymentMethod, type Order, type OrderBatch } from '@prisma/client'
 import { InlineKeyboard, InputFile } from 'grammy'
 import {
   formatStaffBatchOnSiteAwaitingPayment,
+  formatStaffBatchPaymentConfirmed,
   formatStaffBatchTransferAwaitingConfirm,
   formatStaffOnSiteAwaitingPayment,
+  formatStaffOrderPaymentConfirmed,
   formatStaffPrintFailed,
   formatStaffTransferAwaitingConfirm,
 } from './bot/messages'
@@ -234,7 +236,21 @@ export async function notifyStaffPaymentConfirmed(order: OrderForStaff): Promise
   }
 
   const shortId = order.id.slice(-6)
-  const text = `✅ Оплата по заказу #${shortId} принята.\n🖨 Печать запущена.`
+  const text = formatStaffOrderPaymentConfirmed(shortId, order.amountKopeks, order.fileName)
+  await notifyStaffAll(text)
+}
+
+export async function notifyStaffBatchPaymentConfirmed(batch: BatchForStaff): Promise<void> {
+  if (!isTerminalPaymentMode() || !isStaffChannelConfigured()) {
+    return
+  }
+
+  const shortId = batch.id.slice(-6)
+  const text = formatStaffBatchPaymentConfirmed(
+    shortId,
+    batch.orders.length,
+    batch.totalAmountKopeks,
+  )
   await notifyStaffAll(text)
 }
 

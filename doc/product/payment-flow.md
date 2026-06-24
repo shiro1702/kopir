@@ -137,7 +137,16 @@ Callback: `pay_method:sbp_transfer:<orderOrBatchId>` / `pay_method:on_site:<orde
 После «Оплата получена»:
 1. `paymentConfirmedAt = now()`
 2. `startOrderPrint` → `PAID` → агент печатает
-3. Staff: «✅ Оплата по #abc123 принята. Печать запущена.»
+3. Staff: **отдельное сообщение в чат** «✅ Оплата по #abc123 принята. Печать запущена.» (не только toast на кнопке)
+4. Toast на кнопке: «Оплата принята» (Telegram: `show_alert` для заметности)
+
+**Проблема (Sprint 1 polish):** сейчас для **пачки** staff получает только краткий toast, отдельного сообщения в чат нет — кажется, что кнопка не сработала. Для одиночного заказа сообщение уже есть (`notifyStaffPaymentConfirmed`), но кнопка на старом сообщении остаётся.
+
+**План доработки (задача 13.1):**
+- [x] `notifyStaffBatchPaymentConfirmed(batch)` — вызов из `confirmBatchPayment`
+- [x] Единый текст для order/batch: сумма, shortId, «Печать запущена»
+- [x] Telegram staff: `show_alert` на `staff_pay` / `staff_batch_confirm`
+- [ ] (опционально) убрать inline-кнопки с исходного staff-сообщения после confirm — нужен `staffMessageId` в БД; отложить до Sprint 2
 
 ### Оплата на месте
 

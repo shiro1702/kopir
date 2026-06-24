@@ -61,9 +61,12 @@ function createTelegramAdapter(): MessengerAdapterWithCallbacks {
     async sendTyping(target, action: TypingAction = 'typing') {
       await sendTelegramChatAction(Number(target.chatId), action)
     },
-    async answerCallback(ctx: CallbackContext, text?: string) {
+    async answerCallback(ctx: CallbackContext, text?: string, options?) {
       const bot = getBot()
-      await bot.api.answerCallbackQuery(ctx.callbackId, text ? { text } : {})
+      await bot.api.answerCallbackQuery(ctx.callbackId, {
+        text: text ?? '',
+        show_alert: options?.showAlert ?? false,
+      })
     },
   }
 }
@@ -277,10 +280,14 @@ function createBot(): Bot {
       : undefined
 
     try {
-      const toast = (isBatchClientCallbackPayload(data) || isPaymentClientCallbackPayload(data))
-        ? await handleClientCallback(data, target, user, adapter, callbackCtx, message)
-        : await handleStaffCallback(data, chatId)
-      await adapter.answerCallback?.(callbackCtx, toast)
+      const isStaffCallback = !isBatchClientCallbackPayload(data) && !isPaymentClientCallbackPayload(data)
+      const toast = isStaffCallback
+        ? await handleStaffCallback(data, chatId)
+        : await handleClientCallback(data, target, user, adapter, callbackCtx, message)
+      const { isStaffPaymentConfirmPayload } = await import('../staff-actions')
+      await adapter.answerCallback?.(callbackCtx, toast, {
+        showAlert: isStaffCallback && isStaffPaymentConfirmPayload(data),
+      })
     } catch (error) {
       let text = 'Ошибка'
       if (error && typeof error === 'object' && 'data' in error) {

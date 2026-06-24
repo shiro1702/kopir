@@ -1,17 +1,31 @@
 import { confirmBatchPayment } from './batch'
 import { confirmManualPrint, confirmOrderPayment, startOrderPrint } from './order-staff-actions'
 
+function isAlreadyConfirmed(result: { alreadyConfirmed?: boolean }): boolean {
+  return result.alreadyConfirmed === true
+}
+
+export function isStaffPaymentConfirmPayload(data: string): boolean {
+  return data.startsWith('staff_pay:') || data.startsWith('staff_batch_confirm:')
+}
+
 export async function handleStaffCallbackPayload(data: string): Promise<string> {
   if (data.startsWith('staff_batch_confirm:')) {
     const batchId = data.slice('staff_batch_confirm:'.length)
-    await confirmBatchPayment(batchId)
-    return 'Оплата пачки подтверждена, печать запущена'
+    const result = await confirmBatchPayment(batchId)
+    if (isAlreadyConfirmed(result)) {
+      return 'Уже подтверждено'
+    }
+    return '✅ Оплата принята, печать запущена'
   }
 
   if (data.startsWith('staff_pay:')) {
     const orderId = data.slice('staff_pay:'.length)
-    await confirmOrderPayment(orderId)
-    return 'Оплата принята, печать запущена'
+    const result = await confirmOrderPayment(orderId)
+    if (isAlreadyConfirmed(result)) {
+      return 'Уже подтверждено'
+    }
+    return '✅ Оплата принята, печать запущена'
   }
 
   if (data.startsWith('staff_print:')) {

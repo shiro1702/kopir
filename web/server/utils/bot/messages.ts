@@ -482,6 +482,31 @@ export function formatStaffBatchOnSiteAwaitingPayment(batch: {
   )
 }
 
+export function formatStaffOrderPaymentConfirmed(
+  shortId: string,
+  amountKopeks: number,
+  fileName: string,
+): string {
+  const amountText = staffAmountText(amountKopeks)
+  return (
+    `✅ Оплата по заказу #${shortId} принята (${amountText})\n`
+    + `📄 ${fileName}\n`
+    + '🖨 Печать запущена.'
+  )
+}
+
+export function formatStaffBatchPaymentConfirmed(
+  shortId: string,
+  fileCount: number,
+  totalAmountKopeks: number,
+): string {
+  const amountText = staffAmountText(totalAmountKopeks)
+  return (
+    `✅ Оплата пачки #${shortId} принята (${fileCount} файлов, ${amountText})\n`
+    + '🖨 Печать запущена.'
+  )
+}
+
 export function paymentModeLabel(mode: 'terminal' | 'online'): string {
   return mode === 'terminal' ? 'Терминал (ручное подтверждение)' : 'Онлайн (скоро)'
 }

@@ -421,6 +421,7 @@ export async function confirmBatchPayment(batchId: string) {
     return {
       id: batch.id,
       status: batch.status,
+      alreadyConfirmed: true,
       paidAt: batch.paidAt?.toISOString() ?? null,
     }
   }
@@ -459,6 +460,16 @@ export async function confirmBatchPayment(batchId: string) {
     await notifyBatchPaymentConfirmed(batch.user, batchId, batch.orders.length, agentOffline)
   } catch (error) {
     console.error('[batch] payment notify failed:', batchId, error)
+  }
+
+  try {
+    const { notifyStaffBatchPaymentConfirmed } = await import('./staff-notify')
+    await notifyStaffBatchPaymentConfirmed({
+      ...batch,
+      orders: batch.orders.filter(isActiveBatchOrder),
+    })
+  } catch (error) {
+    console.error('[staff] batch payment confirmed notify failed:', batchId, error)
   }
 
   return {

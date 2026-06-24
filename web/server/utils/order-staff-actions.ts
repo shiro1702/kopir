@@ -35,6 +35,15 @@ export async function confirmOrderPayment(orderId: string) {
     })
   }
 
+  if (order.status === OrderStatus.PAID) {
+    return {
+      id: order.id,
+      status: order.status,
+      alreadyConfirmed: true,
+      paidAt: order.paidAt?.toISOString() ?? null,
+    }
+  }
+
   if (order.status !== OrderStatus.AWAITING_PAYMENT) {
     throw invalidStatus('Order is not awaiting payment')
   }
