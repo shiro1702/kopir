@@ -5,6 +5,7 @@ import {
   countActiveBatchOrders,
   expireStaleCollectingBatches,
   finalizeBatch,
+  getActiveBatchOrders,
   getBatchKeyboardMode,
   getBatchMaxFiles,
   getNextBatchIndex,
@@ -66,36 +67,108 @@ async function refreshBatchKeyboardForChat(
   if (platform === 'telegram') {
     const { sendTelegramBatchMessage } = await import('../telegram/client')
     await sendTelegramBatchMessage(Number(chatId), ' ', keyboardMode)
-    return
   }
+}
 
-  const { getMaxClient } = await import('../max/client')
-  const { maxBatchActionButtons } = await import('./keyboards')
-  await getMaxClient().sendMessage(
-    { chatId: Number(chatId) },
-    ' ',
-    [{ type: 'inline_keyboard', payload: { buttons: [maxBatchActionButtons(keyboardMode)] } }],
+function resolveOrderClientPlatform(
+  user: Pick<User, 'telegramId' | 'maxUserId'>,
+  order: Pick<Order, 'clientMessageChatId'>,
+): MessengerPlatform | null {
+  if (order.clientMessageChatId && user.telegramId
+    && order.clientMessageChatId === String(user.telegramId)) {
+    return 'telegram'
+  }
+  if (order.clientMessageChatId && user.maxUserId
+    && order.clientMessageChatId === String(user.maxUserId)) {
+    return 'max'
+  }
+  if (user.telegramId) {
+    return 'telegram'
+  }
+  if (user.maxUserId) {
+    return 'max'
+  }
+  return null
+}
+
+function orderMessageText(
+  order: Pick<Order, 'fileName' | 'batchIndex' | 'pageCount' | 'status' | 'errorMessage'>,
+  maxFiles: number,
+  keyboardMode: BatchKeyboardMode,
+): string {
+  if (order.status === OrderStatus.CALCULATION_FAILED) {
+    return messages.formatBatchCalculationFailedForFile(order.fileName, order.errorMessage)
+  }
+  return messages.formatBatchFileReady(
+    order.fileName,
+    order.batchIndex ?? 1,
+    maxFiles,
+    order.pageCount,
+    keyboardMode === 'ready',
   )
+}
+
+async function refreshMaxBatchFileKeyboards(
+  batchId: string,
+  keyboardMode: BatchKeyboardMode,
+  excludeOrderId?: string,
+): Promise<void> {
+  const orders = await getActiveBatchOrders(batchId)
+  const maxFiles = getBatchMaxFiles()
+  const { editMaxStatusMessage } = await import('../max/client')
+
+  for (const order of orders) {
+    if (order.id === excludeOrderId || !order.clientMessageId || !order.clientMessageChatId) {
+      continue
+    }
+    if (order.status === OrderStatus.CALCULATING) {
+      continue
+    }
+
+    const text = orderMessageText(order, maxFiles, keyboardMode)
+    await editMaxStatusMessage(
+      { messageId: order.clientMessageId, chatId: order.clientMessageChatId },
+      text,
+      orderStatusOptions(order.id, true, 'max', keyboardMode),
+    )
+  }
 }
 
 async function syncBatchReplyKeyboard(
   platform: MessengerPlatform,
   target: MessengerReplyTarget,
   _adapter: MessengerAdapter,
+  batchId: string,
   keyboardMode: BatchKeyboardMode,
-  options?: { force?: boolean },
+  options?: { force?: boolean, excludeOrderId?: string },
 ): Promise<void> {
+  if (platform === 'max') {
+    try {
+      await refreshMaxBatchFileKeyboards(batchId, keyboardMode, options?.excludeOrderId)
+      setLastBatchKeyboardMode(platform, target.chatId, keyboardMode)
+    } catch (error) {
+      console.error('[bot] max batch keyboard refresh failed:', error)
+    }
+    return
+  }
+
   await refreshBatchKeyboardForChat(platform, target.chatId, keyboardMode, options?.force)
 }
 
 function orderStatusOptions(
   orderId: string,
   withRemoveButton: boolean,
+  platform?: MessengerPlatform,
+  keyboardMode?: BatchKeyboardMode,
 ): StatusMessageOptions {
-  if (!withRemoveButton) {
-    return {}
+  const opts: StatusMessageOptions = {}
+  if (withRemoveButton) {
+    opts.inlineKeyboard = removeFileKeyboard(orderId)
   }
-  return { inlineKeyboard: removeFileKeyboard(orderId) }
+  if (platform === 'max' && keyboardMode) {
+    opts.batchKeyboard = keyboardMode
+  }
+  return opts
 }
 
 async function upsertBotUser(platform: MessengerPlatform, user: BotUser) {
@@ -309,13 +382,13 @@ export async function handleDocument(
       target,
       freshOrder,
       statusText,
-      orderStatusOptions(order.id, !isWord),
+      orderStatusOptions(order.id, !isWord, platform, keyboardMode),
     )
     if (!edited) {
       await adapter.sendText(target, statusText, { batchKeyboard: keyboardMode })
     }
 
-    await syncBatchReplyKeyboard(platform, target, adapter, keyboardMode)
+    await syncBatchReplyKeyboard(platform, target, adapter, batch.id, keyboardMode)
   } catch (error) {
     console.error('[bot] document upload failed:', order.id, error)
     await prisma.order.update({
@@ -519,8 +592,9 @@ export async function handleBatchRemoveConfirm(
     target.platform,
     target,
     adapter,
+    result.batchId,
     keyboardMode,
-    { force: keyboardMode === 'ready' },
+    { force: keyboardMode === 'ready', excludeOrderId: orderId },
   )
 
   return messages.formatBatchFileRemovedToast(result.remainingCount, maxFiles)
@@ -560,7 +634,12 @@ export async function handleBatchRemoveCancel(
       target,
       msgRef as Pick<Order, 'clientMessageId' | 'clientMessageChatId'>,
       readyText,
-      orderStatusOptions(orderId, order.status !== OrderStatus.CALCULATING),
+      orderStatusOptions(
+        orderId,
+        order.status !== OrderStatus.CALCULATING,
+        target.platform,
+        keyboardMode,
+      ),
     )
   }
 
@@ -681,33 +760,30 @@ export async function notifyBatchFileCalculated(
     order.pageCount,
     keyboardMode === 'ready',
   )
-  const edited = await editOrderClientMessage(user, order, text, orderStatusOptions(order.id, true))
+  const platform = resolveOrderClientPlatform(user, order)
+  const edited = await editOrderClientMessage(
+    user,
+    order,
+    text,
+    orderStatusOptions(order.id, true, platform ?? undefined, keyboardMode),
+  )
   if (!edited) {
     await sendBatchUiToUser(user, text, keyboardMode)
     return
   }
 
-  if (!order.clientMessageChatId) {
-    return
-  }
-
-  const platform: MessengerPlatform | null =
-    order.clientMessageChatId === String(user.telegramId)
-      ? 'telegram'
-      : order.clientMessageChatId === String(user.maxUserId)
-        ? 'max'
-        : user.telegramId
-          ? 'telegram'
-          : user.maxUserId
-            ? 'max'
-            : null
-  if (!platform) {
+  if (!order.batchId || !order.clientMessageChatId || !platform) {
     return
   }
 
   const previous = getLastBatchKeyboardMode(platform, order.clientMessageChatId)
   if (previous === 'calculating' && keyboardMode === 'ready') {
-    await refreshBatchKeyboardForChat(platform, order.clientMessageChatId, keyboardMode)
+    if (platform === 'max') {
+      await refreshMaxBatchFileKeyboards(order.batchId, keyboardMode)
+    } else {
+      await refreshBatchKeyboardForChat(platform, order.clientMessageChatId, keyboardMode)
+    }
+    setLastBatchKeyboardMode(platform, order.clientMessageChatId, keyboardMode)
   }
 }
 
@@ -773,12 +849,14 @@ export async function notifyCalculationFailed(
       where: { id: order.batchId },
     })
     if (batch?.status === OrderBatchStatus.COLLECTING) {
+      const keyboardMode = await getBatchKeyboardMode(order.batchId)
+      const platform = resolveOrderClientPlatform(user, order)
       const text = messages.formatBatchCalculationFailedForFile(order.fileName, order.errorMessage)
       const edited = await editOrderClientMessage(
         user,
         order,
         text,
-        orderStatusOptions(order.id, true),
+        orderStatusOptions(order.id, true, platform ?? undefined, keyboardMode),
       )
       if (edited) {
         return

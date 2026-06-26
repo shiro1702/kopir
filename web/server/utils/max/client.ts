@@ -1,6 +1,7 @@
 const MAX_API_BASE = 'https://platform-api.max.ru'
 
 import type { BatchKeyboardMode, InlineKeyboardButton, SentMessage, StatusMessageOptions } from '../bot/types'
+import { maxBatchActionButtons } from '../bot/keyboards'
 
 const MAX_UPDATE_TYPES = [
   'message_created',
@@ -181,20 +182,37 @@ export class MaxClient {
   }
 }
 
-function maxInlineFromButtons(buttons: InlineKeyboardButton[][]) {
-  return [{
-    type: 'inline_keyboard',
-    payload: {
-      buttons: buttons.map((row) =>
-        row.map((btn) => ({
-          type: 'callback',
-          text: btn.text,
-          payload: btn.callbackData,
-          intent: 'default',
-        })),
-      ),
-    },
-  }]
+function maxCallbackButton(btn: InlineKeyboardButton) {
+  return {
+    type: 'callback' as const,
+    text: btn.text,
+    payload: btn.callbackData,
+    intent: 'default' as const,
+  }
+}
+
+export function maxAttachmentsFromOptions(options?: StatusMessageOptions): unknown[] | undefined {
+  if (options?.removeInlineKeyboard) {
+    return []
+  }
+
+  const rows: ReturnType<typeof maxCallbackButton>[][] = []
+
+  if (options?.inlineKeyboard) {
+    for (const row of options.inlineKeyboard) {
+      rows.push(row.map(maxCallbackButton))
+    }
+  }
+
+  if (options?.batchKeyboard) {
+    rows.push(maxBatchActionButtons(options.batchKeyboard))
+  }
+
+  if (rows.length === 0) {
+    return undefined
+  }
+
+  return [{ type: 'inline_keyboard', payload: { buttons: rows } }]
 }
 
 export async function sendMaxStatusMessage(
@@ -202,12 +220,7 @@ export async function sendMaxStatusMessage(
   text: string,
   options?: StatusMessageOptions,
 ): Promise<SentMessage> {
-  const attachments = options?.removeInlineKeyboard
-    ? []
-    : options?.inlineKeyboard
-      ? maxInlineFromButtons(options.inlineKeyboard)
-      : undefined
-
+  const attachments = maxAttachmentsFromOptions(options)
   return getMaxClient().sendMessage({ chatId }, text, attachments)
 }
 
@@ -216,13 +229,9 @@ export async function editMaxStatusMessage(
   text: string,
   options?: StatusMessageOptions,
 ): Promise<void> {
-  const attachments = options?.removeInlineKeyboard
-    ? []
-    : options?.inlineKeyboard
-      ? maxInlineFromButtons(options.inlineKeyboard)
-      : options === undefined
-        ? undefined
-        : null
+  const attachments = options === undefined
+    ? undefined
+    : maxAttachmentsFromOptions(options) ?? []
 
   await getMaxClient().editMessage(message.messageId, text, attachments)
 }
@@ -232,20 +241,13 @@ export async function sendMaxBatchMessage(
   text: string,
   mode: BatchKeyboardMode,
 ): Promise<void> {
-  const { BTN_CANCEL_BATCH, BTN_FINALIZE_BATCH } = await import('../bot/messages')
-  const buttons = mode === 'ready'
-    ? [
-        { type: 'callback', text: BTN_FINALIZE_BATCH, payload: 'batch_finalize', intent: 'default' },
-        { type: 'callback', text: BTN_CANCEL_BATCH, payload: 'batch_cancel', intent: 'default' },
-      ]
-    : [
-        { type: 'callback', text: BTN_CANCEL_BATCH, payload: 'batch_cancel', intent: 'default' },
-      ]
+  const { MSG_BATCH_CONTROLS } = await import('../bot/messages')
+  const messageText = text.trim() ? text : MSG_BATCH_CONTROLS
 
   await getMaxClient().sendMessage(
     { userId },
-    text,
-    [{ type: 'inline_keyboard', payload: { buttons: [buttons] } }],
+    messageText,
+    maxAttachmentsFromOptions({ batchKeyboard: mode }),
   )
 }
 

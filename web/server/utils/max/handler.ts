@@ -4,7 +4,6 @@ import { detectDocumentKind, mimeTypeForKind } from '../file-types'
 import {
   isBatchClientCallbackPayload,
   isPaymentClientCallbackPayload,
-  maxBatchActionButtons,
   parseBatchRemoveCancelOrderId,
   parseBatchRemoveConfirmOrderId,
   parseBatchRemoveOrderId,
@@ -19,18 +18,18 @@ import type {
   MessengerReplyTarget,
   SentMessage,
 } from '../bot/types'
-import { editMaxStatusMessage, getMaxClient, sendMaxStatusMessage } from './client'
+import { editMaxStatusMessage, getMaxClient, maxAttachmentsFromOptions, sendMaxStatusMessage } from './client'
 
-import { BTN_CANCEL_BATCH, BTN_FINALIZE_BATCH } from '../bot/messages'
+import { BTN_CANCEL_BATCH, BTN_FINALIZE_BATCH, MSG_BATCH_CONTROLS } from '../bot/messages'
 import { downloadMaxFileAttachment, resolveFileAttachment } from './files'
 import { getStaffMaxUserId } from '../payment-mode'
-import type { MaxInlineKeyboardAttachment, MaxUpdate } from './types'
+import type { MaxUpdate } from './types'
 
-function batchInlineKeyboard(mode: BatchKeyboardMode): MaxInlineKeyboardAttachment {
-  return {
-    type: 'inline_keyboard',
-    payload: { buttons: [maxBatchActionButtons(mode)] },
-  }
+function maxSendOptionsAttachments(options?: {
+  batchKeyboard?: BatchKeyboardMode
+  inlineKeyboard?: import('../bot/types').InlineKeyboardButton[][]
+}): unknown[] | undefined {
+  return maxAttachmentsFromOptions(options)
 }
 
 function createMaxAdapter(): MessengerAdapterWithCallbacks {
@@ -38,26 +37,11 @@ function createMaxAdapter(): MessengerAdapterWithCallbacks {
   return {
     platform: 'max',
     async sendText(target: MessengerReplyTarget, text: string, options?) {
-      const attachments = options?.inlineKeyboard
-        ? [{
-            type: 'inline_keyboard',
-            payload: {
-              buttons: options.inlineKeyboard.map((row) =>
-                row.map((btn) => ({
-                  type: 'callback',
-                  text: btn.text,
-                  payload: btn.callbackData,
-                  intent: 'default',
-                })),
-              ),
-            },
-          }]
-        : options?.batchKeyboard
-          ? [batchInlineKeyboard(options.batchKeyboard)]
-          : undefined
+      const attachments = maxSendOptionsAttachments(options)
+      const messageText = text.trim() ? text : MSG_BATCH_CONTROLS
       await client.sendMessage(
         { chatId: Number(target.chatId) },
-        text,
+        messageText,
         attachments,
       )
     },

@@ -14,6 +14,7 @@ export const MSG_BATCH_EMPTY_AFTER_REMOVE =
   'В пачке не осталось файлов. Отправьте документ, когда будете готовы.'
 export const MSG_BATCH_CANNOT_REMOVE_CALCULATING =
   'Этот файл ещё считается на принтере. Подождите несколько секунд.'
+export const MSG_BATCH_CONTROLS = 'Управление пачкой'
 
 export const MSG_START =
   'Привет! Отправляйте файлы по одному (PDF или Word).\n\n'
