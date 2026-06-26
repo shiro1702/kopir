@@ -39,6 +39,11 @@ doc/
 │   ├── DEPLOY.md
 │   └── ENV_SETUP.md
 │
+├── marketing/                # Reels, тексты для копицентров, план запуска
+│   ├── README.md
+│   ├── instagram/            # сценарии Reels, хуки, профиль
+│   └── texts/                # КП, B2B/B2C, наклейки
+│
 ├── business/                 # экономика и стратегия (не код)
 │   ├── README.md
 │   ├── models.md             # SaaS vs франшиза
@@ -63,10 +68,11 @@ doc/
     ├── README.md
     ├── 11.06.2026.md
     ├── 12.06.2026.md
-    └── 13.06.2026.md
+    ├── 13.06.2026.md
+    └── 24.06.2026.md         # → 24.06.2026-INDEX.md
 ```
 
-Структурированные выводы из `brainstorm/12.06.2026.md` и `13.06.2026.md` вынесены в `business/`, `hardware/`, `product/`. Полные диалоги остаются в `brainstorm/`.
+Структурированные выводы из `brainstorm/` вынесены в `business/`, `hardware/`, `product/`, `marketing/`. Полные диалоги остаются в `brainstorm/`.
 
 ---
 
@@ -81,7 +87,8 @@ doc/
 | **business/** | Экономика, модели (SaaS / франшиза), критерии масштабирования | Бизнес-план, инвесторы, партнёры |
 | **hardware/** | Боксы, комплектации, IoT, контроль заправщиков | После MVP, сборка первого бокса |
 | **product/** | DOCX-конвертация, цветная печать — фичи **не в Sprint 0** | Планирование Sprint 1+ |
-| **brainstorm/** | Архив сырых идей (11–13 июня 2026) | Справочно, не редактировать |
+| **marketing/** | Reels/Instagram, КП копицентрам, план B2B/B2C | Запуск, партнёры, контент |
+| **brainstorm/** | Архив сырых идей (11–24 июня 2026) | Справочно, не редактировать |
 
 **Главное правило:** `roadmap/` — про продукт и бизнес; `sprints/` — про код и задачи. Не смешивать.
 
@@ -127,6 +134,7 @@ doc/
 | [brainstorm/11.06.2026.md](./brainstorm/11.06.2026.md) | Первичная идея, архитектура, MVP | [project/PROJECT.md](./project/PROJECT.md) |
 | [brainstorm/12.06.2026.md](./brainstorm/12.06.2026.md) | Боксы, IoT, экономика, заправщики, цвет | [business/](./business/models.md), [hardware/](./hardware/README.md), [product/](./product/README.md) |
 | [brainstorm/13.06.2026.md](./brainstorm/13.06.2026.md) | BYOP, гибридная бумага, Student Hub, вендинг | [product/byop-hybrid-printing.md](./product/byop-hybrid-printing.md), [product/student-hub-vending.md](./product/student-hub-vending.md), [hardware/](./hardware/configurations.md), [business/](./business/economics.md) |
+| [brainstorm/24.06.2026.md](./brainstorm/24.06.2026.md) | Reels, маркетинг, буккроссинг, SBC, КП | [brainstorm/24.06.2026-INDEX.md](./brainstorm/24.06.2026-INDEX.md) → [marketing/](./marketing/) |
 
 ---
 

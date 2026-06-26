@@ -51,6 +51,11 @@ async function syncBatchReplyKeyboard(
   adapter: MessengerAdapter,
   keyboardMode: BatchKeyboardMode,
 ): Promise<void> {
+  // MAX uses per-message inline keyboards; Telegram needs a reply-keyboard refresh.
+  if (platform === 'max') {
+    return
+  }
+
   const previous = getLastBatchKeyboardMode(platform, target.chatId)
   if (previous === keyboardMode) {
     return
