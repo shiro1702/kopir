@@ -4,13 +4,8 @@ import { detectDocumentKind, mimeTypeForKind } from '../file-types'
 import {
   isBatchClientCallbackPayload,
   isPaymentClientCallbackPayload,
-  parseBatchRemoveCancelOrderId,
-  parseBatchRemoveConfirmOrderId,
-  parseBatchRemoveOrderId,
-  parsePayChangeMethodPayload,
-  parsePayClaimedPayload,
-  parsePayMethodPayload,
 } from '../bot/keyboards'
+import { routeClientCallback } from '../bot/client-callbacks'
 import type {
   BatchKeyboardMode,
   CallbackContext,
@@ -247,39 +242,14 @@ export async function handleMaxUpdate(update: MaxUpdate): Promise<void> {
         }
 
         try {
-          const payload = callback.payload
-          let toast = ''
-          if (parseBatchRemoveOrderId(payload)) {
-            const { handleBatchRemoveRequest } = await import('../bot/core')
-            toast = await handleBatchRemoveRequest(
-              target,
-              user,
-              parseBatchRemoveOrderId(payload)!,
-              adapter,
-              callbackCtx,
-              message,
-            )
-          } else if (parseBatchRemoveConfirmOrderId(payload)) {
-            const { handleBatchRemoveConfirm } = await import('../bot/core')
-            toast = await handleBatchRemoveConfirm(
-              target,
-              user,
-              parseBatchRemoveConfirmOrderId(payload)!,
-              adapter,
-              callbackCtx,
-              message,
-            )
-          } else if (parseBatchRemoveCancelOrderId(payload)) {
-            const { handleBatchRemoveCancel } = await import('../bot/core')
-            toast = await handleBatchRemoveCancel(
-              target,
-              user,
-              parseBatchRemoveCancelOrderId(payload)!,
-              adapter,
-              callbackCtx,
-              message,
-            )
-          }
+          const toast = await routeClientCallback(
+            callback.payload,
+            target,
+            user,
+            adapter,
+            callbackCtx,
+            message,
+          )
           await client.answerCallback(callback.callback_id, toast)
         } catch (error) {
           let text = 'Ошибка'

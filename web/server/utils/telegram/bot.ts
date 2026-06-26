@@ -10,16 +10,10 @@ import type {
 } from '../bot/types'
 import { BTN_CANCEL_BATCH, BTN_FINALIZE_BATCH } from '../bot/messages'
 import {
-  BATCH_REMOVE_CANCEL_PREFIX,
   isBatchClientCallbackPayload,
   isPaymentClientCallbackPayload,
-  parseBatchRemoveCancelOrderId,
-  parseBatchRemoveConfirmOrderId,
-  parseBatchRemoveOrderId,
-  parsePayChangeMethodPayload,
-  parsePayClaimedPayload,
-  parsePayMethodPayload,
 } from '../bot/keyboards'
+import { routeClientCallback } from '../bot/client-callbacks'
 import { getStaffTelegramChatId } from '../payment-mode'
 import {
   downloadTelegramFile,
@@ -107,45 +101,7 @@ async function handleClientCallback(
   callbackCtx: CallbackContext,
   message?: SentMessage,
 ): Promise<string> {
-  const orderIdFromRemove = parseBatchRemoveOrderId(data)
-  if (orderIdFromRemove) {
-    const { handleBatchRemoveRequest } = await import('../bot/core')
-    return handleBatchRemoveRequest(target, user, orderIdFromRemove, adapter, callbackCtx, message)
-  }
-
-  const orderIdFromConfirm = parseBatchRemoveConfirmOrderId(data)
-  if (orderIdFromConfirm) {
-    const { handleBatchRemoveConfirm } = await import('../bot/core')
-    return handleBatchRemoveConfirm(target, user, orderIdFromConfirm, adapter, callbackCtx, message)
-  }
-
-  if (data === BATCH_REMOVE_CANCEL_PREFIX || data.startsWith(BATCH_REMOVE_CANCEL_PREFIX)) {
-    const orderId = parseBatchRemoveCancelOrderId(data)
-    if (orderId) {
-      const { handleBatchRemoveCancel } = await import('../bot/core')
-      return handleBatchRemoveCancel(target, user, orderId, adapter, callbackCtx, message)
-    }
-  }
-
-  const payMethod = parsePayMethodPayload(data)
-  if (payMethod) {
-    const { handlePaymentMethodChoice } = await import('../bot/payment-handlers')
-    return handlePaymentMethodChoice(target, user, payMethod.method, payMethod.entityId, adapter)
-  }
-
-  const claimedId = parsePayClaimedPayload(data)
-  if (claimedId) {
-    const { handlePaymentClaimed } = await import('../bot/payment-handlers')
-    return handlePaymentClaimed(target, user, claimedId, adapter)
-  }
-
-  const changeId = parsePayChangeMethodPayload(data)
-  if (changeId) {
-    const { handlePaymentChangeMethod } = await import('../bot/payment-handlers')
-    return handlePaymentChangeMethod(target, user, changeId, adapter)
-  }
-
-  throw new Error('Неизвестное действие')
+  return routeClientCallback(data, target, user, adapter, callbackCtx, message)
 }
 
 function isBatchActionText(text: string): 'finalize' | 'cancel' | null {
