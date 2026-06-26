@@ -51,22 +51,23 @@
 
 ---
 
-## Sprint 2
+## Sprint 2 (приоритет: P0 → P3, см. [ROADMAP](../roadmap/ROADMAP.md))
 
-| ID | Фича | Статус | Спринт | DRI |
-|----|------|--------|--------|-----|
-| PAY-02 | Т-Банк Init + GetQr | todo | 2 | TBD |
-| PAY-03 | Webhook оплаты → печать | todo | 2 | TBD |
-| PAY-04 | Облачная касса ФЗ-54 | todo | 2 | TBD |
-| PAY-07 | Еженедельные выплаты партнёру | todo | 2 | TBD |
-| WEB-07 | Telegram Mini App | todo | 2 | TBD |
-| WEB-06 | PWA сайт | todo | 2 | TBD |
-| FILE-02 | DOCX → PDF на VPS | todo | 2 | TBD |
-| FILE-03 | JPG/PNG → PDF | todo | 2 | TBD |
-| AGT-04 | GUI PySide6 | todo | 2 | TBD |
-| ONB-06 | Оферта агентского договора | todo | 2 | TBD |
-| ONB-09 | `/bind` staff-канала к точке | todo | 2 | TBD |
-| UX-01–04 | Калькулятор, дуплекс, копии | todo | 2 | TBD |
+| ID | Фича | Статус | Спринт | Приоритет | DRI |
+|----|------|--------|--------|-----------|-----|
+| PAY-02 | Т-Банк Init + GetQr | todo | 2 | P0 | TBD |
+| PAY-03 | Webhook оплаты → печать | todo | 2 | P0 | TBD |
+| WEB-12 | Админка точек (MVP, не super-admin) | todo | 2 | P0 | TBD |
+| ONB-09 | `/bind` staff-канала к точке | todo | 2 | P1 | TBD |
+| PAY-04 | Облачная касса ФЗ-54 | todo | 2 | P1 | TBD |
+| PAY-07 | Еженедельные выплаты партнёру | todo | 2 | P1 | TBD |
+| ONB-06 | Оферта агентского договора | todo | 2 | P1 | TBD |
+| WEB-07 | Telegram Mini App | todo | 2 | P2 | TBD |
+| UX-01–04 | Калькулятор, дуплекс, копии | todo | 2 | P2 | TBD |
+| AGT-04 | GUI PySide6 | todo | 2 | P2 | TBD |
+| FILE-02 | DOCX → PDF на VPS | todo | 2 | P3 | TBD |
+| FILE-03 | JPG/PNG → PDF | todo | 2 | P3 | TBD |
+| WEB-06 | PWA сайт | todo | 2 | P3 | TBD |
 
 ---
 

@@ -36,3 +36,10 @@ export function setLastBatchKeyboardMode(
 ): void {
   lastBatchKeyboardMode.set(preferenceKey(platform, chatId), mode)
 }
+
+export function clearLastBatchKeyboardMode(
+  platform: MessengerPlatform,
+  chatId: string | number,
+): void {
+  lastBatchKeyboardMode.delete(preferenceKey(platform, chatId))
+}

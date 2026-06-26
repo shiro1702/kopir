@@ -1,6 +1,6 @@
 import { isTerminalPaymentMode } from '../payment-mode'
 
-export const BTN_FINALIZE_BATCH = '✅ Завершить и оплатить'
+export const BTN_FINALIZE_BATCH = '✅ Оплатить'
 export const BTN_CANCEL_BATCH = '❌ Отменить пачку'
 export const BTN_REMOVE_FILE = '🗑 Удалить этот файл'
 export const BTN_REMOVE_CONFIRM = 'Да, удалить'
@@ -18,7 +18,7 @@ export const MSG_BATCH_CANNOT_REMOVE_CALCULATING =
 export const MSG_START =
   'Привет! Отправляйте файлы по одному (PDF или Word).\n\n'
   + 'Word-файлы сначала считаются на принтере — это может занять до 20 секунд.\n'
-  + 'Когда все файлы готовы, появится кнопка «Завершить и оплатить».\n'
+  + 'Когда все файлы готовы, появится кнопка «Оплатить».\n'
   + 'Можно добавить до 5 файлов в одну пачку.'
 
 export const MSG_UNSUPPORTED_FILE =
@@ -44,7 +44,7 @@ export const MSG_BATCH_LIMIT =
 
 export const MSG_BATCH_STILL_CALCULATING =
   'Подождите: идёт подсчёт страниц. '
-  + 'Когда все файлы будут готовы, появится кнопка «Завершить и оплатить».'
+  + 'Когда все файлы будут готовы, появится кнопка «Оплатить».'
 
 export const MSG_BATCH_CALCULATION_FAILED =
   'Не удалось обработать один или несколько файлов. '
@@ -96,7 +96,7 @@ export function formatBatchFileReady(
   canFinalize: boolean,
 ): string {
   const footer = canFinalize
-    ? 'Нажмите «Завершить и оплатить», когда будете готовы.'
+    ? 'Нажмите «Оплатить», когда будете готовы.'
     : 'Можно добавить ещё файлы в пачку.'
 
   return (

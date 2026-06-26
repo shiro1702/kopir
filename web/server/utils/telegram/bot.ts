@@ -121,48 +121,27 @@ async function handleClientCallback(
 
   if (data === BATCH_REMOVE_CANCEL_PREFIX || data.startsWith(BATCH_REMOVE_CANCEL_PREFIX)) {
     const orderId = parseBatchRemoveCancelOrderId(data)
-    if (!orderId) {
-    
-  const payMethod = parsePayMethodPayload(data)
-  if (payMethod) {
-    const { handlePaymentMethodChoice } = await import("../bot/payment-handlers")
-    return handlePaymentMethodChoice(target, user, payMethod.method, payMethod.entityId, adapter)
-  }
-
-  const claimedId = parsePayClaimedPayload(data)
-  if (claimedId) {
-    const { handlePaymentClaimed } = await import("../bot/payment-handlers")
-    return handlePaymentClaimed(target, user, claimedId, adapter)
-  }
-
-  const changeId = parsePayChangeMethodPayload(data)
-  if (changeId) {
-    const { handlePaymentChangeMethod } = await import("../bot/payment-handlers")
-    return handlePaymentChangeMethod(target, user, changeId, adapter)
-  }
-
-  throw new Error('Неизвестное действие')
+    if (orderId) {
+      const { handleBatchRemoveCancel } = await import('../bot/core')
+      return handleBatchRemoveCancel(target, user, orderId, adapter, callbackCtx, message)
     }
-    const { handleBatchRemoveCancel } = await import('../bot/core')
-    return handleBatchRemoveCancel(target, user, orderId, adapter, callbackCtx, message)
   }
-
 
   const payMethod = parsePayMethodPayload(data)
   if (payMethod) {
-    const { handlePaymentMethodChoice } = await import("../bot/payment-handlers")
+    const { handlePaymentMethodChoice } = await import('../bot/payment-handlers')
     return handlePaymentMethodChoice(target, user, payMethod.method, payMethod.entityId, adapter)
   }
 
   const claimedId = parsePayClaimedPayload(data)
   if (claimedId) {
-    const { handlePaymentClaimed } = await import("../bot/payment-handlers")
+    const { handlePaymentClaimed } = await import('../bot/payment-handlers')
     return handlePaymentClaimed(target, user, claimedId, adapter)
   }
 
   const changeId = parsePayChangeMethodPayload(data)
   if (changeId) {
-    const { handlePaymentChangeMethod } = await import("../bot/payment-handlers")
+    const { handlePaymentChangeMethod } = await import('../bot/payment-handlers')
     return handlePaymentChangeMethod(target, user, changeId, adapter)
   }
 

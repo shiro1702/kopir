@@ -43,25 +43,49 @@ import type {
   SentMessage,
   StatusMessageOptions,
 } from './types'
-import { getLastBatchKeyboardMode, getPointPreference, setLastBatchKeyboardMode, setPointPreference } from './preferences'
+import {
+  clearLastBatchKeyboardMode,
+  getLastBatchKeyboardMode,
+  getPointPreference,
+  setLastBatchKeyboardMode,
+  setPointPreference,
+} from './preferences'
+
+async function refreshBatchKeyboardForChat(
+  platform: MessengerPlatform,
+  chatId: string,
+  keyboardMode: BatchKeyboardMode,
+  force = false,
+): Promise<void> {
+  const previous = getLastBatchKeyboardMode(platform, chatId)
+  if (!force && previous === keyboardMode) {
+    return
+  }
+  setLastBatchKeyboardMode(platform, chatId, keyboardMode)
+
+  if (platform === 'telegram') {
+    const { sendTelegramBatchMessage } = await import('../telegram/client')
+    await sendTelegramBatchMessage(Number(chatId), ' ', keyboardMode)
+    return
+  }
+
+  const { getMaxClient } = await import('../max/client')
+  const { maxBatchActionButtons } = await import('./keyboards')
+  await getMaxClient().sendMessage(
+    { chatId: Number(chatId) },
+    ' ',
+    [{ type: 'inline_keyboard', payload: { buttons: [maxBatchActionButtons(keyboardMode)] } }],
+  )
+}
 
 async function syncBatchReplyKeyboard(
   platform: MessengerPlatform,
   target: MessengerReplyTarget,
-  adapter: MessengerAdapter,
+  _adapter: MessengerAdapter,
   keyboardMode: BatchKeyboardMode,
+  options?: { force?: boolean },
 ): Promise<void> {
-  // MAX uses per-message inline keyboards; Telegram needs a reply-keyboard refresh.
-  if (platform === 'max') {
-    return
-  }
-
-  const previous = getLastBatchKeyboardMode(platform, target.chatId)
-  if (previous === keyboardMode) {
-    return
-  }
-  setLastBatchKeyboardMode(platform, target.chatId, keyboardMode)
-  await adapter.sendText(target, ' ', { batchKeyboard: keyboardMode })
+  await refreshBatchKeyboardForChat(platform, target.chatId, keyboardMode, options?.force)
 }
 
 function orderStatusOptions(
@@ -350,7 +374,7 @@ export async function handleBatchAction(
 
   if (action === 'cancel') {
     await cancelBatch(batch.id, { notifyUser: false })
-    setLastBatchKeyboardMode(platform, target.chatId, 'ready')
+    clearLastBatchKeyboardMode(platform, target.chatId)
     await adapter.sendText(target, messages.MSG_BATCH_CANCELLED)
     return
   }
@@ -359,7 +383,7 @@ export async function handleBatchAction(
 
   try {
     const { batch: finalized } = await finalizeBatch(batch.id)
-    setLastBatchKeyboardMode(platform, target.chatId, 'ready')
+    clearLastBatchKeyboardMode(platform, target.chatId)
     const { sendPaymentMethodChoiceForBatch } = await import('./payment-handlers')
     await sendPaymentMethodChoiceForBatch(target, adapter, finalized)
   } catch (error) {
@@ -485,13 +509,19 @@ export async function handleBatchRemoveConfirm(
   }
 
   if (result.batchCancelled) {
-    setLastBatchKeyboardMode(target.platform, target.chatId, 'ready')
+    clearLastBatchKeyboardMode(target.platform, target.chatId)
     await adapter.sendText(target, messages.MSG_BATCH_EMPTY_AFTER_REMOVE)
     return messages.MSG_BATCH_EMPTY_AFTER_REMOVE
   }
 
   const keyboardMode = await getBatchKeyboardMode(result.batchId)
-  await syncBatchReplyKeyboard(target.platform, target, adapter, keyboardMode)
+  await syncBatchReplyKeyboard(
+    target.platform,
+    target,
+    adapter,
+    keyboardMode,
+    { force: keyboardMode === 'ready' },
+  )
 
   return messages.formatBatchFileRemovedToast(result.remainingCount, maxFiles)
 }
@@ -654,6 +684,30 @@ export async function notifyBatchFileCalculated(
   const edited = await editOrderClientMessage(user, order, text, orderStatusOptions(order.id, true))
   if (!edited) {
     await sendBatchUiToUser(user, text, keyboardMode)
+    return
+  }
+
+  if (!order.clientMessageChatId) {
+    return
+  }
+
+  const platform: MessengerPlatform | null =
+    order.clientMessageChatId === String(user.telegramId)
+      ? 'telegram'
+      : order.clientMessageChatId === String(user.maxUserId)
+        ? 'max'
+        : user.telegramId
+          ? 'telegram'
+          : user.maxUserId
+            ? 'max'
+            : null
+  if (!platform) {
+    return
+  }
+
+  const previous = getLastBatchKeyboardMode(platform, order.clientMessageChatId)
+  if (previous === 'calculating' && keyboardMode === 'ready') {
+    await refreshBatchKeyboardForChat(platform, order.clientMessageChatId, keyboardMode)
   }
 }
 

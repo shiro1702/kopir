@@ -46,7 +46,7 @@
 | ⬜ todo | WEB-09 | Мультиссылка QR (TG / MAX / VK / Viber) | 3 | редиректор `/go?point=` |
 | ⬜ todo | WEB-10 | Страница карты точек (Leaflet) | 2 | статичные пины |
 | ⬜ todo | WEB-11 | Карта: динамическая нагрузка (🟢🟡🔴) | 3 | из очереди принтера |
-| ⬜ todo | WEB-12 | Super-admin дашборд | 3 | GMV, комиссии |
+| ⬜ todo | WEB-12 | Super-admin дашборд | 3–4 | GMV, комиссии; MVP админки точек — Sprint 2 |
 | ⬜ todo | WEB-13 | Partner web-кабинет | 3 | альтернатива desktop GUI |
 
 ---
