@@ -1,6 +1,7 @@
 import type { PaymentMethod, Point } from '@prisma/client'
+import { isTbankConfigured } from './tbank-config'
 
-type PointTransferFields = Pick<Point, 'transferPhone' | 'transferBankLabel'>
+type PointTransferFields = Pick<Point, 'transferPhone' | 'transferBankLabel' | 'paymentMethodsEnabled'>
 
 export function getTransferPhone(point: PointTransferFields): string | null {
   const fromPoint = point.transferPhone?.trim()
@@ -22,25 +23,35 @@ export function getTransferBankLabel(point: PointTransferFields): string | null 
   return fromEnv || null
 }
 
-function parseEnabledMethods(raw: string): PaymentMethod[] {
+function parseEnabledMethodsFromEnv(raw: string): PaymentMethod[] {
   const methods: PaymentMethod[] = []
   for (const part of raw.split(',')) {
     const value = part.trim().toUpperCase()
-    if (value === 'SBP_TRANSFER' || value === 'ON_SITE') {
+    if (value === 'SBP_TRANSFER' || value === 'ON_SITE' || value === 'TBANK_ONLINE') {
       methods.push(value)
     }
   }
   return methods
 }
 
-export function getEnabledPaymentMethods(point: PointTransferFields): PaymentMethod[] {
+function getPointOrEnvMethods(point: PointTransferFields): PaymentMethod[] {
+  if (point.paymentMethodsEnabled?.length) {
+    return [...point.paymentMethodsEnabled]
+  }
   const config = useRuntimeConfig()
   const raw = String(config.paymentMethodsEnabled ?? 'SBP_TRANSFER,ON_SITE')
-  const methods = parseEnabledMethods(raw)
+  return parseEnabledMethodsFromEnv(raw)
+}
 
+export function getEnabledPaymentMethods(point: PointTransferFields): PaymentMethod[] {
+  const methods = getPointOrEnvMethods(point)
   const result: PaymentMethod[] = []
+
   for (const method of methods) {
     if (method === 'SBP_TRANSFER' && !getTransferPhone(point)) {
+      continue
+    }
+    if (method === 'TBANK_ONLINE' && !isTbankConfigured()) {
       continue
     }
     if (!result.includes(method)) {

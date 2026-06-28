@@ -2,6 +2,7 @@ import { assertAdminAuth } from '../../utils/admin-auth'
 import { paymentModeLabel } from '../../utils/bot/messages'
 import { getPaymentMode } from '../../utils/payment-mode'
 import { pointAgentStatusPayload } from '../../utils/points'
+import { isTbankConfigured } from '../../utils/tbank-config'
 import { prisma } from '../../utils/prisma'
 
 export default defineEventHandler(async (event) => {
@@ -18,6 +19,7 @@ export default defineEventHandler(async (event) => {
     paymentModeLabel: paymentModeLabel(mode),
     staffTelegramConfigured: Boolean(useRuntimeConfig().staffTelegramChatId),
     staffMaxConfigured: Boolean(useRuntimeConfig().staffMaxUserId),
+    tbankConfigured: isTbankConfigured(),
     points: points.map(pointAgentStatusPayload),
   }
 })

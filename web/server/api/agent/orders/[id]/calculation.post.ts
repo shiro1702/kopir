@@ -32,7 +32,7 @@ export default defineEventHandler(async (event) => {
 
   const order = await prisma.order.findUnique({
     where: { id },
-    include: { user: true },
+    include: { user: true, point: true },
   })
   if (!order) {
     throw createError({
@@ -96,7 +96,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const amountKopeks = pageCount * getPricePerPageKopeks()
+  const amountKopeks = pageCount * getPricePerPageKopeks(order.point)
   const updated = await prisma.order.update({
     where: { id },
     data: {

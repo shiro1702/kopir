@@ -69,7 +69,8 @@ doc/
     ├── 11.06.2026.md
     ├── 12.06.2026.md
     ├── 13.06.2026.md
-    └── 24.06.2026.md         # → 24.06.2026-INDEX.md
+    ├── 24.06.2026.md         # → 24.06.2026-INDEX.md
+    └── 28.06.2026.md         # → 28.06.2026-INDEX.md
 ```
 
 Структурированные выводы из `brainstorm/` вынесены в `business/`, `hardware/`, `product/`, `marketing/`. Полные диалоги остаются в `brainstorm/`.
@@ -135,6 +136,7 @@ doc/
 | [brainstorm/12.06.2026.md](./brainstorm/12.06.2026.md) | Боксы, IoT, экономика, заправщики, цвет | [business/](./business/models.md), [hardware/](./hardware/README.md), [product/](./product/README.md) |
 | [brainstorm/13.06.2026.md](./brainstorm/13.06.2026.md) | BYOP, гибридная бумага, Student Hub, вендинг | [product/byop-hybrid-printing.md](./product/byop-hybrid-printing.md), [product/student-hub-vending.md](./product/student-hub-vending.md), [hardware/](./hardware/configurations.md), [business/](./business/economics.md) |
 | [brainstorm/24.06.2026.md](./brainstorm/24.06.2026.md) | Reels, маркетинг, буккроссинг, SBC, КП | [brainstorm/24.06.2026-INDEX.md](./brainstorm/24.06.2026-INDEX.md) → [marketing/](./marketing/) |
+| [brainstorm/28.06.2026.md](./brainstorm/28.06.2026.md) | Сайт, ЛК, ценообразование, Т-Банк, финмодели | [brainstorm/28.06.2026-INDEX.md](./brainstorm/28.06.2026-INDEX.md) → [product/](./product/), [business/](./business/) |
 
 ---
 

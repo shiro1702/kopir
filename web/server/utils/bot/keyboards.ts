@@ -111,10 +111,11 @@ export function parseBatchRemoveConfirmOrderId(payload: string): string | null {
 
 export const BTN_PAY_SBP = '📱 Перевод по номеру'
 export const BTN_PAY_ON_SITE = '💳 Оплата на месте'
+export const BTN_PAY_ONLINE = '💳 Оплатить онлайн'
 export const BTN_PAY_CLAIMED = '✅ Я оплатил'
 export const BTN_PAY_CHANGE_METHOD = '← Другой способ'
 
-export function payMethodPayload(method: 'sbp_transfer' | 'on_site', entityId: string): string {
+export function payMethodPayload(method: 'sbp_transfer' | 'on_site' | 'tbank_online', entityId: string): string {
   return `pay_method:${method}:${entityId}`
 }
 
@@ -128,7 +129,7 @@ export function payChangeMethodPayload(entityId: string): string {
 
 export function paymentMethodKeyboard(
   entityId: string,
-  methods: Array<'SBP_TRANSFER' | 'ON_SITE'>,
+  methods: Array<'SBP_TRANSFER' | 'ON_SITE' | 'TBANK_ONLINE'>,
 ): InlineKeyboardButton[][] {
   const row: InlineKeyboardButton[] = []
   if (methods.includes('SBP_TRANSFER')) {
@@ -136,6 +137,9 @@ export function paymentMethodKeyboard(
   }
   if (methods.includes('ON_SITE')) {
     row.push({ text: BTN_PAY_ON_SITE, callbackData: payMethodPayload('on_site', entityId) })
+  }
+  if (methods.includes('TBANK_ONLINE')) {
+    row.push({ text: BTN_PAY_ONLINE, callbackData: payMethodPayload('tbank_online', entityId) })
   }
   return row.length ? [row] : []
 }
@@ -157,13 +161,13 @@ export function isPaymentClientCallbackPayload(payload: string): boolean {
     || payload.startsWith('pay_change_method:')
 }
 
-export function parsePayMethodPayload(payload: string): { method: 'sbp_transfer' | 'on_site', entityId: string } | null {
+export function parsePayMethodPayload(payload: string): { method: 'sbp_transfer' | 'on_site' | 'tbank_online', entityId: string } | null {
   if (!payload.startsWith('pay_method:')) return null
   const rest = payload.slice('pay_method:'.length)
   const idx = rest.indexOf(':')
   if (idx < 0) return null
   const method = rest.slice(0, idx)
-  if (method !== 'sbp_transfer' && method !== 'on_site') return null
+  if (method !== 'sbp_transfer' && method !== 'on_site' && method !== 'tbank_online') return null
   return { method, entityId: rest.slice(idx + 1) }
 }
 

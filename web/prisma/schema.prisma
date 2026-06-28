@@ -31,6 +31,17 @@ enum OrderBatchStatus {
 enum PaymentMethod {
   SBP_TRANSFER
   ON_SITE
+  TBANK_ONLINE
+}
+
+enum MessengerPlatform {
+  telegram
+  max
+}
+
+enum BindTokenPurpose {
+  staff
+  agent
 }
 
 model User {
@@ -45,16 +56,48 @@ model User {
 }
 
 model Point {
-  id                String       @id @default(cuid())
-  slug              String       @unique
-  name              String
-  isActive          Boolean      @default(true)
-  transferPhone     String?
-  transferBankLabel String?
-  lastSeenAt        DateTime?
-  createdAt         DateTime     @default(now())
-  orders            Order[]
-  batches           OrderBatch[]
+  id                     String           @id @default(cuid())
+  slug                   String           @unique
+  name                   String
+  isActive               Boolean          @default(true)
+  pricePerPageKopeks     Int              @default(1000)
+  paymentMethodsEnabled  PaymentMethod[]
+  transferPhone          String?
+  transferBankLabel      String?
+  lastSeenAt             DateTime?
+  createdAt              DateTime         @default(now())
+  orders                 Order[]
+  batches                OrderBatch[]
+  staffChannels          StaffChannel[]
+  bindTokens             BindToken[]
+}
+
+model StaffChannel {
+  id        String             @id @default(cuid())
+  pointId   String
+  point     Point              @relation(fields: [pointId], references: [id], onDelete: Cascade)
+  platform  MessengerPlatform
+  chatId    BigInt?
+  userId    BigInt?
+  label     String?
+  isActive  Boolean            @default(true)
+  boundAt   DateTime           @default(now())
+
+  @@unique([pointId, platform, chatId])
+  @@unique([pointId, platform, userId])
+  @@index([pointId, isActive])
+}
+
+model BindToken {
+  token     String           @id
+  pointId   String
+  point     Point            @relation(fields: [pointId], references: [id], onDelete: Cascade)
+  purpose   BindTokenPurpose
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  @@index([pointId, purpose])
 }
 
 model OrderBatch {
