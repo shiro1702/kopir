@@ -5,11 +5,13 @@ import {
   getTransferBankLabel,
   getTransferPhone,
 } from '../payment-config'
+import { isTbankConfigured } from '../tbank-config'
 import {
   claimPayment,
   resetPaymentMethod,
   selectPaymentMethod,
 } from '../payments/service'
+import { initPayment } from '../payments/providers/tbank-acquiring'
 import { prisma } from '../prisma'
 import {
   onSitePaymentKeyboard,
@@ -19,8 +21,10 @@ import {
 import * as messages from './messages'
 import type { BotUser, MessengerAdapter, MessengerReplyTarget } from './types'
 
-function mapPayMethod(method: 'sbp_transfer' | 'on_site'): PaymentMethod {
-  return method === 'sbp_transfer' ? PaymentMethod.SBP_TRANSFER : PaymentMethod.ON_SITE
+function mapPayMethod(method: 'sbp_transfer' | 'on_site' | 'tbank_online'): PaymentMethod {
+  if (method === 'sbp_transfer') return PaymentMethod.SBP_TRANSFER
+  if (method === 'tbank_online') return PaymentMethod.TBANK_ONLINE
+  return PaymentMethod.ON_SITE
 }
 
 async function sendWithInlineKeyboard(
@@ -97,12 +101,46 @@ export async function sendPaymentMethodChoiceForOrder(
 export async function handlePaymentMethodChoice(
   target: MessengerReplyTarget,
   user: BotUser,
-  method: 'sbp_transfer' | 'on_site',
+  method: 'sbp_transfer' | 'on_site' | 'tbank_online',
   entityId: string,
   adapter: MessengerAdapter,
 ): Promise<string> {
   const result = await selectPaymentMethod(entityId, mapPayMethod(method), user.externalId)
   const shortId = entityId.slice(-6)
+
+  if (result.method === PaymentMethod.TBANK_ONLINE) {
+    if (!isTbankConfigured()) {
+      throw createError({
+        statusCode: 400,
+        data: { error: 'Online payment is not configured', code: 'TBANK_NOT_CONFIGURED' },
+      })
+    }
+
+    const amountKopeks = result.kind === 'batch'
+      ? result.batch.totalAmountKopeks
+      : result.order.amountKopeks
+    const point = result.kind === 'batch'
+      ? result.batch.point
+      : result.order.point
+
+    const init = initPayment({
+      kind: result.kind,
+      entityId,
+      shortId,
+      amountKopeks,
+      paymentMethod: PaymentMethod.TBANK_ONLINE,
+      point,
+      user: result.kind === 'batch' ? result.batch.user : result.order.user,
+      batch: result.kind === 'batch' ? result.batch : undefined,
+      order: result.kind === 'order' ? result.order : undefined,
+    })
+
+    await adapter.sendText(
+      target,
+      `Оплата заказа #${shortId}: ${(amountKopeks / 100).toFixed(2)} ₽\n\nСканируйте QR (stub):\n${init.qrPayload}`,
+    )
+    return 'Ожидаем оплату'
+  }
 
   if (result.kind === 'batch') {
     const batch = result.batch

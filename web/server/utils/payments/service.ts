@@ -329,5 +329,3 @@ export function getTransferDetailsForPoint(point: { transferPhone: string | null
     bankLabel: getTransferBankLabel(point),
   }
 }
-
-export { getEnabledPaymentMethods }

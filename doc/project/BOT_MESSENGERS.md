@@ -90,6 +90,7 @@ model User {
 | Переменная | Платформа | Обязательность |
 |------------|-----------|----------------|
 | `TELEGRAM_BOT_TOKEN` | Telegram | если нужен TG-бот |
+| `TELEGRAM_BOT_USERNAME` | Telegram | для deep link staff bind (`/admin/points`) |
 | `MAX_BOT_TOKEN` | MAX | если нужен MAX-бот |
 | `MAX_WEBHOOK_SECRET` | MAX | рекомендуется в prod |
 | `VK_BOT_TOKEN` | VK | будущее |
@@ -112,11 +113,29 @@ model User {
 
 Бизнес-логику в `core.ts` **не трогаем** — только адаптер.
 
+## Staff bind (Sprint 2)
+
+Сотрудник копицентра привязывает свой Telegram-чат (личку или **группу**) или MAX-личку к конкретной точке:
+
+1. Админ: `/admin/points` → «Bind» → копирует токен или deep link
+2. Сотрудник в боте: `/bind bind_xxx` или `/start bind_xxx`
+3. Уведомления и кнопки «Оплата получена» / «Печать» идут только в привязанные каналы **этой** точки
+
+| Платформа | Куда биндим | Команда |
+|-----------|-------------|---------|
+| Telegram | `chatId` (личка или группа) | `/bind <token>` |
+| MAX | `userId` лички | `/bind <token>` |
+
+**Fallback:** если для точки нет `StaffChannel` в БД — используются env `STAFF_TELEGRAM_CHAT_ID` / `STAFF_MAX_USER_ID` (пилот одной точки).
+
+Реализация: `handleBind` в `core.ts`, модели `StaffChannel` + `BindToken` в Prisma.
+
 ## Deep link точки печати
 
 | Платформа | Формат |
 |-----------|--------|
 | Telegram | `https://t.me/BotName?start=point_bgu_smolina` |
+| Telegram (staff bind) | `https://t.me/BotName?start=bind_xxx` |
 | MAX | `payload` в событии `bot_started` (если настроен в кабинете) |
 | VK | `vk.me/club123?ref=point_bgu_smolina` (план) |
 | Универсальный QR | редиректор `/go?point=...` → выбор мессенджера (WEB-09) |

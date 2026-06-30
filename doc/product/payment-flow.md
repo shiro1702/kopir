@@ -1,6 +1,6 @@
 # Оплата в боте: перевод и «на месте»
 
-> **Статус:** реализовано (Sprint 1), эквайринг — Sprint 2  
+> **Статус:** реализовано (Sprint 1), эквайринг — [Sprint 3](../sprints/sprint-3/README.md) (ждём банк)  
 > **Feature IDs:** PAY-01 (расширение), PAY-02/03 (эквайринг), UX-12  
 > **Связано:** [FEATURES.md](../project/FEATURES.md), [BOT_MESSENGERS.md](../project/BOT_MESSENGERS.md), [sprint-1/tasks/13-payment-method-choice.md](../sprints/sprint-1/tasks/13-payment-method-choice.md)
 
@@ -245,9 +245,9 @@ interface PaymentProvider {
 
 | Этап | Провайдеры | Деньги куда | Подтверждение |
 |------|------------|-------------|---------------|
-| **Пилот (Sprint 1)** | `manual-transfer`, `manual-on-site` | Прямо на счёт копицентра | Staff в TG/MAX |
-| **Sprint 2** | + `tbank-acquiring` | Сплит / агентская схема | Webhook Т-Банка |
-| **Sprint 3+** | + `yookassa` (опция) | ЮKassa split | Webhook |
+| **Пилот (Sprint 1–2)** | `manual-transfer`, `manual-on-site` | Прямо на счёт копицентра | Staff в TG/MAX |
+| **Sprint 3** | + `tbank-acquiring` | Сплит / агентская схема | Webhook Т-Банка |
+| **Sprint 4+** | + `yookassa` (опция) | ЮKassa split | Webhook |
 | **Боксы** | + `pos-terminal` (Vendotek) | POS на устройстве | Агент |
 
 `PAYMENT_MODE=terminal` остаётся флагом «нет автоматического эквайринга».  
@@ -264,7 +264,7 @@ model Point {
 }
 ```
 
-На пилоте реквизиты можно задать через env (`POINT_TRANSFER_PHONE`) с fallback на поля `Point` после Sprint 3 (онбординг партнёра).
+На пилоте реквизиты через env или поля `Point`; CRUD точек — [Sprint 2, задача 12](../sprints/sprint-2/tasks/12-points-admin-mvp.md).
 
 ---
 

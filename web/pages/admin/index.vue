@@ -344,13 +344,21 @@ function formatPointCell(point) {
             </span>
           </div>
         </div>
-        <button
-          class="rounded bg-gray-200 px-3 py-1.5 text-sm hover:bg-gray-300 disabled:opacity-50"
-          :disabled="loading || !adminSecret"
-          @click="fetchOrders"
-        >
-          Обновить
-        </button>
+        <div class="flex gap-2">
+          <NuxtLink
+            to="/admin/points"
+            class="rounded bg-gray-200 px-3 py-1.5 text-sm hover:bg-gray-300"
+          >
+            Точки
+          </NuxtLink>
+          <button
+            class="rounded bg-gray-200 px-3 py-1.5 text-sm hover:bg-gray-300 disabled:opacity-50"
+            :disabled="loading || !adminSecret"
+            @click="fetchOrders"
+          >
+            Обновить
+          </button>
+        </div>
       </div>
 
       <div

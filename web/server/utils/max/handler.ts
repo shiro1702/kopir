@@ -18,6 +18,7 @@ import { editMaxStatusMessage, getMaxClient, maxAttachmentsFromOptions, sendMaxS
 import { BTN_CANCEL_BATCH, BTN_FINALIZE_BATCH, MSG_BATCH_CONTROLS } from '../bot/messages'
 import { downloadMaxFileAttachment, resolveFileAttachment } from './files'
 import { getStaffMaxUserId } from '../payment-mode'
+import { assertStaffForPayload } from '../staff-auth'
 import type { MaxUpdate } from './types'
 
 function maxSendOptionsAttachments(options?: {
@@ -130,6 +131,26 @@ export async function handleMaxUpdate(update: MaxUpdate): Promise<void> {
         return
       }
 
+      const bindMatch = message.body?.text?.trim().match(/^\/bind(?:@\S+)?\s+(\S+)/)
+      if (bindMatch) {
+        try {
+          const { handleBind } = await import('../bot/core')
+          await handleBind('max', target, bindMatch[1], adapter, user)
+        } catch (error) {
+          let text = 'Не удалось привязать канал'
+          if (error && typeof error === 'object' && 'data' in error) {
+            const data = (error as { data?: { error?: string } }).data
+            if (data?.error) {
+              text = data.error
+            }
+          } else if (error instanceof Error) {
+            text = error.message
+          }
+          await client.sendMessage({ chatId }, text)
+        }
+        return
+      }
+
       const textAction = message.body?.text ? isBatchActionText(message.body.text) : null
       if (textAction) {
         const { handleBatchAction } = await import('../bot/core')
@@ -178,10 +199,14 @@ export async function handleMaxUpdate(update: MaxUpdate): Promise<void> {
       }
 
       const staffMaxUserId = getStaffMaxUserId()
-      const isStaff = staffMaxUserId && callback.user.user_id === staffMaxUserId
+      const isLegacyStaff = staffMaxUserId && callback.user.user_id === staffMaxUserId
+
+      const isStaffCallback = !isBatchClientCallbackPayload(callback.payload)
+        && !isPaymentClientCallbackPayload(callback.payload)
+        && !callback.payload.startsWith('batch_')
 
       if (callback.payload === 'batch_finalize' || callback.payload === 'batch_cancel') {
-        if (isStaff) {
+        if (isLegacyStaff) {
           await client.answerCallback(callback.callback_id, 'Нет доступа')
           return
         }
@@ -216,7 +241,7 @@ export async function handleMaxUpdate(update: MaxUpdate): Promise<void> {
         return
       }
 
-      if (!isStaff && (isBatchClientCallbackPayload(callback.payload) || isPaymentClientCallbackPayload(callback.payload))) {
+      if (!isStaffCallback && (isBatchClientCallbackPayload(callback.payload) || isPaymentClientCallbackPayload(callback.payload))) {
         const chatId = update.message?.recipient?.chat_id ?? update.chat_id
         if (!chatId) {
           await client.answerCallback(callback.callback_id, 'Ошибка чата')
@@ -266,12 +291,13 @@ export async function handleMaxUpdate(update: MaxUpdate): Promise<void> {
         return
       }
 
-      if (!isStaff) {
+      if (!isStaffCallback) {
         await client.answerCallback(callback.callback_id, 'Нет доступа')
         return
       }
 
       try {
+        await assertStaffForPayload('max', callback.user.user_id, callback.payload)
         const { handleStaffCallbackPayload } = await import('../staff-actions')
         const message = await handleStaffCallbackPayload(callback.payload)
         await client.answerCallback(callback.callback_id, message)

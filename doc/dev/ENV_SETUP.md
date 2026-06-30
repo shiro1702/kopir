@@ -16,8 +16,10 @@
 | 6 | `ADMIN_SECRET` | Сгенерировать самому | `web/.env` + Vercel |
 | 7 | `AGENT_API_KEY` | Сгенерировать самому | `web/.env` + Vercel + `desktop/.env` |
 | 8 | `SERVER_URL` | URL деплоя Vercel | `desktop/.env` |
-| 9 | `POINT_ID` | Константа `point_dev_1` | `desktop/.env` |
+| 9 | `POINT_ID` | Константа `point_dev_1` или `ACTIVATION_TOKEN` | `desktop/.env` |
 | 10 | `POINT_OFFLINE_THRESHOLD_SEC` | `20` (опционально) | `web/.env` + Vercel |
+| 11 | `TELEGRAM_BOT_USERNAME` | username бота без `@` | `web/.env` (для bind deep links) |
+| 12 | `TBANK_*` | Sprint 2 stub / Sprint 3 prod | `web/.env` (опц.) |
 
 ---
 
@@ -90,6 +92,7 @@ BLOB_READ_WRITE_TOKEN="vercel_blob_rw_xxxxxxxxxxxxxxxx"
 
 ```env
 TELEGRAM_BOT_TOKEN="123456789:AAHxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+TELEGRAM_BOT_USERNAME="kopir_print_bot"   # для deep link staff bind
 ```
 
 ### Webhook (после деплоя на Vercel)
@@ -209,7 +212,7 @@ POINT_OFFLINE_THRESHOLD_SEC=20
 
 **Рекомендация:** держать порог ≥ `2 × POLL_INTERVAL_SEC` агента (при poll=5 → 15–20 сек).
 
-Полная версия с WebSocket heartbeat — Sprint 1, задача [04-heartbeat-offline](../sprints/sprint-1/tasks/04-heartbeat-offline.md).
+Блокировка заказов на offline-точку (MON-02) — [Sprint 1, задача 04](../sprints/sprint-1/tasks/04-heartbeat-offline.md) (polling). WebSocket → backlog.
 
 ---
 
@@ -312,8 +315,12 @@ PAYMENT_MODE=terminal
 POINT_TRANSFER_PHONE="+79001234567"   # СБП-номер копицентра (пилот); fallback если Point.transferPhone пуст
 POINT_TRANSFER_BANK_LABEL="Сбербанк, ИП Иванов"
 PAYMENT_METHODS_ENABLED="SBP_TRANSFER,ON_SITE"
-STAFF_TELEGRAM_CHAT_ID="123456789"   # chat id сотрудника в Telegram
-STAFF_MAX_USER_ID="987654321"        # user_id сотрудника в MAX
+STAFF_TELEGRAM_CHAT_ID="123456789"   # legacy fallback (Sprint 1); основной путь — /bind
+STAFF_MAX_USER_ID="987654321"        # legacy fallback; основной путь — /bind
+TELEGRAM_BOT_USERNAME="kopir_print_bot"
+TBANK_TERMINAL_KEY=""              # Sprint 2 stub; без ключей TBANK_ONLINE скрыт
+TBANK_PASSWORD=""
+TBANK_WEBHOOK_SECRET=""
 ```
 
 ### `desktop/.env`
@@ -321,7 +328,8 @@ STAFF_MAX_USER_ID="987654321"        # user_id сотрудника в MAX
 ```env
 SERVER_URL="https://kopir-xxxxx.vercel.app"
 AGENT_API_KEY="..."          # = web
-POINT_ID="point_dev_1"
+POINT_ID="point_dev_1"       # или одноразовый ACTIVATION_TOKEN при первом запуске
+# ACTIVATION_TOKEN="bind_..."  # альтернатива POINT_ID; сохраняется в desktop/config.json
 POLL_INTERVAL_SEC=5
 PRINTER_NAME=""
 SUMATRA_PATH="bin/SumatraPDF.exe"
@@ -337,6 +345,14 @@ BATCH_BUILD_TIMEOUT_MIN=15     # автоотмена незавершённой
 ```
 
 После обновления схемы: `cd web && npm run db:deploy`
+
+### Sprint 2 — staff bind, точки, Т-Банк stub
+
+**Staff-каналы (задача 11):** основной путь — `/bind <token>` или deep link `?start=bind_xxx`. Токен генерируется в `/admin/points`. Env `STAFF_TELEGRAM_CHAT_ID` / `STAFF_MAX_USER_ID` — **legacy fallback**, если для точки нет записей в `StaffChannel`.
+
+**Активация агента (задача 13):** в админке точек → «Агент» → `ACTIVATION_TOKEN` в `desktop/.env` → при старте агент вызывает `POST /api/agent/activate` и сохраняет `point_id` в `desktop/config.json`.
+
+**Т-Банк stub (задача 14):** без `TBANK_TERMINAL_KEY` + `TBANK_PASSWORD` кнопка «Оплатить онлайн» скрыта. Webhook: `POST /api/payments/webhook/tbank` с заголовком `X-Tbank-Webhook-Secret` (если задан `TBANK_WEBHOOK_SECRET`). Тестовый payload: `{ "entityId": "<order|batch id>", "status": "CONFIRMED" }`.
 
 ---
 

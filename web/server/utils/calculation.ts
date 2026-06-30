@@ -1,7 +1,13 @@
-import { OrderStatus } from '@prisma/client'
+import { OrderStatus, type Point } from '@prisma/client'
 import { prisma } from './prisma'
 
-export function getPricePerPageKopeks(): number {
+type PointPricing = Pick<Point, 'pricePerPageKopeks'> | null | undefined
+
+export function getPricePerPageKopeks(point?: PointPricing): number {
+  const fromPoint = point?.pricePerPageKopeks
+  if (fromPoint !== undefined && fromPoint !== null && fromPoint > 0) {
+    return fromPoint
+  }
   const config = useRuntimeConfig()
   const value = Number(config.pricePerPageKopeks)
   return Number.isFinite(value) && value > 0 ? value : 1000

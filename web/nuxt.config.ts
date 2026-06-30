@@ -42,6 +42,7 @@ export default defineNuxtConfig({
     blobStoreId: process.env.BLOB_STORE_ID,
     blobWebhookPublicKey: process.env.BLOB_WEBHOOK_PUBLIC_KEY,
     telegramBotToken: process.env.TELEGRAM_BOT_TOKEN,
+    telegramBotUsername: process.env.TELEGRAM_BOT_USERNAME ?? '',
     maxBotToken: process.env.MAX_BOT_TOKEN,
     maxWebhookSecret: process.env.MAX_WEBHOOK_SECRET,
     adminSecret: process.env.ADMIN_SECRET,
@@ -57,6 +58,9 @@ export default defineNuxtConfig({
     batchMaxFiles: process.env.BATCH_MAX_FILES ?? '5',
     batchBuildTimeoutMin: process.env.BATCH_BUILD_TIMEOUT_MIN ?? '15',
     pointOfflineThresholdSec: process.env.POINT_OFFLINE_THRESHOLD_SEC ?? '20',
+    tbankTerminalKey: process.env.TBANK_TERMINAL_KEY ?? '',
+    tbankPassword: process.env.TBANK_PASSWORD ?? '',
+    tbankWebhookSecret: process.env.TBANK_WEBHOOK_SECRET ?? '',
     public: {
       appVersion: '0.0.1',
     },

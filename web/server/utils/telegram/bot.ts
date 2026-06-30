@@ -14,7 +14,7 @@ import {
   isPaymentClientCallbackPayload,
 } from '../bot/keyboards'
 import { routeClientCallback } from '../bot/client-callbacks'
-import { getStaffTelegramChatId } from '../payment-mode'
+import { assertStaffForPayload } from '../staff-auth'
 import {
   downloadTelegramFile,
   editTelegramStatusMessage,
@@ -84,10 +84,7 @@ export async function getInitializedBot(): Promise<Bot> {
 }
 
 async function handleStaffCallback(data: string, chatId: number): Promise<string> {
-  const staffChatId = getStaffTelegramChatId()
-  if (!staffChatId || chatId !== staffChatId) {
-    throw new Error('Нет доступа')
-  }
+  await assertStaffForPayload('telegram', chatId, data)
 
   const { handleStaffCallbackPayload } = await import('../staff-actions')
   return handleStaffCallbackPayload(data)
@@ -121,13 +118,43 @@ function createBot(): Bot {
 
   bot.command('start', async (ctx) => {
     const telegramUser = ctx.from!
+    const chatId = ctx.chat.id
     const target: MessengerReplyTarget = {
       platform: 'telegram',
-      chatId: String(telegramUser.id),
+      chatId: String(chatId),
     }
 
     const { handleStart } = await import('../bot/core')
     await handleStart('telegram', target, ctx.match?.trim(), adapter)
+  })
+
+  bot.command('bind', async (ctx) => {
+    const chatId = ctx.chat.id
+    const target: MessengerReplyTarget = {
+      platform: 'telegram',
+      chatId: String(chatId),
+    }
+    const token = ctx.match?.trim()
+    if (!token) {
+      await ctx.reply('Использование: /bind <токен>')
+      return
+    }
+
+    try {
+      const { handleBind } = await import('../bot/core')
+      await handleBind('telegram', target, token, adapter)
+    } catch (error) {
+      let text = 'Не удалось привязать канал'
+      if (error && typeof error === 'object' && 'data' in error) {
+        const errData = (error as { data?: { error?: string } }).data
+        if (errData?.error) {
+          text = errData.error
+        }
+      } else if (error instanceof Error) {
+        text = error.message
+      }
+      await ctx.reply(text)
+    }
   })
 
   bot.on('message:document', async (ctx) => {

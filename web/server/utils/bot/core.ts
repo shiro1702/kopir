@@ -254,10 +254,17 @@ async function sendToUser(user: Pick<User, 'telegramId' | 'maxUserId'>, text: st
 export async function handleStart(
   platform: MessengerPlatform,
   target: MessengerReplyTarget,
-  pointSlug: string | undefined,
+  payload: string | undefined,
   adapter: MessengerAdapter,
 ): Promise<void> {
-  const slug = pointSlug?.trim() || DEFAULT_POINT_SLUG
+  const trimmed = payload?.trim()
+
+  if (trimmed?.startsWith('bind_')) {
+    await handleBind(platform, target, trimmed, adapter)
+    return
+  }
+
+  const slug = trimmed || DEFAULT_POINT_SLUG
 
   try {
     await resolvePointBySlug(slug)
@@ -267,6 +274,64 @@ export async function handleStart(
   }
 
   await adapter.sendText(target, messages.MSG_START)
+}
+
+export async function handleBind(
+  platform: MessengerPlatform,
+  target: MessengerReplyTarget,
+  rawToken: string,
+  adapter: MessengerAdapter,
+  user?: BotUser,
+): Promise<void> {
+  const { consumeBindToken } = await import('../bind-tokens')
+  const { point } = await consumeBindToken(rawToken, 'staff')
+
+  if (platform === 'telegram') {
+    const chatId = BigInt(target.chatId)
+    const existing = await prisma.staffChannel.findFirst({
+      where: { pointId: point.id, platform: 'telegram', chatId },
+    })
+    if (existing) {
+      await prisma.staffChannel.update({
+        where: { id: existing.id },
+        data: { isActive: true, boundAt: new Date() },
+      })
+    } else {
+      await prisma.staffChannel.create({
+        data: {
+          pointId: point.id,
+          platform: 'telegram',
+          chatId,
+        },
+      })
+    }
+  } else {
+    const userId = BigInt(user?.externalId ?? target.chatId)
+    const existing = await prisma.staffChannel.findFirst({
+      where: { pointId: point.id, platform: 'max', userId },
+    })
+    if (existing) {
+      await prisma.staffChannel.update({
+        where: { id: existing.id },
+        data: { isActive: true, boundAt: new Date() },
+      })
+    } else {
+      await prisma.staffChannel.create({
+        data: {
+          pointId: point.id,
+          platform: 'max',
+          userId,
+        },
+      })
+    }
+  }
+
+  const isTelegramGroup = platform === 'telegram' && BigInt(target.chatId) < 0n
+  const message = isTelegramGroup
+    ? `✅ Группа привязана к точке «${point.name}».\n\nВсе участники чата будут получать уведомления о заказах и смогут подтверждать оплату.`
+    : `✅ Вы привязаны к точке «${point.name}».\n\nБудете получать уведомления о заказах и сможете подтверждать оплату.`
+
+  await adapter.sendText(target, message)
 }
 
 export async function handleDocument(
@@ -319,7 +384,7 @@ export async function handleDocument(
   }
 
   const batchIndex = await getNextBatchIndex(batch.id)
-  const pricePerPage = getPricePerPageKopeks()
+  const pricePerPage = getPricePerPageKopeks(point)
   const pageCount = 1
   const amountKopeks = isWord ? 0 : pageCount * pricePerPage
 

@@ -84,5 +84,5 @@ DEMO_PAYMENT_ENABLED=true
 
 ## После спринта
 
-→ [Sprint 1 — Бета в копицентре](../sprint-1/README.md)  
-→ [Sprint 2 — Коммерческий MVP](../sprint-2/README.md) (реальная онлайн-оплата batch)
+→ [Sprint 1 — Бета (polling)](../sprint-1/README.md)  
+→ [Sprint 2 — Подготовка к коммерции](../sprint-2/README.md)

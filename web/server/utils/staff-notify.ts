@@ -11,16 +11,16 @@ import {
 } from './bot/messages'
 import { downloadOrderFile } from './blob'
 import { getTransferPhone, maskTransferPhone } from './payment-config'
-import {
-  getStaffMaxUserId,
-  getStaffTelegramChatId,
-  isStaffChannelConfigured,
-  isTerminalPaymentMode,
-} from './payment-mode'
+import { isTerminalPaymentMode } from './payment-mode'
 import type { MaxInlineKeyboardAttachment } from './max/types'
 import { getMaxClient } from './max/client'
+import {
+  getMaxStaffUserIds,
+  getTelegramStaffChatIds,
+  hasStaffNotifyTargets,
+} from './staff-auth'
 
-type OrderForStaff = Pick<Order, 'id' | 'fileName' | 'pageCount' | 'amountKopeks' | 'paymentConfirmedAt' | 'paymentMethod' | 'paymentClaimedAt' | 'batchId' | 'errorMessage'>
+type OrderForStaff = Pick<Order, 'id' | 'fileName' | 'pageCount' | 'amountKopeks' | 'paymentConfirmedAt' | 'paymentMethod' | 'paymentClaimedAt' | 'batchId' | 'errorMessage' | 'pointId'>
   & {
     user: {
       username?: string | null
@@ -28,10 +28,10 @@ type OrderForStaff = Pick<Order, 'id' | 'fileName' | 'pageCount' | 'amountKopeks
       telegramId?: bigint | null
       maxUserId?: bigint | null
     }
-    point: { name: string, transferPhone?: string | null, transferBankLabel?: string | null }
+    point: { name: string, transferPhone?: string | null, transferBankLabel?: string | null, paymentMethodsEnabled?: PaymentMethod[] }
   }
 
-type BatchForStaff = Pick<OrderBatch, 'id' | 'totalPages' | 'totalAmountKopeks' | 'paymentMethod' | 'paymentClaimedAt'>
+type BatchForStaff = Pick<OrderBatch, 'id' | 'totalPages' | 'totalAmountKopeks' | 'paymentMethod' | 'paymentClaimedAt' | 'pointId'>
   & {
     orders: Array<Pick<Order, 'fileName' | 'batchIndex'>>
     user: {
@@ -40,7 +40,7 @@ type BatchForStaff = Pick<OrderBatch, 'id' | 'totalPages' | 'totalAmountKopeks' 
       telegramId?: bigint | null
       maxUserId?: bigint | null
     }
-    point: { name: string, transferPhone?: string | null, transferBankLabel?: string | null }
+    point: { name: string, transferPhone?: string | null, transferBankLabel?: string | null, paymentMethodsEnabled?: PaymentMethod[] }
   }
 
 function telegramStaffKeyboard(order: Pick<Order, 'id' | 'paymentConfirmedAt'>) {
@@ -112,48 +112,63 @@ function maxStaffManualPrintKeyboard(orderId: string): MaxInlineKeyboardAttachme
   }
 }
 
-async function notifyStaffTelegram(
+async function notifyStaffTelegramTargets(
+  chatIds: number[],
   text: string,
   keyboard?: InlineKeyboard,
 ): Promise<void> {
-  const chatId = getStaffTelegramChatId()
-  if (!chatId) {
+  if (chatIds.length === 0) {
     return
   }
 
   const { getBot } = await import('./telegram/bot')
   const bot = getBot()
-  await bot.api.sendMessage(chatId, text, keyboard ? { reply_markup: keyboard } : undefined)
+  for (const chatId of chatIds) {
+    await bot.api.sendMessage(chatId, text, keyboard ? { reply_markup: keyboard } : undefined)
+  }
 }
 
-async function notifyStaffMax(
+async function notifyStaffMaxTargets(
+  userIds: number[],
   text: string,
   attachments?: MaxInlineKeyboardAttachment[],
 ): Promise<void> {
-  const userId = getStaffMaxUserId()
-  if (!userId) {
+  if (userIds.length === 0) {
     return
   }
 
   const client = getMaxClient()
-  await client.sendMessage({ userId }, text, attachments)
+  for (const userId of userIds) {
+    await client.sendMessage({ userId }, text, attachments)
+  }
 }
 
-async function notifyStaffAll(
+async function notifyStaffAllForPoint(
+  pointId: string,
   text: string,
   telegramKeyboard?: InlineKeyboard,
   maxAttachment?: MaxInlineKeyboardAttachment,
 ): Promise<void> {
+  const tgChatIds = await getTelegramStaffChatIds(pointId)
+  const maxUserIds = await getMaxStaffUserIds(pointId)
+
+  if (tgChatIds.length === 0 && maxUserIds.length === 0) {
+    console.warn(
+      `[staff] no staff channels for point ${pointId} — skipping notification`,
+    )
+    return
+  }
+
   const errors: Error[] = []
 
   try {
-    await notifyStaffTelegram(text, telegramKeyboard)
+    await notifyStaffTelegramTargets(tgChatIds, text, telegramKeyboard)
   } catch (error) {
     errors.push(error instanceof Error ? error : new Error(String(error)))
   }
 
   try {
-    await notifyStaffMax(text, maxAttachment ? [maxAttachment] : undefined)
+    await notifyStaffMaxTargets(maxUserIds, text, maxAttachment ? [maxAttachment] : undefined)
   } catch (error) {
     errors.push(error instanceof Error ? error : new Error(String(error)))
   }
@@ -168,9 +183,9 @@ export async function notifyStaffOrderPaymentPending(order: OrderForStaff): Prom
   if (!isTerminalPaymentMode() || order.batchId) {
     return
   }
-  if (!isStaffChannelConfigured()) {
+  if (!(await hasStaffNotifyTargets(order.pointId))) {
     console.warn(
-      '[staff] STAFF_TELEGRAM_CHAT_ID / STAFF_MAX_USER_ID are not set — skipping staff notification',
+      '[staff] no staff channels configured for point — skipping staff notification',
     )
     return
   }
@@ -180,7 +195,7 @@ export async function notifyStaffOrderPaymentPending(order: OrderForStaff): Prom
 
   let staffText: string
   if (order.paymentMethod === PaymentMethod.SBP_TRANSFER) {
-    const phone = getTransferPhone({ transferPhone: order.point.transferPhone ?? null, transferBankLabel: order.point.transferBankLabel ?? null })
+    const phone = getTransferPhone(order.point)
     staffText = formatStaffTransferAwaitingConfirm({
       ...order,
       transferPhoneMasked: phone ? maskTransferPhone(phone) : '***',
@@ -189,16 +204,21 @@ export async function notifyStaffOrderPaymentPending(order: OrderForStaff): Prom
     staffText = formatStaffOnSiteAwaitingPayment(order)
   }
 
-  await notifyStaffAll(staffText, telegramStaffKeyboard(order), maxStaffKeyboard(order))
+  await notifyStaffAllForPoint(
+    order.pointId,
+    staffText,
+    telegramStaffKeyboard(order),
+    maxStaffKeyboard(order),
+  )
 }
 
 export async function notifyStaffBatchPaymentPending(batch: BatchForStaff): Promise<void> {
   if (!isTerminalPaymentMode()) {
     return
   }
-  if (!isStaffChannelConfigured()) {
+  if (!(await hasStaffNotifyTargets(batch.pointId))) {
     console.warn(
-      '[staff] STAFF_TELEGRAM_CHAT_ID / STAFF_MAX_USER_ID are not set — skipping staff notification',
+      '[staff] no staff channels configured for point — skipping staff notification',
     )
     return
   }
@@ -208,7 +228,7 @@ export async function notifyStaffBatchPaymentPending(batch: BatchForStaff): Prom
 
   let staffText: string
   if (batch.paymentMethod === PaymentMethod.SBP_TRANSFER) {
-    const phone = getTransferPhone({ transferPhone: batch.point.transferPhone ?? null, transferBankLabel: batch.point.transferBankLabel ?? null })
+    const phone = getTransferPhone(batch.point)
     staffText = formatStaffBatchTransferAwaitingConfirm({
       ...batch,
       transferPhoneMasked: phone ? maskTransferPhone(phone) : '***',
@@ -217,7 +237,12 @@ export async function notifyStaffBatchPaymentPending(batch: BatchForStaff): Prom
     staffText = formatStaffBatchOnSiteAwaitingPayment(batch)
   }
 
-  await notifyStaffAll(staffText, telegramBatchKeyboard(batch.id), maxBatchKeyboard(batch.id))
+  await notifyStaffAllForPoint(
+    batch.pointId,
+    staffText,
+    telegramBatchKeyboard(batch.id),
+    maxBatchKeyboard(batch.id),
+  )
 }
 
 /** @deprecated Use notifyStaffOrderPaymentPending */
@@ -231,17 +256,23 @@ export async function notifyStaffBatchAwaitingPayment(batch: BatchForStaff): Pro
 }
 
 export async function notifyStaffPaymentConfirmed(order: OrderForStaff): Promise<void> {
-  if (!isTerminalPaymentMode() || !isStaffChannelConfigured() || order.batchId) {
+  if (!isTerminalPaymentMode() || order.batchId) {
+    return
+  }
+  if (!(await hasStaffNotifyTargets(order.pointId))) {
     return
   }
 
   const shortId = order.id.slice(-6)
   const text = formatStaffOrderPaymentConfirmed(shortId, order.amountKopeks, order.fileName)
-  await notifyStaffAll(text)
+  await notifyStaffAllForPoint(order.pointId, text)
 }
 
 export async function notifyStaffBatchPaymentConfirmed(batch: BatchForStaff): Promise<void> {
-  if (!isTerminalPaymentMode() || !isStaffChannelConfigured()) {
+  if (!isTerminalPaymentMode()) {
+    return
+  }
+  if (!(await hasStaffNotifyTargets(batch.pointId))) {
     return
   }
 
@@ -251,15 +282,15 @@ export async function notifyStaffBatchPaymentConfirmed(batch: BatchForStaff): Pr
     batch.orders.length,
     batch.totalAmountKopeks,
   )
-  await notifyStaffAll(text)
+  await notifyStaffAllForPoint(batch.pointId, text)
 }
 
 export async function notifyStaffPrintFailed(
   order: OrderForStaff & { filePath: string },
 ): Promise<void> {
-  if (!isStaffChannelConfigured()) {
+  if (!(await hasStaffNotifyTargets(order.pointId))) {
     console.warn(
-      '[staff] STAFF_TELEGRAM_CHAT_ID / STAFF_MAX_USER_ID are not set — skipping print failure notification',
+      '[staff] no staff channels configured for point — skipping print failure notification',
     )
     return
   }
@@ -277,41 +308,45 @@ export async function notifyStaffPrintFailed(
     }
   }
 
+  const tgChatIds = await getTelegramStaffChatIds(order.pointId)
+  const maxUserIds = await getMaxStaffUserIds(order.pointId)
   const errors: Error[] = []
 
-  const chatId = getStaffTelegramChatId()
-  if (chatId) {
+  if (tgChatIds.length > 0) {
     try {
       const { getBot } = await import('./telegram/bot')
       const bot = getBot()
-      if (fileBuffer) {
-        await bot.api.sendDocument(
-          chatId,
-          new InputFile(fileBuffer, order.fileName),
-          { caption: text, reply_markup: tgKeyboard },
-        )
-      } else {
-        await bot.api.sendMessage(chatId, text, { reply_markup: tgKeyboard })
+      for (const chatId of tgChatIds) {
+        if (fileBuffer) {
+          await bot.api.sendDocument(
+            chatId,
+            new InputFile(fileBuffer, order.fileName),
+            { caption: text, reply_markup: tgKeyboard },
+          )
+        } else {
+          await bot.api.sendMessage(chatId, text, { reply_markup: tgKeyboard })
+        }
       }
     } catch (error) {
       errors.push(error instanceof Error ? error : new Error(String(error)))
     }
   }
 
-  const maxUserId = getStaffMaxUserId()
-  if (maxUserId) {
+  if (maxUserIds.length > 0) {
     try {
       const client = getMaxClient()
-      if (fileBuffer) {
-        await client.sendFileMessage(
-          { userId: maxUserId },
-          text,
-          order.fileName,
-          fileBuffer,
-          [maxKeyboard],
-        )
-      } else {
-        await client.sendMessage({ userId: maxUserId }, text, [maxKeyboard])
+      for (const userId of maxUserIds) {
+        if (fileBuffer) {
+          await client.sendFileMessage(
+            { userId },
+            text,
+            order.fileName,
+            fileBuffer,
+            [maxKeyboard],
+          )
+        } else {
+          await client.sendMessage({ userId }, text, [maxKeyboard])
+        }
       }
     } catch (error) {
       errors.push(error instanceof Error ? error : new Error(String(error)))

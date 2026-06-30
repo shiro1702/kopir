@@ -357,7 +357,7 @@ export async function finalizeBatch(batchId: string): Promise<FinalizeBatchResul
     })
   }
 
-  const pricePerPage = getPricePerPageKopeks()
+  const pricePerPage = getPricePerPageKopeks(batch.point)
   for (const order of activeOrders) {
     if (order.amountKopeks === 0 && order.pageCount > 0) {
       await prisma.order.update({
