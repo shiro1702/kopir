@@ -1,6 +1,6 @@
 # Оплата в боте: перевод и «на месте»
 
-> **Статус:** реализовано (Sprint 1), эквайринг — [Sprint 3](../sprints/sprint-3/README.md) (ждём банк)  
+> **Статус:** пилот (Sprint 1) ✅; эквайринг — [Sprint 3](../sprints/sprint-3/README.md) (sandbox DEMO)  
 > **Feature IDs:** PAY-01 (расширение), PAY-02/03 (эквайринг), UX-12  
 > **Связано:** [FEATURES.md](../project/FEATURES.md), [BOT_MESSENGERS.md](../project/BOT_MESSENGERS.md), [sprint-1/tasks/13-payment-method-choice.md](../sprints/sprint-1/tasks/13-payment-method-choice.md)
 
@@ -34,7 +34,7 @@
 | Реквизиты перевода на уровне точки | ✅ |
 | Разные тексты staff в зависимости от способа | ✅ |
 | Абстракция `PaymentProvider` | ✅ (скелет) |
-| Т-Банк / ЮKassa webhook | ❌ (Sprint 2) |
+| Т-Банк / ЮKassa webhook | ✅ (Sprint 3, sandbox) |
 
 Сейчас бот сразу пишет «Оплатите на терминале» (`clientPaymentHint()`), без выбора. Staff получает уведомление **сразу после quote**, ещё до выбора способа клиентом.
 

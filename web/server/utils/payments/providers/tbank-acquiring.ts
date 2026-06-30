@@ -1,46 +1,124 @@
-import { OrderStatus, PaymentMethod } from '@prisma/client'
+import { OrderStatus, PaymentMethod, PaymentStatus } from '@prisma/client'
 import { prisma } from '../../prisma'
-import { getTbankWebhookSecret } from '../../tbank-config'
+import { getTbankPassword, getTbankWebhookSecret } from '../../tbank-config'
 import type { PaymentContext } from '../types'
+import {
+  tbankGetQr,
+  tbankGetState,
+  tbankInit,
+  verifyTbankNotificationToken,
+} from '../tbank-client'
 
 export interface TbankInitResult {
   paymentId: string
+  merchantOrderId: string
+  externalPaymentId: string
   qrPayload: string
   amountKopeks: number
 }
 
-export interface TbankWebhookPayload {
+export interface TbankLegacyWebhookPayload {
   entityId: string
   status: 'CONFIRMED' | 'REJECTED' | 'CANCELLED'
   paymentId?: string
 }
-
-const pendingPayments = new Map<string, { entityId: string, amountKopeks: number }>()
 
 export const tbankAcquiringProvider = {
   method: PaymentMethod.TBANK_ONLINE as const,
   staffNotifyTrigger: 'on_method_selected' as const,
 }
 
-export function initPayment(ctx: PaymentContext): TbankInitResult {
-  const paymentId = `tbank_stub_${ctx.entityId.slice(-8)}_${Date.now()}`
-  pendingPayments.set(paymentId, {
-    entityId: ctx.entityId,
-    amountKopeks: ctx.amountKopeks,
+function createMerchantOrderId(): string {
+  const ts = Date.now().toString(36)
+  const rand = Math.random().toString(36).slice(2, 10)
+  return `kp_${ts}_${rand}`.slice(0, 36)
+}
+
+async function cancelPendingPaymentsForEntity(ctx: PaymentContext) {
+  if (ctx.kind === 'batch') {
+    await prisma.payment.updateMany({
+      where: { batchId: ctx.entityId, status: PaymentStatus.PENDING },
+      data: { status: PaymentStatus.CANCELLED },
+    })
+    return
+  }
+  await prisma.payment.updateMany({
+    where: { orderId: ctx.entityId, status: PaymentStatus.PENDING },
+    data: { status: PaymentStatus.CANCELLED },
   })
+}
+
+export async function initPayment(ctx: PaymentContext): Promise<TbankInitResult> {
+  await cancelPendingPaymentsForEntity(ctx)
+
+  const merchantOrderId = createMerchantOrderId()
+  const payment = await prisma.payment.create({
+    data: {
+      merchantOrderId,
+      batchId: ctx.kind === 'batch' ? ctx.entityId : null,
+      orderId: ctx.kind === 'order' ? ctx.entityId : null,
+      amountKopeks: ctx.amountKopeks,
+      status: PaymentStatus.PENDING,
+    },
+  })
+
+  const initResult = await tbankInit({
+    amountKopeks: ctx.amountKopeks,
+    merchantOrderId,
+    description: `Печать #${ctx.shortId}`,
+  })
+
+  const externalPaymentId = initResult.PaymentId
+  if (externalPaymentId === undefined || externalPaymentId === null) {
+    throw createError({
+      statusCode: 502,
+      data: { error: 'T-Bank Init did not return PaymentId', code: 'TBANK_INIT_FAILED' },
+    })
+  }
+
+  const qrResult = await tbankGetQr(externalPaymentId, 'PAYLOAD')
+  const qrPayload = qrResult.Data?.trim()
+  if (!qrPayload) {
+    throw createError({
+      statusCode: 502,
+      data: { error: 'T-Bank GetQr did not return payload', code: 'TBANK_GETQR_FAILED' },
+    })
+  }
+
+  await prisma.payment.update({
+    where: { id: payment.id },
+    data: {
+      externalId: String(externalPaymentId),
+      qrPayload,
+    },
+  })
+
   return {
-    paymentId,
-    qrPayload: `STUB-QR:${paymentId}:${ctx.amountKopeks}`,
+    paymentId: payment.id,
+    merchantOrderId,
+    externalPaymentId: String(externalPaymentId),
+    qrPayload,
     amountKopeks: ctx.amountKopeks,
   }
 }
 
-export function getQr(paymentId: string): string | null {
-  const record = pendingPayments.get(paymentId)
-  if (!record) {
-    return null
+export async function getPaymentQrPayload(paymentId: string): Promise<string | null> {
+  const payment = await prisma.payment.findUnique({ where: { id: paymentId } })
+  return payment?.qrPayload ?? null
+}
+
+function resolveEntityIdFromPayment(payment: {
+  batchId: string | null
+  orderId: string | null
+}): string {
+  const entityId = payment.batchId ?? payment.orderId
+  if (!entityId) {
+    throw createError({
+      statusCode: 400,
+      data: { error: 'Payment is not linked to an order or batch', code: 'INVALID_PAYMENT' },
+    })
   }
-  return `STUB-QR:${paymentId}:${record.amountKopeks}`
+  return entityId
 }
 
 async function confirmTbankOrderPayment(orderId: string) {
@@ -107,7 +185,84 @@ export async function confirmTbankPayment(entityId: string) {
   return confirmTbankOrderPayment(entityId)
 }
 
-export async function handleTbankWebhook(payload: TbankWebhookPayload) {
+async function markPaymentConfirmed(
+  paymentId: string,
+  externalId?: string | number | null,
+) {
+  await prisma.payment.update({
+    where: { id: paymentId },
+    data: {
+      status: PaymentStatus.CONFIRMED,
+      confirmedAt: new Date(),
+      ...(externalId !== undefined && externalId !== null
+        ? { externalId: String(externalId) }
+        : {}),
+    },
+  })
+}
+
+async function processConfirmedPayment(payment: {
+  id: string
+  batchId: string | null
+  orderId: string | null
+  status: PaymentStatus
+  externalId: string | null
+}, externalPaymentId?: string | number | null) {
+  if (payment.status === PaymentStatus.CONFIRMED) {
+    const entityId = resolveEntityIdFromPayment(payment)
+    return { ok: true, alreadyConfirmed: true, entityId }
+  }
+
+  await markPaymentConfirmed(payment.id, externalPaymentId ?? payment.externalId)
+  const entityId = resolveEntityIdFromPayment(payment)
+  const result = await confirmTbankPayment(entityId)
+  return { ok: true, result, entityId }
+}
+
+export async function handleTbankNotification(payload: Record<string, unknown>) {
+  const password = getTbankPassword()
+  if (!password) {
+    throw createError({
+      statusCode: 500,
+      data: { error: 'T-Bank is not configured', code: 'TBANK_NOT_CONFIGURED' },
+    })
+  }
+
+  if (!verifyTbankNotificationToken(payload, password)) {
+    throw createError({
+      statusCode: 401,
+      data: { error: 'Invalid notification token', code: 'INVALID_TOKEN' },
+    })
+  }
+
+  const status = String(payload.Status ?? '')
+  const success = payload.Success === true || payload.Success === 'true'
+
+  if (status !== 'CONFIRMED' || !success) {
+    return { ok: true, ignored: true, status }
+  }
+
+  const merchantOrderId = String(payload.OrderId ?? '').trim()
+  if (!merchantOrderId) {
+    throw createError({
+      statusCode: 400,
+      data: { error: 'OrderId is required', code: 'INVALID_PAYLOAD' },
+    })
+  }
+
+  const payment = await prisma.payment.findUnique({ where: { merchantOrderId } })
+  if (!payment) {
+    throw createError({
+      statusCode: 404,
+      data: { error: 'Payment not found', code: 'PAYMENT_NOT_FOUND' },
+    })
+  }
+
+  return processConfirmedPayment(payment, payload.PaymentId as string | number | null)
+}
+
+/** Dev/test mock webhook without T-Bank Token signature. */
+export async function handleTbankLegacyWebhook(payload: TbankLegacyWebhookPayload) {
   if (!payload.entityId?.trim()) {
     throw createError({
       statusCode: 400,
@@ -119,11 +274,65 @@ export async function handleTbankWebhook(payload: TbankWebhookPayload) {
     return { ok: true, ignored: true, status: payload.status }
   }
 
-  const result = await confirmTbankPayment(payload.entityId.trim())
-  if (payload.paymentId) {
-    pendingPayments.delete(payload.paymentId)
+  const entityId = payload.entityId.trim()
+  const pending = await prisma.payment.findFirst({
+    where: {
+      status: PaymentStatus.PENDING,
+      OR: [{ batchId: entityId }, { orderId: entityId }],
+    },
+    orderBy: { createdAt: 'desc' },
+  })
+
+  if (pending) {
+    return processConfirmedPayment(pending, payload.paymentId)
   }
+
+  const result = await confirmTbankPayment(entityId)
   return { ok: true, result }
+}
+
+export async function checkTbankPaymentStatus(paymentId: string, userExternalId: string) {
+  const payment = await prisma.payment.findUnique({
+    where: { id: paymentId },
+    include: {
+      batch: { include: { user: true } },
+      order: { include: { user: true } },
+    },
+  })
+
+  if (!payment) {
+    throw createError({
+      statusCode: 404,
+      data: { error: 'Payment not found', code: 'PAYMENT_NOT_FOUND' },
+    })
+  }
+
+  const ownerUser = payment.batch?.user ?? payment.order?.user
+  if (!ownerUser) {
+    throw createError({
+      statusCode: 404,
+      data: { error: 'Payment owner not found', code: 'NOT_FOUND' },
+    })
+  }
+
+  const { assertUserOwnsPayment } = await import('../service')
+  await assertUserOwnsPayment(userExternalId, ownerUser.id)
+
+  if (payment.status === PaymentStatus.CONFIRMED) {
+    return { ok: true, alreadyConfirmed: true }
+  }
+
+  if (!payment.externalId) {
+    return { ok: true, pending: true }
+  }
+
+  const state = await tbankGetState(payment.externalId)
+  const confirmed = state.Status === 'CONFIRMED' && state.Success === true
+  if (!confirmed) {
+    return { ok: true, pending: true, status: state.Status ?? null }
+  }
+
+  return processConfirmedPayment(payment, payment.externalId)
 }
 
 export function verifyTbankWebhookSecret(header: string | undefined): boolean {
@@ -134,6 +343,12 @@ export function verifyTbankWebhookSecret(header: string | undefined): boolean {
   return header === secret
 }
 
-export function _resetPendingPaymentsForTest() {
-  pendingPayments.clear()
+export function isLegacyTbankWebhookPayload(body: unknown): body is TbankLegacyWebhookPayload {
+  if (!body || typeof body !== 'object') {
+    return false
+  }
+  const record = body as Record<string, unknown>
+  return typeof record.entityId === 'string'
+    && typeof record.status === 'string'
+    && !record.Token
 }

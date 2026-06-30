@@ -1,10 +1,8 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import {
-  _resetPendingPaymentsForTest,
-  getQr,
-  handleTbankWebhook,
-  initPayment,
+  handleTbankLegacyWebhook,
+  isLegacyTbankWebhookPayload,
   verifyTbankWebhookSecret,
 } from './providers/tbank-acquiring.ts'
 import type { PaymentContext } from './types.ts'
@@ -38,17 +36,20 @@ function sampleContext(entityId = 'order_test123'): PaymentContext {
   }
 }
 
-describe('tbank-acquiring stub', () => {
-  it('initPayment returns mock QR payload', () => {
-    _resetPendingPaymentsForTest()
-    const result = initPayment(sampleContext())
-    assert.match(result.paymentId, /^tbank_stub_/)
-    assert.match(result.qrPayload, /^STUB-QR:/)
-    assert.equal(getQr(result.paymentId), result.qrPayload)
+describe('tbank-acquiring', () => {
+  it('isLegacyTbankWebhookPayload detects dev mock body', () => {
+    assert.equal(
+      isLegacyTbankWebhookPayload({ entityId: 'order_1', status: 'CONFIRMED' }),
+      true,
+    )
+    assert.equal(
+      isLegacyTbankWebhookPayload({ OrderId: 'kp_1', Status: 'CONFIRMED', Token: 'abc' }),
+      false,
+    )
   })
 
-  it('handleTbankWebhook ignores non-confirmed status', async () => {
-    const result = await handleTbankWebhook({
+  it('handleTbankLegacyWebhook ignores non-confirmed status', async () => {
+    const result = await handleTbankLegacyWebhook({
       entityId: 'order_test123',
       status: 'REJECTED',
     })
@@ -63,5 +64,11 @@ describe('tbank-acquiring stub', () => {
     if (original !== undefined) {
       process.env.TBANK_WEBHOOK_SECRET = original
     }
+  })
+
+  it('sample payment context is well-formed', () => {
+    const ctx = sampleContext()
+    assert.equal(ctx.kind, 'order')
+    assert.equal(ctx.paymentMethod, PaymentMethod.TBANK_ONLINE)
   })
 })

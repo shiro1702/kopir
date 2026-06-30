@@ -26,7 +26,8 @@ export type TypingAction = 'typing' | 'upload_document'
 
 export interface InlineKeyboardButton {
   text: string
-  callbackData: string
+  callbackData?: string
+  url?: string
 }
 
 export interface SentMessage {

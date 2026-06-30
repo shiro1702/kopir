@@ -11,10 +11,14 @@ import {
   resetPaymentMethod,
   selectPaymentMethod,
 } from '../payments/service'
-import { initPayment } from '../payments/providers/tbank-acquiring'
+import {
+  checkTbankPaymentStatus,
+  initPayment,
+} from '../payments/providers/tbank-acquiring'
 import { prisma } from '../prisma'
 import {
   onSitePaymentKeyboard,
+  onlinePaymentKeyboard,
   paymentMethodKeyboard,
   transferClaimedKeyboard,
 } from './keyboards'
@@ -98,6 +102,22 @@ export async function sendPaymentMethodChoiceForOrder(
   )
 }
 
+async function sendOnlinePaymentUi(
+  target: MessengerReplyTarget,
+  adapter: MessengerAdapter,
+  entityId: string,
+  shortId: string,
+  amountKopeks: number,
+  init: Awaited<ReturnType<typeof initPayment>>,
+): Promise<void> {
+  const text = messages.formatOnlinePaymentInstructions(amountKopeks, shortId, init.qrPayload)
+  await adapter.sendText(
+    target,
+    text,
+    { inlineKeyboard: onlinePaymentKeyboard(entityId, init.qrPayload, init.paymentId) },
+  )
+}
+
 export async function handlePaymentMethodChoice(
   target: MessengerReplyTarget,
   user: BotUser,
@@ -123,7 +143,7 @@ export async function handlePaymentMethodChoice(
       ? result.batch.point
       : result.order.point
 
-    const init = initPayment({
+    const init = await initPayment({
       kind: result.kind,
       entityId,
       shortId,
@@ -135,10 +155,7 @@ export async function handlePaymentMethodChoice(
       order: result.kind === 'order' ? result.order : undefined,
     })
 
-    await adapter.sendText(
-      target,
-      `Оплата заказа #${shortId}: ${(amountKopeks / 100).toFixed(2)} ₽\n\nСканируйте QR (stub):\n${init.qrPayload}`,
-    )
+    await sendOnlinePaymentUi(target, adapter, entityId, shortId, amountKopeks, init)
     return 'Ожидаем оплату'
   }
 
@@ -190,6 +207,31 @@ export async function handlePaymentMethodChoice(
   const text = messages.formatOnSiteInstructions(order.amountKopeks, shortId)
   await sendWithInlineKeyboard(target, adapter, text, onSitePaymentKeyboard(order.id))
   return 'Способ выбран'
+}
+
+export async function handlePaymentCheckStatus(
+  target: MessengerReplyTarget,
+  user: BotUser,
+  paymentId: string,
+  adapter: MessengerAdapter,
+): Promise<string> {
+  const payment = await prisma.payment.findUnique({ where: { id: paymentId } })
+  const shortId = (payment?.batchId ?? payment?.orderId ?? paymentId).slice(-6)
+
+  const result = await checkTbankPaymentStatus(paymentId, user.externalId)
+
+  if (result.alreadyConfirmed) {
+    await adapter.sendText(target, messages.formatOnlinePaymentConfirmed(shortId))
+    return 'Оплата подтверждена'
+  }
+
+  if (result.pending) {
+    await adapter.sendText(target, messages.formatOnlinePaymentPending(shortId))
+    return 'Оплата ещё не поступила'
+  }
+
+  await adapter.sendText(target, messages.formatOnlinePaymentConfirmed(shortId))
+  return 'Оплата подтверждена'
 }
 
 export async function handlePaymentClaimed(
@@ -258,9 +300,9 @@ export async function sendPaymentMethodChoiceToUser(
             payload: {
               buttons: keyboard.map((row) =>
                 row.map((btn) => ({
-                  type: 'callback',
+                  type: btn.url ? 'link' : 'callback',
                   text: btn.text,
-                  payload: btn.callbackData,
+                  ...(btn.url ? { url: btn.url } : { payload: btn.callbackData ?? '' }),
                   intent: 'default',
                 })),
               ),

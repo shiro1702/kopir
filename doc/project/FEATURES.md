@@ -97,8 +97,8 @@
 |--------|-----|------|------|------------|
 | ✅ done | PAY-01 | Ручное подтверждение оплаты (пилот) | 1 | перевод на карту |
 | ✅ done | PAY-01b | Выбор способа: перевод СБП / на месте | 1 | [payment-flow.md](../product/payment-flow.md) |
-| ⬜ todo | PAY-02 | Т-Банк: Init + GetQr (СБП) | 2 | |
-| ⬜ todo | PAY-03 | Webhook оплаты → печать | 2 | |
+| ⬜ todo | PAY-02 | Т-Банк: Init + GetQr (СБП) | 3 | sandbox code ✅; prod keys TBD |
+| ⬜ todo | PAY-03 | Webhook оплаты → печать | 3 | Token verify ✅; E2E pending |
 | ⬜ todo | PAY-04 | Облачная касса (ФЗ-54) | 2 | чек в мессенджер / email |
 | ⬜ todo | PAY-05 | Агентская схема в чеке | 3 | ИНН партнёра |
 | ⬜ todo | PAY-06 | Баланс партнёра + «Вывести» | 3 | |

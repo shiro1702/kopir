@@ -3,6 +3,7 @@ import {
   OrderStatus,
   PaymentMethod,
 } from '@prisma/client'
+import { isTbankConfigured } from '../tbank-config'
 import { isActiveBatchOrder } from '../batch'
 import {
   getEnabledPaymentMethods,
@@ -103,13 +104,31 @@ export function assertReadyForStaffPaymentConfirm(
   }
 }
 
+export async function assertUserOwnsPayment(userExternalId: string, userId: string) {
+  const dbUser = await prisma.user.findFirst({
+    where: {
+      OR: [
+        { telegramId: BigInt(userExternalId) },
+        { maxUserId: BigInt(userExternalId) },
+      ],
+    },
+  })
+  if (!dbUser || dbUser.id !== userId) {
+    throw paymentError('Forbidden', 'FORBIDDEN', 403)
+  }
+}
+
 export async function selectPaymentMethod(
   entityId: string,
   method: PaymentMethod,
   userExternalId: string,
 ) {
-  if (!isTerminalPaymentMode()) {
+  const isManual = method === PaymentMethod.SBP_TRANSFER || method === PaymentMethod.ON_SITE
+  if (isManual && !isTerminalPaymentMode()) {
     throw paymentError('Manual payment methods are only available in terminal mode', 'INVALID_PAYMENT_MODE')
+  }
+  if (method === PaymentMethod.TBANK_ONLINE && !isTbankConfigured()) {
+    throw paymentError('Online payment is not configured', 'TBANK_NOT_CONFIGURED', 503)
   }
 
   const resolved = await resolvePaymentEntity(entityId)
