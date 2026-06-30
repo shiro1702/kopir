@@ -251,6 +251,51 @@ async function sendToUser(user: Pick<User, 'telegramId' | 'maxUserId'>, text: st
   }
 }
 
+async function sendToUserWithInlineKeyboard(
+  user: Pick<User, 'telegramId' | 'maxUserId'>,
+  text: string,
+  inlineKeyboard: import('./types').InlineKeyboardButton[][],
+): Promise<void> {
+  const errors: Error[] = []
+
+  if (user.telegramId) {
+    try {
+      const { sendTelegramStatusMessage } = await import('../telegram/client')
+      await sendTelegramStatusMessage(Number(user.telegramId), text, { inlineKeyboard })
+    } catch (error) {
+      errors.push(error instanceof Error ? error : new Error(String(error)))
+    }
+  }
+
+  if (user.maxUserId) {
+    try {
+      const { getMaxClient } = await import('../max/client')
+      const client = getMaxClient()
+      const attachments = [{
+        type: 'inline_keyboard' as const,
+        payload: {
+          buttons: inlineKeyboard.map((row) =>
+            row.map((btn) => ({
+              type: 'callback' as const,
+              text: btn.text,
+              payload: btn.callbackData ?? '',
+              intent: 'default' as const,
+            })),
+          ),
+        },
+      }]
+      await client.sendMessage({ userId: Number(user.maxUserId) }, text, attachments)
+    } catch (error) {
+      errors.push(error instanceof Error ? error : new Error(String(error)))
+    }
+  }
+
+  if (errors.length > 0) {
+    console.error('[bot] notification with keyboard failed:', errors)
+    throw errors[0]
+  }
+}
+
 export async function handleStart(
   platform: MessengerPlatform,
   target: MessengerReplyTarget,
@@ -800,12 +845,14 @@ export async function notifyBatchPrintComplete(
 export async function notifyBatchPrintPartialFailure(
   user: Pick<User, 'telegramId' | 'maxUserId'>,
   batchId: string,
-  failedFileNames: string[],
+  failedOrders: Array<{ id: string, fileName: string }>,
   totalFiles: number,
 ): Promise<void> {
-  await sendToUser(
+  const { printRetryKeyboard } = await import('./keyboards')
+  await sendToUserWithInlineKeyboard(
     user,
-    messages.formatBatchPrintPartialFailure(batchId.slice(-6), failedFileNames, totalFiles),
+    messages.formatBatchPrintPartialFailure(batchId.slice(-6), failedOrders, totalFiles),
+    printRetryKeyboard(failedOrders),
   )
 }
 
@@ -943,5 +990,53 @@ export async function notifyPrintFailed(
   user: Pick<User, 'telegramId' | 'maxUserId'>,
   order: Pick<Order, 'id' | 'fileName'>,
 ): Promise<void> {
-  await sendToUser(user, messages.formatPrintFailed(order.id.slice(-6), order.fileName))
+  const { printRetryKeyboard } = await import('./keyboards')
+  await sendToUserWithInlineKeyboard(
+    user,
+    messages.formatPrintFailed(order.id.slice(-6), order.fileName),
+    printRetryKeyboard([{ id: order.id, fileName: order.fileName }]),
+  )
+}
+
+export async function notifyPrintAutoRetry(
+  user: Pick<User, 'telegramId' | 'maxUserId'>,
+  fileName: string,
+  batchId?: string | null,
+): Promise<void> {
+  const text = batchId
+    ? messages.formatBatchPrintAutoRetry(batchId.slice(-6), fileName)
+    : messages.formatPrintAutoRetry(fileName)
+  await sendToUser(user, text)
+}
+
+export async function notifyPrintRetryStarted(
+  user: Pick<User, 'telegramId' | 'maxUserId'>,
+  fileName: string,
+  batchId?: string | null,
+): Promise<void> {
+  const text = batchId
+    ? messages.formatBatchPrintRetryStarted(batchId.slice(-6), fileName)
+    : messages.formatPrintRetryStarted(fileName)
+  await sendToUser(user, text)
+}
+
+export async function handleClientOrderRetry(
+  user: BotUser,
+  orderId: string,
+): Promise<string> {
+  const { order } = await loadOrderForUser(orderId, user)
+
+  if (order.status !== OrderStatus.FAILED) {
+    if (order.status === OrderStatus.PAID || order.status === OrderStatus.PRINTING) {
+      return 'Печать уже в очереди'
+    }
+    return 'Повтор недоступен для этого заказа'
+  }
+
+  const { retryOrderPrint } = await import('../order-staff-actions')
+  const result = await retryOrderPrint(orderId)
+  if (result.alreadyQueued) {
+    return 'Печать уже в очереди'
+  }
+  return '🔄 Повторная печать запущена'
 }

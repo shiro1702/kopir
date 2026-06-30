@@ -5,6 +5,7 @@ export const BTN_CANCEL_BATCH = '❌ Отменить пачку'
 export const BTN_REMOVE_FILE = '🗑 Удалить этот файл'
 export const BTN_REMOVE_CONFIRM = 'Да, удалить'
 export const BTN_REMOVE_CANCEL = 'Нет'
+export const BTN_RETRY_PRINT = '🔄 Попробовать снова'
 
 export const MSG_FILE_RECEIVING = '📥 Принимаю'
 export const MSG_BATCH_FINALIZING = '⏳ Собираем пачку…'
@@ -190,15 +191,18 @@ export function formatBatchPrintComplete(batchShortId: string, fileCount: number
 
 export function formatBatchPrintPartialFailure(
   batchShortId: string,
-  failedFileNames: string[],
+  failedFiles: Array<{ fileName: string }>,
   totalFiles: number,
 ): string {
-  const failedList = failedFileNames.map((n) => `• ${n}`).join('\n')
+  const failedList = failedFiles.map((f) => `• ${f.fileName}`).join('\n')
+  const retryHint = failedFiles.length === 1
+    ? 'Нажмите «Попробовать снова» — печать запустится автоматически.'
+    : 'Нажмите «Попробовать снова» под нужным файлом.'
   return (
     `⚠️ Пачка #${batchShortId}: печать завершена с ошибками.\n\n`
     + `Не удалось напечатать:\n${failedList}\n\n`
-    + `Успешно: ${totalFiles - failedFileNames.length} из ${totalFiles}.\n`
-    + 'Обратитесь к сотруднику копицентра.'
+    + `Успешно: ${totalFiles - failedFiles.length} из ${totalFiles}.\n`
+    + `${retryHint} Если не поможет — обратитесь к сотруднику копицентра.`
   )
 }
 
@@ -265,7 +269,36 @@ export function formatPrintFailed(shortId: string, fileName: string): string {
   return (
     `⚠️ Не удалось напечатать заказ #${shortId}.\n`
     + `📄 ${fileName}\n\n`
-    + 'Обратитесь к сотруднику копицентра — он поможет распечатать документ.'
+    + 'Нажмите «Попробовать снова» — печать запустится автоматически. '
+    + 'Если не поможет — обратитесь к сотруднику копицентра.'
+  )
+}
+
+export function formatPrintAutoRetry(fileName: string): string {
+  return (
+    `🔄 Не удалось напечатать «${fileName}».\n`
+    + 'Пробуем ещё раз автоматически…'
+  )
+}
+
+export function formatPrintRetryStarted(fileName: string): string {
+  return (
+    `🔄 Повторная печать «${fileName}» запущена.\n`
+    + 'Заберите документ у принтера, когда будет готово.'
+  )
+}
+
+export function formatBatchPrintAutoRetry(batchShortId: string, fileName: string): string {
+  return (
+    `🔄 Пачка #${batchShortId}: не удалось напечатать «${fileName}».\n`
+    + 'Пробуем ещё раз автоматически…'
+  )
+}
+
+export function formatBatchPrintRetryStarted(batchShortId: string, fileName: string): string {
+  return (
+    `🔄 Пачка #${batchShortId}: повторная печать «${fileName}» запущена.\n`
+    + 'Заберите документ у принтера, когда будет готово.'
   )
 }
 
@@ -316,7 +349,23 @@ export function formatStaffPrintFailed(
     + `📄 ${order.fileName}\n`
     + `Точка: ${order.point.name}`
     + (reason ? `\n\nПричина: ${reason}` : '')
-    + '\n\nОплата уже принята — распечатайте файл вручную и нажмите «Печать готова».'
+    + '\n\nАвтоповтор не помог. Распечатайте вручную, нажмите «Попробовать снова» или «Печать готова».'
+  )
+}
+
+export function formatStaffPrintAutoRetry(
+  order: StaffOrderInfo & { batchId?: string | null },
+  errorMessage?: string | null,
+): string {
+  const shortId = order.id.slice(-6)
+  const batchLine = order.batchId ? `\nПачка #${order.batchId.slice(-6)}` : ''
+  const reason = errorMessage?.trim()
+  return (
+    `⚠️ Ошибка автопечати #${shortId}${batchLine}\n`
+    + `📄 ${order.fileName}\n`
+    + `Точка: ${order.point.name}`
+    + (reason ? `\n\nПричина: ${reason}` : '')
+    + '\n\nПовторяем печать автоматически…'
   )
 }
 

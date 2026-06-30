@@ -7,6 +7,7 @@ import {
   parsePayCheckStatusPayload,
   parsePayClaimedPayload,
   parsePayMethodPayload,
+  parseOrderRetryPayload,
 } from './keyboards'
 import type {
   BotUser,
@@ -66,6 +67,12 @@ export async function routeClientCallback(
   if (checkPaymentId) {
     const { handlePaymentCheckStatus } = await import('./payment-handlers')
     return handlePaymentCheckStatus(target, user, checkPaymentId, adapter)
+  }
+
+  const retryOrderId = parseOrderRetryPayload(data)
+  if (retryOrderId) {
+    const { handleClientOrderRetry } = await import('./core')
+    return handleClientOrderRetry(user, retryOrderId)
   }
 
   throw new Error('Неизвестное действие')

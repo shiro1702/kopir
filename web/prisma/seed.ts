@@ -9,14 +9,22 @@ async function main() {
       name: 'Dev Printer',
       isActive: true,
       pricePerPageKopeks: 1000,
-      paymentMethodsEnabled: [PaymentMethod.SBP_TRANSFER, PaymentMethod.ON_SITE],
+      paymentMethodsEnabled: [
+        PaymentMethod.SBP_TRANSFER,
+        PaymentMethod.ON_SITE,
+        PaymentMethod.TBANK_ONLINE,
+      ],
     },
     create: {
       slug: 'point_dev_1',
       name: 'Dev Printer',
       isActive: true,
       pricePerPageKopeks: 1000,
-      paymentMethodsEnabled: [PaymentMethod.SBP_TRANSFER, PaymentMethod.ON_SITE],
+      paymentMethodsEnabled: [
+        PaymentMethod.SBP_TRANSFER,
+        PaymentMethod.ON_SITE,
+        PaymentMethod.TBANK_ONLINE,
+      ],
     },
   })
 

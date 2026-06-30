@@ -94,7 +94,7 @@ export async function resolvePointIdFromStaffPayload(data: string): Promise<stri
     return batch?.pointId ?? null
   }
 
-  const orderPrefixes = ['staff_pay:', 'staff_print:', 'staff_manual_print:']
+  const orderPrefixes = ['staff_pay:', 'staff_print:', 'staff_retry_print:', 'staff_manual_print:']
   for (const prefix of orderPrefixes) {
     if (data.startsWith(prefix)) {
       const orderId = data.slice(prefix.length)

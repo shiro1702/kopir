@@ -4,6 +4,7 @@ import {
   BTN_REMOVE_CANCEL,
   BTN_REMOVE_CONFIRM,
   BTN_REMOVE_FILE,
+  BTN_RETRY_PRINT,
 } from './messages'
 import type { InlineKeyboardButton } from './types'
 
@@ -205,4 +206,37 @@ export function parsePayChangeMethodPayload(payload: string): string | null {
 export function parsePayCheckStatusPayload(payload: string): string | null {
   if (!payload.startsWith('pay_check_status:')) return null
   return payload.slice('pay_check_status:'.length) || null
+}
+
+export function orderRetryPayload(orderId: string): string {
+  return `order_retry:${orderId}`
+}
+
+export function parseOrderRetryPayload(payload: string): string | null {
+  if (!payload.startsWith('order_retry:')) return null
+  return payload.slice('order_retry:'.length) || null
+}
+
+export function isPrintRetryClientCallbackPayload(payload: string): boolean {
+  return payload.startsWith('order_retry:')
+}
+
+export function printRetryKeyboard(
+  failedOrders: Array<{ id: string, fileName: string }>,
+): InlineKeyboardButton[][] {
+  if (failedOrders.length === 1) {
+    return [[{ text: BTN_RETRY_PRINT, callbackData: orderRetryPayload(failedOrders[0]!.id) }]]
+  }
+
+  return failedOrders.map((order) => [{
+    text: `${BTN_RETRY_PRINT} ${truncateFileName(order.fileName)}`,
+    callbackData: orderRetryPayload(order.id),
+  }])
+}
+
+function truncateFileName(fileName: string, maxLen = 24): string {
+  if (fileName.length <= maxLen) {
+    return fileName
+  }
+  return `${fileName.slice(0, maxLen - 1)}…`
 }

@@ -1,9 +1,9 @@
 import { OrderStatus } from '@prisma/client'
 import { assertAgentAuth } from '../../../../utils/agent-auth'
 import { checkBatchCompletion } from '../../../../utils/batch'
-import { notifyPrintComplete, notifyPrintFailed } from '../../../../utils/bot/core'
-import { notifyStaffPrintFailed } from '../../../../utils/staff-notify'
+import { notifyPrintComplete } from '../../../../utils/bot/core'
 import { deleteOrderFile } from '../../../../utils/blob'
+import { handleOrderPrintFailure } from '../../../../utils/order-staff-actions'
 import { prisma } from '../../../../utils/prisma'
 import { touchPointAgentSeen } from '../../../../utils/points'
 
@@ -55,51 +55,35 @@ export default defineEventHandler(async (event) => {
 
   await touchPointAgentSeen(order.pointId)
 
-  const targetStatus =
-    body.status === 'PRINTED' ? OrderStatus.PRINTED : OrderStatus.FAILED
+  if (body.status === 'PRINTED') {
+    const updated = await prisma.order.update({
+      where: { id },
+      data: {
+        status: OrderStatus.PRINTED,
+        printedAt: new Date(),
+        errorMessage: null,
+      },
+    })
 
-  const updated = await prisma.order.update({
-    where: { id },
-    data: {
-      status: targetStatus,
-      printedAt: new Date(),
-      errorMessage: body.status === 'FAILED' ? body.errorMessage ?? 'Print failed' : null,
-    },
-  })
-
-  if (targetStatus === OrderStatus.PRINTED) {
     await deleteOrderFile(order.filePath)
-  }
 
-  if (order.batchId) {
-    await checkBatchCompletion(order.batchId)
-    if (targetStatus === OrderStatus.FAILED) {
+    if (order.batchId) {
+      await checkBatchCompletion(order.batchId)
+    } else {
       try {
-        await notifyStaffPrintFailed({
-          ...order,
-          errorMessage: updated.errorMessage,
-        })
+        await notifyPrintComplete(order.user, order.id)
       } catch (error) {
-        console.error('[complete] staff print failure notify error:', order.id, error)
+        console.error('[complete] print notify error:', order.id, error)
       }
     }
-  } else if (targetStatus === OrderStatus.PRINTED) {
-    try {
-      await notifyPrintComplete(order.user, order.id)
-    } catch (error) {
-      console.error('[complete] print notify error:', order.id, error)
-    }
-  } else {
-    try {
-      await notifyPrintFailed(order.user, order)
-      await notifyStaffPrintFailed({
-        ...order,
-        errorMessage: updated.errorMessage,
-      })
-    } catch (error) {
-      console.error('[complete] print failure notify error:', order.id, error)
-    }
+
+    return { id: updated.id, status: updated.status }
   }
 
-  return { id: updated.id, status: updated.status }
+  const result = await handleOrderPrintFailure(
+    order,
+    body.errorMessage ?? 'Print failed',
+  )
+
+  return { id: result.id, status: result.status }
 })

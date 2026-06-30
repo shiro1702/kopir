@@ -36,10 +36,28 @@ export function getTbankWebhookSecret(): string | null {
 
 export function getTbankTerminalKey(): string | null {
   const key = String(process.env.TBANK_TERMINAL_KEY ?? '').trim()
-  return key || null
+  if (key) {
+    return key
+  }
+  try {
+    const config = useRuntimeConfig()
+    const fromConfig = String(config.tbankTerminalKey ?? '').trim()
+    return fromConfig || null
+  } catch {
+    return null
+  }
 }
 
 export function getTbankPassword(): string | null {
   const password = String(process.env.TBANK_PASSWORD ?? '').trim()
-  return password || null
+  if (password) {
+    return password
+  }
+  try {
+    const config = useRuntimeConfig()
+    const fromConfig = String(config.tbankPassword ?? '').trim()
+    return fromConfig || null
+  } catch {
+    return null
+  }
 }

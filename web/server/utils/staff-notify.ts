@@ -6,6 +6,7 @@ import {
   formatStaffBatchTransferAwaitingConfirm,
   formatStaffOnSiteAwaitingPayment,
   formatStaffOrderPaymentConfirmed,
+  formatStaffPrintAutoRetry,
   formatStaffPrintFailed,
   formatStaffTransferAwaitingConfirm,
 } from './bot/messages'
@@ -95,19 +96,30 @@ function maxBatchKeyboard(batchId: string): MaxInlineKeyboardAttachment {
 }
 
 function telegramStaffManualPrintKeyboard(orderId: string) {
-  return new InlineKeyboard().text('✅ Печать готова', `staff_manual_print:${orderId}`)
+  return new InlineKeyboard()
+    .text('🔄 Попробовать снова', `staff_retry_print:${orderId}`)
+    .row()
+    .text('✅ Печать готова', `staff_manual_print:${orderId}`)
 }
 
 function maxStaffManualPrintKeyboard(orderId: string): MaxInlineKeyboardAttachment {
   return {
     type: 'inline_keyboard',
     payload: {
-      buttons: [[{
-        type: 'callback',
-        text: '✅ Печать готова',
-        payload: `staff_manual_print:${orderId}`,
-        intent: 'default',
-      }]],
+      buttons: [
+        [{
+          type: 'callback',
+          text: '🔄 Попробовать снова',
+          payload: `staff_retry_print:${orderId}`,
+          intent: 'default',
+        }],
+        [{
+          type: 'callback',
+          text: '✅ Печать готова',
+          payload: `staff_manual_print:${orderId}`,
+          intent: 'default',
+        }],
+      ],
     },
   }
 }
@@ -357,4 +369,15 @@ export async function notifyStaffPrintFailed(
     console.error('[staff] print failure notify failed:', errors)
     throw errors[0]
   }
+}
+
+export async function notifyStaffPrintAutoRetry(
+  order: OrderForStaff,
+): Promise<void> {
+  if (!(await hasStaffNotifyTargets(order.pointId))) {
+    return
+  }
+
+  const text = formatStaffPrintAutoRetry(order, order.errorMessage)
+  await notifyStaffAllForPoint(order.pointId, text)
 }

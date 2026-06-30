@@ -540,7 +540,7 @@ export async function checkBatchCompletion(batchId: string): Promise<void> {
       await notifyBatchPrintPartialFailure(
         batch.user,
         batchId,
-        failedOrders.map((o) => o.fileName),
+        failedOrders.map((o) => ({ id: o.id, fileName: o.fileName })),
         batch.orders.length,
       )
     }

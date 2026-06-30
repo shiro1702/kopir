@@ -357,7 +357,7 @@ TBANK_WEBHOOK_SECRET=""        # опционально: legacy dev-mock webhook
 NUXT_PUBLIC_SITE_URL=""        # fallback для NotificationURL
 ```
 
-**Включение в боте:** `/admin/points` → способы оплаты → «Онлайн (Т-Банк)». Без ключей чекбокс disabled.
+**Включение в боте:** `/admin/points` → способы оплаты → «Онлайн (Т-Банк)». Без ключей чекбокс disabled. После `db:seed` у `point_dev_1` метод включён по умолчанию.
 
 **Webhook (prod):** Т-Банк шлёт POST с полем `Token` (SHA-256). Ответ сервера: `200` + тело `OK`.
 

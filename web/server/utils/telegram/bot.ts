@@ -12,6 +12,7 @@ import { BTN_CANCEL_BATCH, BTN_FINALIZE_BATCH } from '../bot/messages'
 import {
   isBatchClientCallbackPayload,
   isPaymentClientCallbackPayload,
+  isPrintRetryClientCallbackPayload,
 } from '../bot/keyboards'
 import { routeClientCallback } from '../bot/client-callbacks'
 import { assertStaffForPayload } from '../staff-auth'
@@ -242,7 +243,9 @@ function createBot(): Bot {
       : undefined
 
     try {
-      const isStaffCallback = !isBatchClientCallbackPayload(data) && !isPaymentClientCallbackPayload(data)
+      const isStaffCallback = !isBatchClientCallbackPayload(data)
+        && !isPaymentClientCallbackPayload(data)
+        && !isPrintRetryClientCallbackPayload(data)
       const toast = isStaffCallback
         ? await handleStaffCallback(data, chatId)
         : await handleClientCallback(data, target, user, adapter, callbackCtx, message)

@@ -1,10 +1,12 @@
-import { OrderStatus } from '@prisma/client'
+import { OrderBatchStatus, OrderStatus } from '@prisma/client'
 import { checkBatchCompletion } from './batch'
 import { deleteOrderFile } from './blob'
 import { assertReadyForStaffPaymentConfirm } from './payments/service'
 import { isTerminalPaymentMode } from './payment-mode'
 import { prisma } from './prisma'
 import { isPointAgentOnline } from './points'
+
+const MAX_AUTO_PRINT_RETRIES = Math.max(0, Number(process.env.PRINT_MAX_AUTO_RETRIES ?? '1'))
 
 function invalidStatus(message: string) {
   return createError({
@@ -172,6 +174,156 @@ export async function startOrderPrint(orderId: string) {
     id: updated.id,
     status: updated.status,
     paidAt: updated.paidAt?.toISOString() ?? null,
+  }
+}
+
+export async function retryOrderPrint(orderId: string) {
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    include: { user: true },
+  })
+  if (!order) {
+    throw createError({
+      statusCode: 404,
+      data: { error: 'Order not found', code: 'ORDER_NOT_FOUND' },
+    })
+  }
+
+  if (order.status === OrderStatus.PAID || order.status === OrderStatus.PRINTING) {
+    return {
+      id: order.id,
+      status: order.status,
+      alreadyQueued: true,
+    }
+  }
+
+  if (order.status !== OrderStatus.FAILED) {
+    throw invalidStatus('Order is not failed')
+  }
+
+  if (order.batchId) {
+    await prisma.orderBatch.updateMany({
+      where: {
+        id: order.batchId,
+        status: OrderBatchStatus.PARTIALLY_FAILED,
+      },
+      data: { status: OrderBatchStatus.PAID },
+    })
+  }
+
+  const updated = await prisma.order.update({
+    where: { id: orderId },
+    data: {
+      status: OrderStatus.PAID,
+      errorMessage: null,
+      printedAt: null,
+    },
+  })
+
+  try {
+    const { notifyPrintRetryStarted } = await import('./bot/core')
+    await notifyPrintRetryStarted(order.user, order.fileName, order.batchId)
+  } catch (error) {
+    console.error('[staff] print retry notify failed:', orderId, error)
+  }
+
+  return {
+    id: updated.id,
+    status: updated.status,
+    alreadyQueued: false,
+  }
+}
+
+type OrderForPrintFailure = {
+  id: string
+  fileName: string
+  filePath: string
+  batchId: string | null
+  printAttemptCount: number
+  pointId: string
+  user: {
+    telegramId?: bigint | null
+    maxUserId?: bigint | null
+  }
+  point: { name: string }
+}
+
+export async function handleOrderPrintFailure(
+  order: OrderForPrintFailure,
+  errorMessage: string,
+): Promise<{ id: string, status: OrderStatus, autoRetried: boolean }> {
+  const attemptCount = order.printAttemptCount + 1
+  const shouldAutoRetry = attemptCount <= MAX_AUTO_PRINT_RETRIES
+
+  if (shouldAutoRetry) {
+    const updated = await prisma.order.update({
+      where: { id: order.id },
+      data: {
+        status: OrderStatus.PAID,
+        printAttemptCount: attemptCount,
+        errorMessage,
+        printedAt: null,
+      },
+    })
+
+    try {
+      const { notifyStaffPrintAutoRetry } = await import('./staff-notify')
+      await notifyStaffPrintAutoRetry({
+        ...order,
+        errorMessage,
+      })
+      const { notifyPrintAutoRetry } = await import('./bot/core')
+      await notifyPrintAutoRetry(order.user, order.fileName, order.batchId)
+    } catch (error) {
+      console.error('[print-failure] auto-retry notify error:', order.id, error)
+    }
+
+    return {
+      id: updated.id,
+      status: updated.status,
+      autoRetried: true,
+    }
+  }
+
+  const updated = await prisma.order.update({
+    where: { id: order.id },
+    data: {
+      status: OrderStatus.FAILED,
+      printAttemptCount: attemptCount,
+      printedAt: new Date(),
+      errorMessage,
+    },
+  })
+
+  if (order.batchId) {
+    await checkBatchCompletion(order.batchId)
+    try {
+      const { notifyStaffPrintFailed } = await import('./staff-notify')
+      await notifyStaffPrintFailed({
+        ...order,
+        errorMessage: updated.errorMessage,
+      })
+    } catch (error) {
+      console.error('[print-failure] staff notify error:', order.id, error)
+    }
+  } else {
+    try {
+      const { notifyPrintFailed } = await import('./bot/core')
+      const { notifyStaffPrintFailed } = await import('./staff-notify')
+      await notifyPrintFailed(order.user, { ...order, errorMessage: updated.errorMessage })
+      await notifyStaffPrintFailed({
+        ...order,
+        errorMessage: updated.errorMessage,
+      })
+    } catch (error) {
+      console.error('[print-failure] notify error:', order.id, error)
+    }
+  }
+
+  return {
+    id: updated.id,
+    status: updated.status,
+    autoRetried: false,
   }
 }
 

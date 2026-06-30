@@ -4,6 +4,7 @@ import { detectDocumentKind, mimeTypeForKind } from '../file-types'
 import {
   isBatchClientCallbackPayload,
   isPaymentClientCallbackPayload,
+  isPrintRetryClientCallbackPayload,
 } from '../bot/keyboards'
 import { routeClientCallback } from '../bot/client-callbacks'
 import type {
@@ -203,6 +204,7 @@ export async function handleMaxUpdate(update: MaxUpdate): Promise<void> {
 
       const isStaffCallback = !isBatchClientCallbackPayload(callback.payload)
         && !isPaymentClientCallbackPayload(callback.payload)
+        && !isPrintRetryClientCallbackPayload(callback.payload)
         && !callback.payload.startsWith('batch_')
 
       if (callback.payload === 'batch_finalize' || callback.payload === 'batch_cancel') {
@@ -241,7 +243,11 @@ export async function handleMaxUpdate(update: MaxUpdate): Promise<void> {
         return
       }
 
-      if (!isStaffCallback && (isBatchClientCallbackPayload(callback.payload) || isPaymentClientCallbackPayload(callback.payload))) {
+      if (!isStaffCallback && (
+        isBatchClientCallbackPayload(callback.payload)
+        || isPaymentClientCallbackPayload(callback.payload)
+        || isPrintRetryClientCallbackPayload(callback.payload)
+      )) {
         const chatId = update.message?.recipient?.chat_id ?? update.chat_id
         if (!chatId) {
           await client.answerCallback(callback.callback_id, 'Ошибка чата')

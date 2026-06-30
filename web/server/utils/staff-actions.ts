@@ -1,5 +1,5 @@
 import { confirmBatchPayment } from './batch'
-import { confirmManualPrint, confirmOrderPayment, startOrderPrint } from './order-staff-actions'
+import { confirmManualPrint, confirmOrderPayment, retryOrderPrint, startOrderPrint } from './order-staff-actions'
 
 function isAlreadyConfirmed(result: { alreadyConfirmed?: boolean }): boolean {
   return result.alreadyConfirmed === true
@@ -32,6 +32,15 @@ export async function handleStaffCallbackPayload(data: string): Promise<string> 
     const orderId = data.slice('staff_print:'.length)
     await startOrderPrint(orderId)
     return 'Печать запущена'
+  }
+
+  if (data.startsWith('staff_retry_print:')) {
+    const orderId = data.slice('staff_retry_print:'.length)
+    const result = await retryOrderPrint(orderId)
+    if (result.alreadyQueued) {
+      return 'Печать уже в очереди'
+    }
+    return '🔄 Повторная печать запущена'
   }
 
   if (data.startsWith('staff_manual_print:')) {

@@ -152,6 +152,7 @@ model Order {
   clientMessageChatId String?
   paidAt             DateTime?
   printedAt          DateTime?
+  printAttemptCount  Int         @default(0)
   errorMessage       String?
   createdAt          DateTime    @default(now())
   updatedAt          DateTime    @updatedAt
