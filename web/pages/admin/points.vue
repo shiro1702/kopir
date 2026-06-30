@@ -6,8 +6,15 @@ const PAYMENT_METHODS = [
 ]
 
 const adminSecret = ref('')
+if (import.meta.client) {
+  const storedSecret = localStorage.getItem('kopir_admin_secret')
+  if (storedSecret) {
+    adminSecret.value = storedSecret
+  }
+}
+
 const points = ref([])
-const loading = ref(false)
+const loading = ref(!!adminSecret.value)
 const error = ref('')
 const success = ref('')
 const showForm = ref(false)
@@ -33,15 +40,18 @@ useHead({
 
 let refreshTimer = null
 
+watch(adminSecret, (secret) => {
+  if (secret) fetchPoints()
+}, { immediate: true })
+
 onMounted(() => {
-  const storedSecret = localStorage.getItem('kopir_admin_secret')
-  if (storedSecret) {
-    adminSecret.value = storedSecret
-    fetchPoints()
-  }
   refreshTimer = setInterval(() => {
     if (adminSecret.value) fetchPoints()
   }, 15000)
+})
+
+onActivated(() => {
+  if (adminSecret.value) fetchPoints()
 })
 
 onUnmounted(() => {
@@ -664,12 +674,20 @@ function telegramBotLabel() {
                 </div>
               </td>
             </tr>
-            <tr v-if="!points.length && !loading">
+            <tr v-if="!loading && !points.length">
               <td
                 colspan="6"
                 class="px-4 py-8 text-center text-gray-500"
               >
                 Нет точек. Создайте первую.
+              </td>
+            </tr>
+            <tr v-if="loading">
+              <td
+                colspan="6"
+                class="px-4 py-8 text-center text-gray-500"
+              >
+                Загрузка...
               </td>
             </tr>
           </tbody>
