@@ -21,7 +21,12 @@ function buildInlineMarkup(buttons?: InlineKeyboardButton[][]) {
   }
   return {
     inline_keyboard: buttons.map((row) =>
-      row.map((btn) => ({ text: btn.text, callback_data: btn.callbackData })),
+      row.map((btn) => {
+        if (btn.url) {
+          return { text: btn.text, url: btn.url }
+        }
+        return { text: btn.text, callback_data: btn.callbackData ?? 'noop' }
+      }),
     ),
   }
 }

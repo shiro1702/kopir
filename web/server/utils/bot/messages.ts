@@ -396,6 +396,36 @@ export function formatAwaitingStaffConfirm(shortId: string): string {
   )
 }
 
+export function formatOnlinePaymentInstructions(
+  amountKopeks: number,
+  shortId: string,
+  qrUrl: string,
+): string {
+  const amountRub = (amountKopeks / 100).toFixed(2)
+  return (
+    `💳 К оплате: ${amountRub} ₽\n`
+    + `Заказ #${shortId}\n\n`
+    + 'Нажмите «Оплатить СБП» и подтвердите платёж в приложении банка.\n\n'
+    + `Ссылка: ${qrUrl}\n\n`
+    + '⏳ После оплаты печать запустится автоматически.\n'
+    + 'Если статус не обновился — нажмите «Проверить оплату».'
+  )
+}
+
+export function formatOnlinePaymentPending(shortId: string): string {
+  return (
+    `⏳ Оплата по заказу #${shortId} ещё не поступила.\n`
+    + 'Проверьте приложение банка или попробуйте ещё раз через минуту.'
+  )
+}
+
+export function formatOnlinePaymentConfirmed(shortId: string): string {
+  return (
+    `✅ Оплата по заказу #${shortId} получена!\n`
+    + 'Запускаем печать.'
+  )
+}
+
 function staffUserLabel(user: { username?: string | null, firstName?: string | null }): string {
   return user.username ? `@${user.username}` : user.firstName ?? 'клиент'
 }

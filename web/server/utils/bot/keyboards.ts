@@ -113,7 +113,13 @@ export const BTN_PAY_SBP = '📱 Перевод по номеру'
 export const BTN_PAY_ON_SITE = '💳 Оплата на месте'
 export const BTN_PAY_ONLINE = '💳 Оплатить онлайн'
 export const BTN_PAY_CLAIMED = '✅ Я оплатил'
+export const BTN_PAY_ONLINE_SBP = '💳 Оплатить СБП'
+export const BTN_PAY_CHECK_STATUS = '🔄 Проверить оплату'
 export const BTN_PAY_CHANGE_METHOD = '← Другой способ'
+
+export function payCheckStatusPayload(paymentId: string): string {
+  return `pay_check_status:${paymentId}`
+}
 
 export function payMethodPayload(method: 'sbp_transfer' | 'on_site' | 'tbank_online', entityId: string): string {
   return `pay_method:${method}:${entityId}`
@@ -155,10 +161,25 @@ export function onSitePaymentKeyboard(entityId: string): InlineKeyboardButton[][
   return [[{ text: BTN_PAY_CHANGE_METHOD, callbackData: payChangeMethodPayload(entityId) }]]
 }
 
+export function onlinePaymentKeyboard(
+  entityId: string,
+  qrUrl: string,
+  paymentId: string,
+): InlineKeyboardButton[][] {
+  return [
+    [{ text: BTN_PAY_ONLINE_SBP, url: qrUrl }],
+    [
+      { text: BTN_PAY_CHECK_STATUS, callbackData: payCheckStatusPayload(paymentId) },
+      { text: BTN_PAY_CHANGE_METHOD, callbackData: payChangeMethodPayload(entityId) },
+    ],
+  ]
+}
+
 export function isPaymentClientCallbackPayload(payload: string): boolean {
   return payload.startsWith('pay_method:')
     || payload.startsWith('pay_claimed:')
     || payload.startsWith('pay_change_method:')
+    || payload.startsWith('pay_check_status:')
 }
 
 export function parsePayMethodPayload(payload: string): { method: 'sbp_transfer' | 'on_site' | 'tbank_online', entityId: string } | null {
@@ -179,4 +200,9 @@ export function parsePayClaimedPayload(payload: string): string | null {
 export function parsePayChangeMethodPayload(payload: string): string | null {
   if (!payload.startsWith('pay_change_method:')) return null
   return payload.slice('pay_change_method:'.length) || null
+}
+
+export function parsePayCheckStatusPayload(payload: string): string | null {
+  if (!payload.startsWith('pay_check_status:')) return null
+  return payload.slice('pay_check_status:'.length) || null
 }

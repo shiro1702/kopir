@@ -4,6 +4,7 @@ import {
   parseBatchRemoveConfirmOrderId,
   parseBatchRemoveOrderId,
   parsePayChangeMethodPayload,
+  parsePayCheckStatusPayload,
   parsePayClaimedPayload,
   parsePayMethodPayload,
 } from './keyboards'
@@ -59,6 +60,12 @@ export async function routeClientCallback(
   if (changeId) {
     const { handlePaymentChangeMethod } = await import('./payment-handlers')
     return handlePaymentChangeMethod(target, user, changeId, adapter)
+  }
+
+  const checkPaymentId = parsePayCheckStatusPayload(data)
+  if (checkPaymentId) {
+    const { handlePaymentCheckStatus } = await import('./payment-handlers')
+    return handlePaymentCheckStatus(target, user, checkPaymentId, adapter)
   }
 
   throw new Error('Неизвестное действие')

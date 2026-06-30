@@ -346,13 +346,38 @@ BATCH_BUILD_TIMEOUT_MIN=15     # автоотмена незавершённой
 
 После обновления схемы: `cd web && npm run db:deploy`
 
-### Sprint 2 — staff bind, точки, Т-Банк stub
+### Sprint 3 — Т-Банк онлайн СБП
 
-**Staff-каналы (задача 11):** основной путь — `/bind <token>` или deep link `?start=bind_xxx`. Токен генерируется в `/admin/points`. Env `STAFF_TELEGRAM_CHAT_ID` / `STAFF_MAX_USER_ID` — **legacy fallback**, если для точки нет записей в `StaffChannel`.
+```env
+TBANK_TERMINAL_KEY=""          # DEMO: *DEMO суффикс
+TBANK_PASSWORD=""              # пароль терминала из Т-Бизнес
+TBANK_API_URL="https://securepay.tinkoff.ru/v2"
+TBANK_NOTIFICATION_URL=""      # https://<домен>/api/payments/webhook/tbank
+TBANK_WEBHOOK_SECRET=""        # опционально: legacy dev-mock webhook
+NUXT_PUBLIC_SITE_URL=""        # fallback для NotificationURL
+```
 
-**Активация агента (задача 13):** в админке точек → «Агент» → `ACTIVATION_TOKEN` в `desktop/.env` → при старте агент вызывает `POST /api/agent/activate` и сохраняет `point_id` в `desktop/config.json`.
+**Включение в боте:** `/admin/points` → способы оплаты → «Онлайн (Т-Банк)». Без ключей чекбокс disabled.
 
-**Т-Банк stub (задача 14):** без `TBANK_TERMINAL_KEY` + `TBANK_PASSWORD` кнопка «Оплатить онлайн» скрыта. Webhook: `POST /api/payments/webhook/tbank` с заголовком `X-Tbank-Webhook-Secret` (если задан `TBANK_WEBHOOK_SECRET`). Тестовый payload: `{ "entityId": "<order|batch id>", "status": "CONFIRMED" }`.
+**Webhook (prod):** Т-Банк шлёт POST с полем `Token` (SHA-256). Ответ сервера: `200` + тело `OK`.
+
+**Dev-mock** (без банка): `POST /api/payments/webhook/tbank` + заголовок `X-Tbank-Webhook-Secret` (если задан):
+
+```json
+{ "entityId": "<order|batch id>", "status": "CONFIRMED" }
+```
+
+Миграция: `cd web && npm run db:deploy` (таблица `Payment`).
+
+Подробнее: [sprint-3/tasks/05-bot-e2e.md](../sprints/sprint-3/tasks/05-bot-e2e.md)
+
+### Sprint 2 — staff bind, точки
+
+**Staff-каналы (задача 11):** `/bind <token>` или deep link `?start=bind_xxx`. Токен в `/admin/points`. Env `STAFF_TELEGRAM_CHAT_ID` / `STAFF_MAX_USER_ID` — legacy fallback.
+
+**Активация агента (задача 13):** админка → «Агент» → `ACTIVATION_TOKEN` в `desktop/.env`.
+
+**Т-Банк stub (задача 14):** заменён реальным API в Sprint 3 — см. выше.
 
 ---
 

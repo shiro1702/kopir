@@ -182,11 +182,18 @@ export class MaxClient {
   }
 }
 
-function maxCallbackButton(btn: InlineKeyboardButton) {
+function maxInlineButton(btn: InlineKeyboardButton) {
+  if (btn.url) {
+    return {
+      type: 'link' as const,
+      text: btn.text,
+      url: btn.url,
+    }
+  }
   return {
     type: 'callback' as const,
     text: btn.text,
-    payload: btn.callbackData,
+    payload: btn.callbackData ?? '',
     intent: 'default' as const,
   }
 }
@@ -196,11 +203,11 @@ export function maxAttachmentsFromOptions(options?: StatusMessageOptions): unkno
     return []
   }
 
-  const rows: ReturnType<typeof maxCallbackButton>[][] = []
+  const rows: ReturnType<typeof maxInlineButton>[][] = []
 
   if (options?.inlineKeyboard) {
     for (const row of options.inlineKeyboard) {
-      rows.push(row.map(maxCallbackButton))
+      rows.push(row.map(maxInlineButton))
     }
   }
 

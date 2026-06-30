@@ -1,46 +1,47 @@
-# Sprint 3 — «Т-Банк»
+# Sprint 3 — «Т-Банк» (онлайн СБП)
 
 | | |
 |---|---|
-| **Период** | ~1–2 недели после одобрения банка (TBD) |
-| **Статус** | ⏸ blocked — ждём номинальный счёт |
+| **Период** | Июнь 2026 — sandbox; prod после договора |
+| **Статус** | 🟡 in_progress — sandbox с DEMO-терминалом |
 | **Цель** | Онлайн-оплата СБП в боте → автопечать без staff |
 | **Этап roadmap** | [Этап 2c — Эквайринг](../../roadmap/ROADMAP.md#этап-2c--эквайринг-sprint-3) |
-| **Предусловие** | Sprint 2 закрыт: админка точек, скелет `tbank`, `/bind` |
+| **Предусловие** | Sprint 2: админка точек, скелет `tbank`, `/bind` |
 
-## Блокер
+## Блокер prod
 
-Номинальный счёт / договор эквайринга с Т-Банком.  
-Пока blocked — работаем в [Sprint 2](../sprint-2/README.md).
+Номинальный счёт / боевой терминал — для prod и выплат партнёрам (PAY-07).  
+**Sandbox** разблокирован DEMO-ключами Т-Банка.
 
 ## Задачи
 
 | # | Задача | Статус | Feature | Файл |
 |---|--------|--------|---------|------|
-| 01 | Т-Банк Init + GetQr на `OrderBatch` | ⏸ | PAY-02 | _(спека TBD)_ |
-| 02 | Webhook → `paymentConfirmedAt` → PAID → печать | ⏸ | PAY-03 | _(спека TBD)_ |
-| 03 | Выбор «Оплатить СБП онлайн» в боте | ⏸ | PAY-02 | — |
-| 04 | Облачная касса (тест, ФЗ-54) | ⏸ | PAY-04 | — |
-| 05 | E2E: 10 платежей в sandbox → prod | ⏸ | — | — |
-
-Скелет из Sprint 2 ([14-tbank-skeleton.md](../sprint-2/tasks/14-tbank-skeleton.md)) — подключить prod-ключи и доработать Init/GetQr.
+| 01 | HTTP-клиент + Token + env | ✅ | PAY-02 | [tasks/01-tbank-client.md](./tasks/01-tbank-client.md) |
+| 02 | Prisma `Payment` + миграция | ✅ | PAY-02 | [tasks/02-payment-model.md](./tasks/02-payment-model.md) |
+| 03 | Init + GetQr (реальный API) | ✅ | PAY-02 | [tasks/03-init-getqr.md](./tasks/03-init-getqr.md) |
+| 04 | Webhook → PAID → печать | ✅ | PAY-03 | [tasks/04-webhook.md](./tasks/04-webhook.md) |
+| 05 | UX бота + E2E sandbox | 🟡 | PAY-02/03 | [tasks/05-bot-e2e.md](./tasks/05-bot-e2e.md) |
+| — | Облачная касса (ФЗ-54) | ⏸ | PAY-04 | после prod |
 
 ## Definition of Done
 
-- [ ] Клиент оплачивает пачку через СБП без участия staff
-- [ ] Webhook идемпотентен, повторный confirm безопасен
-- [ ] `TBANK_ONLINE` включается per-point в админке
-- [ ] 100+ реальных транзакций за 2 недели после запуска
-- [ ] Первая выплата партнёру (ручная СБП, PAY-07)
+- [x] Код: Init/GetQr, webhook с Token, кнопка «Оплатить СБП»
+- [ ] E2E: ≥10 sandbox-платежей ([REPORT.md](./REPORT.md))
+- [ ] Prod: боевой терминал + 100+ транзакций
+- [x] `TBANK_ONLINE` per-point в админке
+- [ ] Первая выплата партнёру (PAY-07)
 
-## Метрики
+## Ключевые файлы
 
-| Метрика | Цель |
-|---------|------|
-| Платных транзакций | ≥ 100 |
-| Успешных печатей после оплаты | ≥ 95% |
-| Критических багов оплаты | 0 |
+```
+web/server/utils/payments/tbank-client.ts
+web/server/utils/payments/providers/tbank-acquiring.ts
+web/server/api/payments/webhook/tbank.post.ts
+web/server/utils/bot/payment-handlers.ts
+web/prisma/schema.prisma — model Payment
+```
 
 ## После спринта
 
-→ [Sprint 4 — Онбординг](../SPRINTS.md#sprint-4--онбординг-без-созвона) (partner dashboard, баланс, self-registration)
+→ [Sprint 4 — Онбординг](../SPRINTS.md#sprint-4--онбординг-без-созвона)
