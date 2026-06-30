@@ -15,6 +15,7 @@ const editingPoint = ref(null)
 const saving = ref(false)
 const tokenResult = ref(null)
 const tbankConfigured = ref(false)
+const adminConfig = ref(null)
 
 const form = ref({
   name: '',
@@ -109,8 +110,10 @@ async function fetchPoints() {
     points.value = data.points
     try {
       const config = await $fetch('/api/admin/config', { headers: authHeaders() })
+      adminConfig.value = config
       tbankConfigured.value = config.tbankConfigured ?? false
     } catch {
+      adminConfig.value = null
       tbankConfigured.value = false
     }
   } catch (e) {
@@ -177,9 +180,9 @@ async function generateBindToken(point) {
       method: 'POST',
       headers: authHeaders(),
     })
-    tokenResult.value = { type: 'bind', pointName: point.name, ...data }
+    tokenResult.value = { type: 'staff', pointName: point.name, ...data }
   } catch (e) {
-    error.value = e?.data?.error ?? 'Не удалось создать bind-токен'
+    error.value = e?.data?.error ?? 'Не удалось создать ссылку для сотрудников'
   }
 }
 
@@ -193,7 +196,7 @@ async function generateAgentToken(point) {
     })
     tokenResult.value = { type: 'agent', pointName: point.name, ...data }
   } catch (e) {
-    error.value = e?.data?.error ?? 'Не удалось создать токен агента'
+    error.value = e?.data?.error ?? 'Не удалось создать токен программы печати'
   }
 }
 
@@ -220,8 +223,21 @@ function agentIndicator(point) {
   return point.agentOnline ? '🟢' : '🔴'
 }
 
+function staffTelegramLink(result) {
+  return result?.telegramDeepLink || result?.deepLink || null
+}
+
 function clientDeepLink(slug) {
+  const username = adminConfig.value?.telegramBotUsername
+  if (username) {
+    return `https://t.me/${username}?start=${slug}`
+  }
   return `?start=${slug}`
+}
+
+function telegramBotLabel() {
+  const username = adminConfig.value?.telegramBotUsername
+  return username ? `@${username}` : 'бота Kopir'
 }
 </script>
 
@@ -234,7 +250,7 @@ function clientDeepLink(slug) {
             Точки печати
           </h1>
           <p class="mt-1 text-sm text-gray-500">
-            Управление точками, staff bind и активация агента
+            Точки, уведомления сотрудникам и подключение программы печати
           </p>
         </div>
         <div class="flex gap-2">
@@ -299,40 +315,164 @@ function clientDeepLink(slug) {
       </p>
 
       <div
-        v-if="tokenResult"
-        class="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm"
+        v-if="tokenResult?.type === 'staff'"
+        class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-950"
       >
-        <p class="font-medium text-blue-900">
-          {{ tokenResult.type === 'bind' ? 'Bind-токен' : 'Токен агента' }} — {{ tokenResult.pointName }}
+        <p class="font-semibold">
+          Привязка сотрудников — {{ tokenResult.pointName }}
         </p>
-        <p class="mt-2 font-mono text-blue-800">
-          {{ tokenResult.token }}
+        <p class="mt-1 text-emerald-800">
+          Ссылка действует до {{ formatDateTime(tokenResult.expiresAt) }} (одноразовая)
         </p>
-        <p class="mt-1 text-blue-700">
-          Действует до: {{ formatDateTime(tokenResult.expiresAt) }}
+
+        <div
+          v-if="staffTelegramLink(tokenResult)"
+          class="mt-4 rounded-md border border-emerald-200 bg-white p-3"
+        >
+          <p class="font-medium">
+            Telegram — открыть бота
+          </p>
+          <p class="mt-1 text-xs text-gray-600">
+            Ссылка сразу привяжет чат к точке «{{ tokenResult.pointName }}»
+          </p>
+          <div class="mt-3 flex flex-wrap gap-2">
+            <a
+              :href="staffTelegramLink(tokenResult)"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="rounded bg-[#229ED9] px-4 py-2 text-sm font-medium text-white hover:bg-[#1a8bc4]"
+            >
+              Открыть в Telegram
+            </a>
+            <button
+              class="rounded border border-emerald-300 bg-white px-3 py-2 text-xs hover:bg-emerald-50"
+              @click="copyText(staffTelegramLink(tokenResult))"
+            >
+              Скопировать ссылку
+            </button>
+          </div>
+        </div>
+        <p
+          v-else-if="adminConfig?.telegramConfigured"
+          class="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900"
+        >
+          Задайте <code class="font-mono">TELEGRAM_BOT_USERNAME</code> в <code class="font-mono">web/.env</code>,
+          чтобы появилась кнопка «Открыть в Telegram». Пока используйте команду ниже.
         </p>
-        <div class="mt-3 flex flex-wrap gap-2">
-          <button
-            class="rounded bg-blue-600 px-3 py-1 text-xs text-white hover:bg-blue-700"
-            @click="copyText(tokenResult.token)"
+
+        <div class="mt-4 space-y-3 rounded-md border border-emerald-200 bg-white p-3">
+          <p class="font-medium">
+            Как привязать группу с несколькими сотрудниками (Telegram)
+          </p>
+          <ol class="list-decimal space-y-1 pl-5 text-xs text-gray-700">
+            <li>Создайте рабочий групповой чат или используйте существующий.</li>
+            <li>Добавьте {{ telegramBotLabel() }} в группу.</li>
+            <li>
+              Администратор группы нажимает «Открыть в Telegram» на телефоне
+              <span v-if="staffTelegramLink(tokenResult)">или отправляет в группу:</span>
+              <span v-else>и отправляет в группу:</span>
+            </li>
+          </ol>
+          <p
+            v-if="tokenResult.bindCommand"
+            class="rounded bg-gray-50 px-2 py-1.5 font-mono text-xs"
           >
-            Копировать токен
-          </button>
+            {{ tokenResult.bindCommand }}
+          </p>
           <button
             v-if="tokenResult.bindCommand"
-            class="rounded bg-blue-600 px-3 py-1 text-xs text-white hover:bg-blue-700"
+            class="rounded border border-emerald-300 bg-white px-3 py-1 text-xs hover:bg-emerald-50"
             @click="copyText(tokenResult.bindCommand)"
           >
-            Копировать /bind
+            Скопировать команду для группы
           </button>
+          <p class="text-xs text-gray-600">
+            Все участники группы будут видеть уведомления о заказах этой точки.
+            Для одного сотрудника достаточно открыть ссылку в личке.
+          </p>
+        </div>
+
+        <div
+          v-if="adminConfig?.maxConfigured"
+          class="mt-4 rounded-md border border-emerald-200 bg-white p-3"
+        >
+          <p class="font-medium">
+            MAX — только личка сотрудника
+          </p>
+          <p class="mt-1 text-xs text-gray-600">
+            Откройте бота Kopir в MAX и отправьте:
+          </p>
+          <p class="mt-2 rounded bg-gray-50 px-2 py-1.5 font-mono text-xs">
+            {{ tokenResult.maxBindCommand || tokenResult.bindCommand }}
+          </p>
           <button
-            v-if="tokenResult.deepLink"
-            class="rounded bg-blue-600 px-3 py-1 text-xs text-white hover:bg-blue-700"
-            @click="copyText(tokenResult.deepLink)"
+            class="mt-2 rounded border border-emerald-300 bg-white px-3 py-1 text-xs hover:bg-emerald-50"
+            @click="copyText(tokenResult.maxBindCommand || tokenResult.bindCommand)"
           >
-            Копировать deep link
+            Скопировать для MAX
           </button>
         </div>
+
+        <button
+          class="mt-4 text-xs text-emerald-700 underline hover:text-emerald-900"
+          @click="tokenResult = null"
+        >
+          Закрыть
+        </button>
+      </div>
+
+      <div
+        v-else-if="tokenResult?.type === 'agent'"
+        class="mb-4 rounded-lg border border-violet-200 bg-violet-50 p-4 text-sm text-violet-950"
+      >
+        <p class="font-semibold">
+          Подключение программы печати — {{ tokenResult.pointName }}
+        </p>
+        <p class="mt-1 text-violet-800">
+          Токен действует до {{ formatDateTime(tokenResult.expiresAt) }} (одноразовый)
+        </p>
+        <p class="mt-3 font-mono text-sm">
+          {{ tokenResult.token }}
+        </p>
+        <div class="mt-4 space-y-2 rounded-md border border-violet-200 bg-white p-3 text-xs text-gray-700">
+          <p class="font-medium text-sm text-gray-900">
+            На ПК с принтером (Windows):
+          </p>
+          <ol class="list-decimal space-y-1 pl-5">
+            <li>Откройте <code class="font-mono">desktop/.env</code></li>
+            <li>Добавьте строку (без <code class="font-mono">POINT_ID</code>):</li>
+          </ol>
+          <p class="rounded bg-gray-50 px-2 py-1.5 font-mono">
+            ACTIVATION_TOKEN={{ tokenResult.token }}
+          </p>
+          <ol
+            start="3"
+            class="list-decimal space-y-1 pl-5"
+          >
+            <li>Запустите агент: <code class="font-mono">python -m agent.main</code></li>
+            <li>После успеха slug сохранится в <code class="font-mono">config.json</code> — токен можно удалить</li>
+          </ol>
+        </div>
+        <div class="mt-3 flex flex-wrap gap-2">
+          <button
+            class="rounded bg-violet-600 px-3 py-1.5 text-xs text-white hover:bg-violet-700"
+            @click="copyText(`ACTIVATION_TOKEN=${tokenResult.token}`)"
+          >
+            Скопировать для .env
+          </button>
+          <button
+            class="rounded border border-violet-300 bg-white px-3 py-1.5 text-xs hover:bg-violet-50"
+            @click="copyText(tokenResult.token)"
+          >
+            Скопировать токен
+          </button>
+        </div>
+        <button
+          class="mt-4 text-xs text-violet-700 underline hover:text-violet-900"
+          @click="tokenResult = null"
+        >
+          Закрыть
+        </button>
       </div>
 
       <div
@@ -444,7 +584,7 @@ function clientDeepLink(slug) {
           <thead class="bg-gray-100 text-left text-gray-600">
             <tr>
               <th class="px-4 py-3">
-                Агент
+                Печать
               </th>
               <th class="px-4 py-3">
                 Slug
@@ -471,7 +611,7 @@ function clientDeepLink(slug) {
             >
               <td
                 class="px-4 py-3"
-                :title="point.lastSeenAt ? `Последний раз: ${formatDateTime(point.lastSeenAt)}` : 'Агент не подключался'"
+                :title="point.lastSeenAt ? `Последний раз: ${formatDateTime(point.lastSeenAt)}` : 'Программа печати не подключалась'"
               >
                 {{ agentIndicator(point) }}
               </td>
@@ -501,25 +641,25 @@ function clientDeepLink(slug) {
                     Изменить
                   </button>
                   <button
-                    class="rounded bg-gray-100 px-2 py-1 text-xs hover:bg-gray-200"
-                    title="Токен для /bind staff"
+                    class="rounded bg-emerald-50 px-2 py-1 text-xs text-emerald-800 hover:bg-emerald-100"
+                    title="Привязать Telegram или MAX для уведомлений о заказах"
                     @click="generateBindToken(point)"
                   >
-                    Bind
+                    Сотрудники
                   </button>
                   <button
-                    class="rounded bg-gray-100 px-2 py-1 text-xs hover:bg-gray-200"
-                    title="Токен активации агента"
+                    class="rounded bg-violet-50 px-2 py-1 text-xs text-violet-800 hover:bg-violet-100"
+                    title="Подключить программу печати на ПК с принтером"
                     @click="generateAgentToken(point)"
                   >
-                    Агент
+                    Программа печати
                   </button>
                   <button
                     class="rounded bg-gray-100 px-2 py-1 text-xs hover:bg-gray-200"
-                    :title="`Клиентский deep link: ${clientDeepLink(point.slug)}`"
+                    :title="`Ссылка для клиентов: ${clientDeepLink(point.slug)}`"
                     @click="copyText(clientDeepLink(point.slug))"
                   >
-                    QR link
+                    Ссылка клиенту
                   </button>
                 </div>
               </td>

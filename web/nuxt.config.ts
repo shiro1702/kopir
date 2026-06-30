@@ -42,6 +42,7 @@ export default defineNuxtConfig({
     blobStoreId: process.env.BLOB_STORE_ID,
     blobWebhookPublicKey: process.env.BLOB_WEBHOOK_PUBLIC_KEY,
     telegramBotToken: process.env.TELEGRAM_BOT_TOKEN,
+    telegramBotUsername: process.env.TELEGRAM_BOT_USERNAME ?? '',
     maxBotToken: process.env.MAX_BOT_TOKEN,
     maxWebhookSecret: process.env.MAX_WEBHOOK_SECRET,
     adminSecret: process.env.ADMIN_SECRET,

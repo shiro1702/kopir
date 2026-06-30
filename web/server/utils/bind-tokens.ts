@@ -109,9 +109,53 @@ export async function consumeBindToken(
   return { point: record.point, token }
 }
 
+let cachedTelegramBotUsername: string | null | undefined
+
+async function resolveTelegramBotUsername(): Promise<string | null> {
+  const config = useRuntimeConfig()
+  const fromEnv = String(process.env.TELEGRAM_BOT_USERNAME ?? config.telegramBotUsername ?? '').trim()
+  if (fromEnv) {
+    return fromEnv
+  }
+
+  if (cachedTelegramBotUsername !== undefined) {
+    return cachedTelegramBotUsername
+  }
+
+  if (!config.telegramBotToken) {
+    cachedTelegramBotUsername = null
+    return null
+  }
+
+  try {
+    const response = await fetch(`https://api.telegram.org/bot${config.telegramBotToken}/getMe`)
+    const payload = await response.json() as { ok?: boolean, result?: { username?: string } }
+    cachedTelegramBotUsername = payload.ok && payload.result?.username
+      ? payload.result.username
+      : null
+  } catch {
+    cachedTelegramBotUsername = null
+  }
+
+  return cachedTelegramBotUsername
+}
+
+export async function resolveTelegramBotUsernameForAdmin(): Promise<string | null> {
+  return resolveTelegramBotUsername()
+}
+
 export function getTelegramBindDeepLink(token: string): string | null {
   const config = useRuntimeConfig()
-  const botUsername = String(process.env.TELEGRAM_BOT_USERNAME ?? '').trim()
+  const botUsername = String(process.env.TELEGRAM_BOT_USERNAME ?? config.telegramBotUsername ?? '').trim()
+  if (!botUsername || !config.telegramBotToken) {
+    return null
+  }
+  return `https://t.me/${botUsername}?start=${token}`
+}
+
+export async function getTelegramBindDeepLinkAsync(token: string): Promise<string | null> {
+  const config = useRuntimeConfig()
+  const botUsername = await resolveTelegramBotUsername()
   if (!botUsername || !config.telegramBotToken) {
     return null
   }

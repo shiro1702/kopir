@@ -326,10 +326,12 @@ export async function handleBind(
     }
   }
 
-  await adapter.sendText(
-    target,
-    `✅ Канал привязан к точке «${point.name}»`,
-  )
+  const isTelegramGroup = platform === 'telegram' && BigInt(target.chatId) < 0n
+  const message = isTelegramGroup
+    ? `✅ Группа привязана к точке «${point.name}».\n\nВсе участники чата будут получать уведомления о заказах и смогут подтверждать оплату.`
+    : `✅ Вы привязаны к точке «${point.name}».\n\nБудете получать уведомления о заказах и сможете подтверждать оплату.`
+
+  await adapter.sendText(target, message)
 }
 
 export async function handleDocument(

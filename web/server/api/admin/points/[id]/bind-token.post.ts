@@ -1,5 +1,5 @@
 import { assertAdminAuth } from '../../../../utils/admin-auth'
-import { generateBindToken, getTelegramBindDeepLink } from '../../../../utils/bind-tokens'
+import { generateBindToken, getTelegramBindDeepLinkAsync } from '../../../../utils/bind-tokens'
 import { prisma } from '../../../../utils/prisma'
 
 export default defineEventHandler(async (event) => {
@@ -22,12 +22,15 @@ export default defineEventHandler(async (event) => {
   }
 
   const { token, expiresAt } = await generateBindToken(point.id, 'staff', 24)
-  const deepLink = getTelegramBindDeepLink(token)
+  const telegramDeepLink = await getTelegramBindDeepLinkAsync(token)
+  const bindCommand = `/bind ${token}`
 
   return {
     token,
     expiresAt: expiresAt.toISOString(),
-    deepLink,
-    bindCommand: `/bind ${token}`,
+    deepLink: telegramDeepLink,
+    telegramDeepLink,
+    bindCommand,
+    maxBindCommand: bindCommand,
   }
 })
