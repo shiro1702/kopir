@@ -34,18 +34,6 @@ export function getTbankWebhookSecret(): string | null {
   return secret || null
 }
 
-/** Testing: always HTTP 200 + body OK for T-Bank notifications (see sprint-3/tasks/06). */
-export function isTbankWebhookAlwaysOk(): boolean {
-  const raw = String(process.env.TBANK_WEBHOOK_ALWAYS_OK ?? 'true').trim().toLowerCase()
-  return raw !== 'false' && raw !== '0'
-}
-
-/** Reply OK before async processing (reduces bank proxy timeouts). */
-export function isTbankWebhookDeferOk(): boolean {
-  const raw = String(process.env.TBANK_WEBHOOK_DEFER_OK ?? 'true').trim().toLowerCase()
-  return raw !== 'false' && raw !== '0'
-}
-
 export function getTbankTerminalKey(): string | null {
   const key = String(process.env.TBANK_TERMINAL_KEY ?? '').trim()
   if (key) {
