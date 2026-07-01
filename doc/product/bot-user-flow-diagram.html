@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Kopir — схема флоу бота</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --border: #2d3348;
+      --text: #e8eaef;
+      --muted: #8b92a8;
+      --accent: #5b8def;
+      --done: #3d9a6a;
+      --partial: #c9a227;
+      --todo: #6b7280;
+      --danger: #c45c5c;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "SF Pro Text", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+    header {
+      padding: 1.5rem 2rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+    header h1 { margin: 0 0 0.25rem; font-size: 1.35rem; font-weight: 600; }
+    header p { margin: 0; color: var(--muted); font-size: 0.9rem; }
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-top: 1rem;
+      font-size: 0.8rem;
+    }
+    .legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .dot.done { background: var(--done); }
+    .dot.partial { background: var(--partial); }
+    .dot.todo { background: var(--todo); }
+    nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      padding: 1rem 2rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    nav button {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.45rem 0.9rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    nav button:hover { border-color: var(--accent); }
+    nav button.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+    main { padding: 1.5rem 2rem 3rem; max-width: 1200px; margin: 0 auto; }
+    section { display: none; }
+    section.active { display: block; }
+    section h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin: 0 0 0.5rem;
+    }
+    section .desc {
+      color: var(--muted);
+      font-size: 0.88rem;
+      margin-bottom: 1.25rem;
+    }
+    .mermaid-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.5rem;
+      overflow-x: auto;
+      margin-bottom: 1.5rem;
+    }
+    .mermaid { display: flex; justify-content: center; }
+    /* Hero SVG overview */
+    .svg-overview {
+      width: 100%;
+      max-width: 100%;
+      height: auto;
+      display: block;
+      margin: 0 auto 1.5rem;
+    }
+    .svg-overview text { font-family: inherit; }
+    .box-done { fill: #1e3a2f; stroke: var(--done); }
+    .box-partial { fill: #3a3218; stroke: var(--partial); }
+    .box-todo { fill: #252830; stroke: var(--todo); }
+    .box-neutral { fill: #1e2230; stroke: var(--border); }
+    .box-label { fill: var(--text); font-size: 13px; }
+    .box-sub { fill: var(--muted); font-size: 11px; }
+    .arrow { stroke: var(--muted); stroke-width: 1.5; fill: none; marker-end: url(#arrowhead); }
+    .arrow-label { fill: var(--muted); font-size: 10px; }
+    footer {
+      text-align: center;
+      padding: 1rem;
+      color: var(--muted);
+      font-size: 0.75rem;
+      border-top: 1px solid var(--border);
+    }
+    @media print {
+      body { background: #fff; color: #111; }
+      nav { display: none; }
+      section { display: block !important; page-break-inside: avoid; }
+      .mermaid-wrap { border-color: #ccc; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Kopir — флоу бота (Telegram / MAX)</h1>
+    <p>Интерактивная схема · обновлено 01.07.2026 · <code>doc/product/bot-user-flow.md</code></p>
+    <div class="legend">
+      <span><i class="dot done"></i> ✅ Реализовано</span>
+      <span><i class="dot partial"></i> 🟡 Частично</span>
+      <span><i class="dot todo"></i> ⬜ Запланировано</span>
+    </div>
+  </header>
+
+  <nav id="tabs">
+    <button class="active" data-tab="overview">Обзор</button>
+    <button data-tab="states">Состояния</button>
+    <button data-tab="file">Сбор файла</button>
+    <button data-tab="payment">Оплата</button>
+    <button data-tab="staff">Staff</button>
+    <button data-tab="arch">Архитектура</button>
+  </nav>
+
+  <main>
+  <!-- OVERVIEW: hand-drawn SVG -->
+  <section id="overview" class="active">
+    <h2>Обзор: путь клиента</h2>
+    <p class="desc">Упрощённая схема сверху вниз. Цвет рамки = статус реализации.</p>
+
+    <svg class="svg-overview" viewBox="0 0 720 920" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arrowhead" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#8b92a8" />
+        </marker>
+      </defs>
+
+      <!-- Row 1 -->
+      <rect class="box-done" x="260" y="20" width="200" height="52" rx="8" />
+      <text class="box-label" x="360" y="42" text-anchor="middle">/start</text>
+      <text class="box-sub" x="360" y="58" text-anchor="middle">point_* deep link ✅</text>
+
+      <line class="arrow" x1="360" y1="72" x2="360" y2="100" />
+
+      <!-- Row 2 -->
+      <rect class="box-done" x="200" y="100" width="320" height="64" rx="8" />
+      <text class="box-label" x="360" y="122" text-anchor="middle">Сбор пачки COLLECTING</text>
+      <text class="box-sub" x="360" y="140" text-anchor="middle">PDF / Word · до 5 файлов · 🗑 удалить ✅</text>
+      <text class="box-sub" x="360" y="154" text-anchor="middle">Кнопки: «Оплатить» (если ready) · «Отменить»</text>
+
+      <!-- Side branch cancel -->
+      <line class="arrow" x1="200" y1="132" x2="100" y2="132" />
+      <rect class="box-done" x="20" y="108" width="80" height="48" rx="6" />
+      <text class="box-label" x="60" y="130" text-anchor="middle" font-size="11">Отмена</text>
+      <text class="box-sub" x="60" y="144" text-anchor="middle">✅</text>
+
+      <line class="arrow" x1="360" y1="164" x2="360" y2="192" />
+
+      <!-- Row 3 finalize -->
+      <rect class="box-done" x="220" y="192" width="280" height="48" rx="8" />
+      <text class="box-label" x="360" y="214" text-anchor="middle">«Оплатить» → AWAITING_PAYMENT</text>
+      <text class="box-sub" x="360" y="230" text-anchor="middle">formatBatchSummary ✅</text>
+
+      <line class="arrow" x1="360" y1="240" x2="360" y2="268" />
+
+      <!-- Row 4 payment choice -->
+      <rect class="box-done" x="180" y="268" width="360" height="48" rx="8" />
+      <text class="box-label" x="360" y="290" text-anchor="middle">Выбор способа оплаты</text>
+      <text class="box-sub" x="360" y="306" text-anchor="middle">inline: перевод · на месте · онлайн 🟡</text>
+
+      <!-- Three branches -->
+      <line class="arrow" x1="240" y1="316" x2="120" y2="360" />
+      <line class="arrow" x1="360" y1="316" x2="360" y2="360" />
+      <line class="arrow" x1="480" y1="316" x2="600" y2="360" />
+
+      <rect class="box-done" x="40" y="360" width="160" height="72" rx="8" />
+      <text class="box-label" x="120" y="382" text-anchor="middle">📱 Перевод СБП</text>
+      <text class="box-sub" x="120" y="400" text-anchor="middle">реквизиты</text>
+      <text class="box-sub" x="120" y="416" text-anchor="middle">«Я оплатил» ✅</text>
+
+      <rect class="box-done" x="280" y="360" width="160" height="72" rx="8" />
+      <text class="box-label" x="360" y="382" text-anchor="middle">💳 На месте</text>
+      <text class="box-sub" x="360" y="400" text-anchor="middle">стойка копицентра</text>
+      <text class="box-sub" x="360" y="416" text-anchor="middle">staff сразу ✅</text>
+
+      <rect class="box-partial" x="520" y="360" width="160" height="72" rx="8" />
+      <text class="box-label" x="600" y="382" text-anchor="middle">💳 Онлайн СБП</text>
+      <text class="box-sub" x="600" y="400" text-anchor="middle">Т-Банк QR</text>
+      <text class="box-sub" x="600" y="416" text-anchor="middle">webhook 🟡</text>
+
+      <!-- Staff merge -->
+      <line class="arrow" x1="120" y1="432" x2="120" y2="480" />
+      <line class="arrow" x1="360" y1="432" x2="360" y2="480" />
+      <line class="arrow" x1="600" y1="432" x2="600" y2="460" />
+      <line class="arrow" x1="600" y1="460" x2="360" y2="460" />
+      <line class="arrow" x1="120" y1="480" x2="360" y2="480" />
+
+      <rect class="box-done" x="220" y="480" width="280" height="56" rx="8" />
+      <text class="box-label" x="360" y="502" text-anchor="middle">Staff подтверждает</text>
+      <text class="box-sub" x="360" y="520" text-anchor="middle">staff_pay / staff_batch_confirm ✅</text>
+      <text class="box-sub" x="360" y="534" text-anchor="middle">(онлайн — без staff)</text>
+
+      <line class="arrow" x1="360" y1="536" x2="360" y2="564" />
+
+      <rect class="box-done" x="240" y="564" width="240" height="48" rx="8" />
+      <text class="box-label" x="360" y="586" text-anchor="middle">PAID → печать</text>
+      <text class="box-sub" x="360" y="602" text-anchor="middle">агент Windows ✅</text>
+
+      <line class="arrow" x1="360" y1="612" x2="360" y2="640" />
+
+      <!-- Print outcomes -->
+      <line class="arrow" x1="300" y1="640" x2="200" y2="680" />
+      <line class="arrow" x1="420" y1="640" x2="520" y2="680" />
+
+      <rect class="box-partial" x="120" y="680" width="160" height="56" rx="8" />
+      <text class="box-label" x="200" y="702" text-anchor="middle">✅ Готово!</text>
+      <text class="box-sub" x="200" y="720" text-anchor="middle">UX-10 🟡</text>
+
+      <rect class="box-done" x="440" y="680" width="160" height="56" rx="8" />
+      <text class="box-label" x="520" y="702" text-anchor="middle">Ошибка печати</text>
+      <text class="box-sub" x="520" y="720" text-anchor="middle">🔄 retry ✅</text>
+
+      <!-- Planned -->
+      <line class="arrow" x1="360" y1="72" x2="560" y2="72" stroke-dasharray="4 3" />
+      <rect class="box-todo" x="560" y="48" width="140" height="48" rx="8" />
+      <text class="box-label" x="630" y="70" text-anchor="middle" font-size="11">offline блок</text>
+      <text class="box-sub" x="630" y="86" text-anchor="middle">MON-02 ⬜</text>
+    </svg>
+
+    <div class="mermaid-wrap">
+      <pre class="mermaid">
+flowchart TB
+  START["/start ✅"] --> BATCH["Сбор пачки\nPDF · Word · 🗑"]
+  BATCH --> PAY_BTN["«Оплатить» ✅"]
+  BATCH --> CANCEL["Отмена ✅"]
+  PAY_BTN --> METHODS{"Способ оплаты"}
+  METHODS -->|перевод| TR["СБП + Я оплатил ✅"]
+  METHODS -->|на месте| OS["Стойка ✅"]
+  METHODS -->|онлайн| TB["Т-Банк 🟡"]
+  TR --> STAFF["Staff confirm ✅"]
+  OS --> STAFF
+  TB --> PAID["PAID ✅"]
+  STAFF --> PAID
+  PAID --> PRINT["Печать ✅"]
+  PRINT --> DONE["Готово! 🟡"]
+  PRINT --> RETRY["Retry ✅"]
+      </pre>
+    </div>
+  </section>
+
+  <section id="states">
+    <h2>Диаграмма состояний</h2>
+    <p class="desc">Полный state machine клиента с вложенными состояниями пачки и оплаты.</p>
+    <div class="mermaid-wrap">
+      <pre class="mermaid">
+stateDiagram-v2
+    direction TB
+  [*] --> Idle: /start ✅
+  Idle --> Collecting: PDF/Word ✅
+  state Collecting {
+    [*] --> FileReceiving
+    FileReceiving --> FileReady: PDF ✅
+    FileReceiving --> FileCalculating: Word ✅
+    FileCalculating --> FileReady: посчитано ✅
+    FileReady --> FileRemoved: удалить ✅
+  }
+  Collecting --> AwaitingPayment: Оплатить ✅
+  Collecting --> Cancelled: Отменить ✅
+  state AwaitingPayment {
+    [*] --> ChooseMethod
+    ChooseMethod --> Transfer: перевод ✅
+    ChooseMethod --> OnSite: на месте ✅
+    ChooseMethod --> Online: Т-Банк 🟡
+    Transfer --> StaffConfirm: Я оплатил ✅
+    OnSite --> StaffConfirm: staff ✅
+    Online --> Paid: webhook 🟡
+  }
+  StaffConfirm --> Paid: staff confirm ✅
+  Paid --> Printing: print ✅
+  state Printing {
+    [*] --> InQueue
+    InQueue --> Done: успех ✅
+    InQueue --> Failed: ошибка ✅
+    Failed --> InQueue: retry ✅
+  }
+  Done --> [*]: Готово 🟡
+      </pre>
+    </div>
+  </section>
+
+  <section id="file">
+    <h2>Сбор файла</h2>
+    <p class="desc">Условия показа кнопок «Оплатить» и «Удалить».</p>
+    <div class="mermaid-wrap">
+      <pre class="mermaid">
+flowchart TD
+  A[Документ] --> B{Тип?}
+  B -->|PDF| C[AWAITING_PAYMENT]
+  B -->|Word| D[CALCULATING]
+  B -->|другое| E[Отказ]
+  C --> F["Принимаю → edit"]
+  D --> F
+  F --> G{Blob OK?}
+  G -->|нет| H[ошибка]
+  G -->|PDF| I["Файл готов + 🗑"]
+  G -->|Word| J["Считаем…"]
+  J --> K{Агент}
+  K -->|ok| I
+  K -->|fail| L["❌ + 🗑"]
+  I --> M{keyboardMode}
+  M -->|ready| N["Оплатить + Отменить"]
+  M -->|calculating| O["Только Отменить"]
+      </pre>
+    </div>
+  </section>
+
+  <section id="payment">
+    <h2>Оплата</h2>
+    <p class="desc">Три ветки после finalizeBatch. Фильтр методов — payment-config.ts.</p>
+    <div class="mermaid-wrap">
+      <pre class="mermaid">
+flowchart TD
+  F1[Сводка пачки] --> F2[Выбор способа]
+  F2 --> M1[Перевод ✅]
+  F2 --> M2[На месте ✅]
+  F2 --> M3[Онлайн 🟡]
+  M1 --> T1[Реквизиты + Я оплатил]
+  M2 --> T2[Инструкция стойка]
+  M3 --> T3[QR + Проверить]
+  T1 --> ST1[Staff: банк]
+  T2 --> ST2[Staff: стойка]
+  T3 --> PAID[PAID webhook]
+  ST1 --> CONF[staff confirm]
+  ST2 --> CONF
+  CONF --> PAID
+  PAID --> PRINT[Агент печатает]
+      </pre>
+    </div>
+  </section>
+
+  <section id="staff">
+    <h2>Staff-параллель</h2>
+    <p class="desc">Когда staff получает уведомление и что нажимает.</p>
+    <div class="mermaid-wrap">
+      <pre class="mermaid">
+sequenceDiagram
+  participant C as Клиент
+  participant B as Бот
+  participant ST as Staff
+  participant A as Агент
+  Note over C,A: Перевод ✅
+  C->>B: перевод + Я оплатил
+  B->>ST: проверьте банк
+  ST->>B: Оплата получена
+  B->>A: print
+  Note over C,A: На месте ✅
+  C->>B: на месте
+  B->>ST: клиент на стойке
+  ST->>B: подтвердить
+  B->>A: print
+  Note over C,A: Т-Банк 🟡
+  C->>B: онлайн СБП
+  B->>B: webhook
+  B->>A: print без staff
+      </pre>
+    </div>
+  </section>
+
+  <section id="arch">
+    <h2>Архитектура каналов</h2>
+    <p class="desc">Telegram и MAX → общее ядро bot/core.ts.</p>
+    <div class="mermaid-wrap">
+      <pre class="mermaid">
+flowchart LR
+  U[Пользователь] --> TG[Telegram]
+  U --> MAX[MAX]
+  TG --> CORE[bot/core.ts]
+  MAX --> CORE
+  CORE --> PH[payment-handlers]
+  CORE --> CB[client-callbacks]
+  PH --> ST[Staff чат]
+  CORE --> ST
+  CORE --> API[Nitro API]
+  API --> AGT[Desktop агент]
+      </pre>
+    </div>
+  </section>
+  </main>
+
+  <footer>
+    Открыть: <code>open doc/product/bot-user-flow-diagram.html</code> · Печать: Cmd+P
+  </footer>
+
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'dark',
+      themeVariables: {
+        primaryColor: '#1e3a5f',
+        primaryTextColor: '#e8eaef',
+        primaryBorderColor: '#5b8def',
+        lineColor: '#8b92a8',
+        secondaryColor: '#1a1d27',
+        tertiaryColor: '#252830',
+        fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif',
+      },
+      stateDiagram: { useMaxWidth: true },
+      flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'basis' },
+    });
+
+    const tabs = document.getElementById('tabs');
+    const sections = document.querySelectorAll('main section');
+    tabs.addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-tab]');
+      if (!btn) return;
+      const id = btn.dataset.tab;
+      tabs.querySelectorAll('button').forEach((b) => b.classList.toggle('active', b === btn));
+      sections.forEach((s) => s.classList.toggle('active', s.id === id));
+    });
+  </script>
+</body>
+</html>

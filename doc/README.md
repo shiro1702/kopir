@@ -137,6 +137,7 @@ doc/
 | [brainstorm/13.06.2026.md](./brainstorm/13.06.2026.md) | BYOP, гибридная бумага, Student Hub, вендинг | [product/byop-hybrid-printing.md](./product/byop-hybrid-printing.md), [product/student-hub-vending.md](./product/student-hub-vending.md), [hardware/](./hardware/configurations.md), [business/](./business/economics.md) |
 | [brainstorm/24.06.2026.md](./brainstorm/24.06.2026.md) | Reels, маркетинг, буккроссинг, SBC, КП | [brainstorm/24.06.2026-INDEX.md](./brainstorm/24.06.2026-INDEX.md) → [marketing/](./marketing/) |
 | [brainstorm/28.06.2026.md](./brainstorm/28.06.2026.md) | Сайт, ЛК, ценообразование, Т-Банк, финмодели | [brainstorm/28.06.2026-INDEX.md](./brainstorm/28.06.2026-INDEX.md) → [product/](./product/), [business/](./business/) |
+| [brainstorm/30.06.2026.md](./brainstorm/30.06.2026.md) | Выбор точки, флоу бота, offline, поддержка, выплаты | [brainstorm/30.06.2026-INDEX.md](./brainstorm/30.06.2026-INDEX.md) → [product/](./product/), [business/](./business/) |
 
 ---
 

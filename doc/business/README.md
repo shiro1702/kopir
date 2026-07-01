@@ -14,5 +14,7 @@
 | [bootstrap-roadmap.md](./bootstrap-roadmap.md) | SaaS → первый бокс без инвестиций |
 | [expansion-directions.md](./expansion-directions.md) | Масштабирование платформы (локеры и т.д.) |
 | [box-unit-economics.md](./box-unit-economics.md) | Печать + локер 16 ячеек (брейншторм 24.06) |
+| [tbank-onboarding.md](./tbank-onboarding.md) | ОКВЭД, Т-Касса, облачная касса, СБП |
+| [partner-payouts.md](./partner-payouts.md) | Выплаты партнёрам, отчёт агента, баланс |
 
 Источники: [brainstorm/](../brainstorm/), [roadmap/ROADMAP.md](../roadmap/ROADMAP.md).
