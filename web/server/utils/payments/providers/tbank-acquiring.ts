@@ -10,6 +10,11 @@ import {
   tbankCancel,
   verifyTbankNotificationToken,
 } from '../tbank-client'
+import {
+  logTbankWebhookError,
+  logTbankWebhookProcessed,
+  tbankWebhookPayloadMeta,
+} from '../tbank-webhook-log'
 
 export type TbankPayChannel = 'sbp' | 'card'
 
@@ -239,46 +244,77 @@ async function processConfirmedPayment(payment: {
   return { ok: true, result, entityId }
 }
 
-export async function handleTbankNotification(payload: Record<string, unknown>) {
+export type TbankWebhookProcessResult =
+  | { ok: true, ignored?: boolean, status?: string, entityId?: string, alreadyConfirmed?: boolean, result?: unknown }
+  | { ok: false, code: string, error: string }
+
+/** Webhook handler: never throws; log errors internally. */
+export async function processTbankWebhookNotification(
+  payload: Record<string, unknown>,
+): Promise<TbankWebhookProcessResult> {
+  const meta = tbankWebhookPayloadMeta(payload)
+
   const password = getTbankPassword()
   if (!password) {
-    throw createError({
-      statusCode: 500,
-      data: { error: 'T-Bank is not configured', code: 'TBANK_NOT_CONFIGURED' },
-    })
+    logTbankWebhookError('T-Bank is not configured', meta)
+    return { ok: false, code: 'TBANK_NOT_CONFIGURED', error: 'T-Bank is not configured' }
   }
 
   if (!verifyTbankNotificationToken(payload, password)) {
-    throw createError({
-      statusCode: 401,
-      data: { error: 'Invalid notification token', code: 'INVALID_TOKEN' },
-    })
+    logTbankWebhookError('Invalid notification token', meta)
+    return { ok: false, code: 'INVALID_TOKEN', error: 'Invalid notification token' }
   }
 
   const status = String(payload.Status ?? '')
   const success = payload.Success === true || payload.Success === 'true'
 
   if (status !== 'CONFIRMED' || !success) {
-    return { ok: true, ignored: true, status }
+    const ignored = { ok: true as const, ignored: true, status }
+    logTbankWebhookProcessed(ignored)
+    return ignored
   }
 
   const merchantOrderId = String(payload.OrderId ?? '').trim()
   if (!merchantOrderId) {
-    throw createError({
-      statusCode: 400,
-      data: { error: 'OrderId is required', code: 'INVALID_PAYLOAD' },
-    })
+    logTbankWebhookError('OrderId is required', meta)
+    return { ok: false, code: 'INVALID_PAYLOAD', error: 'OrderId is required' }
   }
 
   const payment = await prisma.payment.findUnique({ where: { merchantOrderId } })
   if (!payment) {
-    throw createError({
-      statusCode: 404,
-      data: { error: 'Payment not found', code: 'PAYMENT_NOT_FOUND' },
-    })
+    logTbankWebhookError('Payment not found', { ...meta, merchantOrderId })
+    return { ok: false, code: 'PAYMENT_NOT_FOUND', error: 'Payment not found' }
   }
 
-  return processConfirmedPayment(payment, payload.PaymentId as string | number | null)
+  try {
+    const processed = await processConfirmedPayment(payment, payload.PaymentId as string | number | null)
+    logTbankWebhookProcessed({ ...processed, merchantOrderId })
+    return {
+      ok: true,
+      entityId: processed.entityId,
+      alreadyConfirmed: Boolean(processed.alreadyConfirmed),
+      result: processed.result,
+    }
+  } catch (error) {
+    logTbankWebhookError(error, { ...meta, merchantOrderId })
+    return {
+      ok: false,
+      code: 'PROCESS_FAILED',
+      error: error instanceof Error ? error.message : 'Webhook processing failed',
+    }
+  }
+}
+
+/** @deprecated use processTbankWebhookNotification in webhook route */
+export async function handleTbankNotification(payload: Record<string, unknown>) {
+  const result = await processTbankWebhookNotification(payload)
+  if (!result.ok) {
+    throw createError({
+      statusCode: result.code === 'INVALID_TOKEN' ? 401 : result.code === 'PAYMENT_NOT_FOUND' ? 404 : 500,
+      data: { error: result.error, code: result.code },
+    })
+  }
+  return result
 }
 
 /** Dev/test mock webhook without T-Bank Token signature. */

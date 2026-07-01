@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto'
 import { getTbankApiUrl, getTbankNotificationUrl, getTbankPassword, getTbankTerminalKey } from '../tbank-config'
+import { logTbankInit } from './tbank-webhook-log'
 
 const NESTED_TOKEN_KEYS = new Set(['DATA', 'Receipt', 'Items', 'Shops'])
 
@@ -149,7 +150,14 @@ export async function tbankInit(params: TbankInitParams): Promise<TbankApiRespon
   if (notificationUrl) {
     request.NotificationURL = notificationUrl
   }
-  return postTbank<TbankApiResponse>('Init', request)
+  const result = await postTbank<TbankApiResponse>('Init', request)
+  logTbankInit({
+    merchantOrderId: params.merchantOrderId,
+    amountKopeks: params.amountKopeks,
+    notificationUrl: notificationUrl ?? null,
+    paymentId: result.PaymentId ?? null,
+  })
+  return result
 }
 
 export async function tbankGetQr(
