@@ -110,19 +110,26 @@ export function parseBatchRemoveConfirmOrderId(payload: string): string | null {
 }
 
 
-export const BTN_PAY_SBP = '📱 Перевод по номеру'
-export const BTN_PAY_ON_SITE = '💳 Оплата на месте'
-export const BTN_PAY_ONLINE = '💳 Оплатить онлайн'
-export const BTN_PAY_CLAIMED = '✅ Я оплатил'
-export const BTN_PAY_ONLINE_SBP = '💳 Оплатить СБП'
-export const BTN_PAY_CHECK_STATUS = '🔄 Проверить оплату'
-export const BTN_PAY_CHANGE_METHOD = '← Другой способ'
+export const BTN_PAY_SBP = 'перевод'
+export const BTN_PAY_ON_SITE = 'на месте'
+export const BTN_PAY_ONLINE_SBP = 'СБП'
+export const BTN_PAY_ONLINE_CARD = 'карта'
+export const BTN_PAY_CLAIMED = 'Я оплатил'
+export const BTN_PAY_CHECK_STATUS = 'Проверить'
+export const BTN_PAY_CHANGE_METHOD = '← Назад'
+
+export type PayMethodCallback =
+  | 'sbp_transfer'
+  | 'on_site'
+  | 'tbank_sbp'
+  | 'tbank_card'
+  | 'tbank_online'
 
 export function payCheckStatusPayload(paymentId: string): string {
   return `pay_check_status:${paymentId}`
 }
 
-export function payMethodPayload(method: 'sbp_transfer' | 'on_site' | 'tbank_online', entityId: string): string {
+export function payMethodPayload(method: PayMethodCallback, entityId: string): string {
   return `pay_method:${method}:${entityId}`
 }
 
@@ -138,17 +145,24 @@ export function paymentMethodKeyboard(
   entityId: string,
   methods: Array<'SBP_TRANSFER' | 'ON_SITE' | 'TBANK_ONLINE'>,
 ): InlineKeyboardButton[][] {
-  const row: InlineKeyboardButton[] = []
+  const rows: InlineKeyboardButton[][] = []
+  const manualRow: InlineKeyboardButton[] = []
   if (methods.includes('SBP_TRANSFER')) {
-    row.push({ text: BTN_PAY_SBP, callbackData: payMethodPayload('sbp_transfer', entityId) })
+    manualRow.push({ text: BTN_PAY_SBP, callbackData: payMethodPayload('sbp_transfer', entityId) })
   }
   if (methods.includes('ON_SITE')) {
-    row.push({ text: BTN_PAY_ON_SITE, callbackData: payMethodPayload('on_site', entityId) })
+    manualRow.push({ text: BTN_PAY_ON_SITE, callbackData: payMethodPayload('on_site', entityId) })
+  }
+  if (manualRow.length) {
+    rows.push(manualRow)
   }
   if (methods.includes('TBANK_ONLINE')) {
-    row.push({ text: BTN_PAY_ONLINE, callbackData: payMethodPayload('tbank_online', entityId) })
+    rows.push([
+      { text: BTN_PAY_ONLINE_SBP, callbackData: payMethodPayload('tbank_sbp', entityId) },
+      { text: BTN_PAY_ONLINE_CARD, callbackData: payMethodPayload('tbank_card', entityId) },
+    ])
   }
-  return row.length ? [row] : []
+  return rows
 }
 
 export function transferClaimedKeyboard(entityId: string): InlineKeyboardButton[][] {
@@ -164,11 +178,12 @@ export function onSitePaymentKeyboard(entityId: string): InlineKeyboardButton[][
 
 export function onlinePaymentKeyboard(
   entityId: string,
-  qrUrl: string,
+  payUrl: string,
   paymentId: string,
+  payButtonText: string,
 ): InlineKeyboardButton[][] {
   return [
-    [{ text: BTN_PAY_ONLINE_SBP, url: qrUrl }],
+    [{ text: payButtonText, url: payUrl }],
     [
       { text: BTN_PAY_CHECK_STATUS, callbackData: payCheckStatusPayload(paymentId) },
       { text: BTN_PAY_CHANGE_METHOD, callbackData: payChangeMethodPayload(entityId) },
@@ -183,13 +198,23 @@ export function isPaymentClientCallbackPayload(payload: string): boolean {
     || payload.startsWith('pay_check_status:')
 }
 
-export function parsePayMethodPayload(payload: string): { method: 'sbp_transfer' | 'on_site' | 'tbank_online', entityId: string } | null {
+const PAY_METHOD_CALLBACKS = new Set<PayMethodCallback>([
+  'sbp_transfer',
+  'on_site',
+  'tbank_sbp',
+  'tbank_card',
+  'tbank_online',
+])
+
+export function parsePayMethodPayload(
+  payload: string,
+): { method: PayMethodCallback, entityId: string } | null {
   if (!payload.startsWith('pay_method:')) return null
   const rest = payload.slice('pay_method:'.length)
   const idx = rest.indexOf(':')
   if (idx < 0) return null
-  const method = rest.slice(0, idx)
-  if (method !== 'sbp_transfer' && method !== 'on_site' && method !== 'tbank_online') return null
+  const method = rest.slice(0, idx) as PayMethodCallback
+  if (!PAY_METHOD_CALLBACKS.has(method)) return null
   return { method, entityId: rest.slice(idx + 1) }
 }
 

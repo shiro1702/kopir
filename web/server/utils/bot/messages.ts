@@ -403,11 +403,7 @@ export function formatStaffBatchAwaitingPayment(batch: {
 
 export function formatPaymentMethodChoice(amountKopeks: number, shortId: string): string {
   const amountRub = Math.round(amountKopeks / 100)
-  return (
-    `💳 К оплате: ${amountRub} ₽\n`
-    + `Заказ #${shortId}\n\n`
-    + 'Выберите способ оплаты:'
-  )
+  return `💳 ${amountRub} ₽ · #${shortId}\nВыберите способ:`
 }
 
 export function formatTransferInstructions(
@@ -417,24 +413,21 @@ export function formatTransferInstructions(
   bankLabel: string | null,
 ): string {
   const amountRub = Math.round(amountKopeks / 100)
-  const bankLine = bankLabel ? `\n(${bankLabel})` : ''
+  const bankLine = bankLabel ? ` (${bankLabel})` : ''
   return (
-    `💳 К оплате: ${amountRub} ₽\n`
-    + `Заказ #${shortId}\n\n`
-    + 'Переведите через СБП на номер:\n'
-    + `${phone}${bankLine}\n\n`
-    + `⚠️ В комментарии к переводу укажите: ${shortId}\n\n`
-    + 'После перевода нажмите «Я оплатил».'
+    `💳 ${amountRub} ₽ · #${shortId}\n\n`
+    + `Перевод на ${phone}${bankLine}\n`
+    + `Комментарий: ${shortId}\n\n`
+    + 'После перевода — «Я оплатил».'
   )
 }
 
 export function formatOnSiteInstructions(amountKopeks: number, shortId: string): string {
   const amountRub = Math.round(amountKopeks / 100)
   return (
-    `💳 К оплате: ${amountRub} ₽\n`
-    + `Заказ #${shortId}\n\n`
-    + 'Подойдите к стойке копицентра и оплатите у сотрудника.\n'
-    + `Назовите номер заказа: ${shortId}`
+    `💳 ${amountRub} ₽ · #${shortId}\n\n`
+    + 'Оплатите у сотрудника на стойке.\n'
+    + `Номер заказа: ${shortId}`
   )
 }
 
@@ -445,34 +438,39 @@ export function formatAwaitingStaffConfirm(shortId: string): string {
   )
 }
 
+export function formatOnlineSbpInstructions(amountKopeks: number, shortId: string): string {
+  const amountRub = (amountKopeks / 100).toFixed(2)
+  return (
+    `💳 ${amountRub} ₽ · #${shortId}\n\n`
+    + 'Нажмите «СБП» и подтвердите в банке.\n'
+    + 'Печать запустится автоматически.'
+  )
+}
+
+export function formatOnlineCardInstructions(amountKopeks: number, shortId: string): string {
+  const amountRub = (amountKopeks / 100).toFixed(2)
+  return (
+    `💳 ${amountRub} ₽ · #${shortId}\n\n`
+    + 'Нажмите «карта» и оплатите на странице банка.\n'
+    + 'Печать запустится автоматически.'
+  )
+}
+
+/** @deprecated use formatOnlineSbpInstructions */
 export function formatOnlinePaymentInstructions(
   amountKopeks: number,
   shortId: string,
-  qrUrl: string,
+  _qrUrl: string,
 ): string {
-  const amountRub = (amountKopeks / 100).toFixed(2)
-  return (
-    `💳 К оплате: ${amountRub} ₽\n`
-    + `Заказ #${shortId}\n\n`
-    + 'Нажмите «Оплатить СБП» и подтвердите платёж в приложении банка.\n\n'
-    + `Ссылка: ${qrUrl}\n\n`
-    + '⏳ После оплаты печать запустится автоматически.\n'
-    + 'Если статус не обновился — нажмите «Проверить оплату».'
-  )
+  return formatOnlineSbpInstructions(amountKopeks, shortId)
 }
 
 export function formatOnlinePaymentPending(shortId: string): string {
-  return (
-    `⏳ Оплата по заказу #${shortId} ещё не поступила.\n`
-    + 'Проверьте приложение банка или попробуйте ещё раз через минуту.'
-  )
+  return `⏳ #${shortId} — оплата ещё не поступила. Проверьте банк или нажмите «Проверить».`
 }
 
 export function formatOnlinePaymentConfirmed(shortId: string): string {
-  return (
-    `✅ Оплата по заказу #${shortId} получена!\n`
-    + 'Запускаем печать.'
-  )
+  return `✅ #${shortId} — оплата получена. Запускаем печать.`
 }
 
 function staffUserLabel(user: { username?: string | null, firstName?: string | null }): string {

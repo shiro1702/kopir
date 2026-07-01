@@ -9,11 +9,14 @@ import {
   verifyTbankNotificationToken,
 } from '../tbank-client'
 
+export type TbankPayChannel = 'sbp' | 'card'
+
 export interface TbankInitResult {
   paymentId: string
   merchantOrderId: string
   externalPaymentId: string
-  qrPayload: string
+  payUrl: string
+  channel: TbankPayChannel
   amountKopeks: number
 }
 
@@ -48,7 +51,10 @@ async function cancelPendingPaymentsForEntity(ctx: PaymentContext) {
   })
 }
 
-export async function initPayment(ctx: PaymentContext): Promise<TbankInitResult> {
+export async function initPayment(
+  ctx: PaymentContext,
+  channel: TbankPayChannel = 'sbp',
+): Promise<TbankInitResult> {
   await cancelPendingPaymentsForEntity(ctx)
 
   const merchantOrderId = createMerchantOrderId()
@@ -76,20 +82,31 @@ export async function initPayment(ctx: PaymentContext): Promise<TbankInitResult>
     })
   }
 
-  const qrResult = await tbankGetQr(externalPaymentId, 'PAYLOAD')
-  const qrPayload = qrResult.Data?.trim()
-  if (!qrPayload) {
-    throw createError({
-      statusCode: 502,
-      data: { error: 'T-Bank GetQr did not return payload', code: 'TBANK_GETQR_FAILED' },
-    })
+  let payUrl: string | undefined
+  if (channel === 'card') {
+    payUrl = initResult.PaymentURL?.trim()
+    if (!payUrl) {
+      throw createError({
+        statusCode: 502,
+        data: { error: 'T-Bank Init did not return PaymentURL', code: 'TBANK_INIT_FAILED' },
+      })
+    }
+  } else {
+    const qrResult = await tbankGetQr(externalPaymentId, 'PAYLOAD')
+    payUrl = qrResult.Data?.trim()
+    if (!payUrl) {
+      throw createError({
+        statusCode: 502,
+        data: { error: 'T-Bank GetQr did not return payload', code: 'TBANK_GETQR_FAILED' },
+      })
+    }
   }
 
   await prisma.payment.update({
     where: { id: payment.id },
     data: {
       externalId: String(externalPaymentId),
-      qrPayload,
+      qrPayload: payUrl,
     },
   })
 
@@ -97,7 +114,8 @@ export async function initPayment(ctx: PaymentContext): Promise<TbankInitResult>
     paymentId: payment.id,
     merchantOrderId,
     externalPaymentId: String(externalPaymentId),
-    qrPayload,
+    payUrl,
+    channel,
     amountKopeks: ctx.amountKopeks,
   }
 }

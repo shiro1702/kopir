@@ -14,21 +14,36 @@ import {
 import {
   checkTbankPaymentStatus,
   initPayment,
+  type TbankPayChannel,
 } from '../payments/providers/tbank-acquiring'
 import { prisma } from '../prisma'
 import {
+  BTN_PAY_ONLINE_CARD,
+  BTN_PAY_ONLINE_SBP,
   onSitePaymentKeyboard,
   onlinePaymentKeyboard,
   paymentMethodKeyboard,
   transferClaimedKeyboard,
+  type PayMethodCallback,
 } from './keyboards'
 import * as messages from './messages'
 import type { BotUser, MessengerAdapter, MessengerReplyTarget } from './types'
 
-function mapPayMethod(method: 'sbp_transfer' | 'on_site' | 'tbank_online'): PaymentMethod {
+function mapPayMethod(method: PayMethodCallback): PaymentMethod {
   if (method === 'sbp_transfer') return PaymentMethod.SBP_TRANSFER
-  if (method === 'tbank_online') return PaymentMethod.TBANK_ONLINE
+  if (method === 'tbank_sbp' || method === 'tbank_card' || method === 'tbank_online') {
+    return PaymentMethod.TBANK_ONLINE
+  }
   return PaymentMethod.ON_SITE
+}
+
+function tbankChannelFromMethod(method: PayMethodCallback): TbankPayChannel {
+  if (method === 'tbank_card') return 'card'
+  return 'sbp'
+}
+
+function isTbankPayMethod(method: PayMethodCallback): boolean {
+  return method === 'tbank_sbp' || method === 'tbank_card' || method === 'tbank_online'
 }
 
 async function sendWithInlineKeyboard(
@@ -102,7 +117,7 @@ export async function sendPaymentMethodChoiceForOrder(
   )
 }
 
-async function sendOnlinePaymentUi(
+async function sendTbankPaymentUi(
   target: MessengerReplyTarget,
   adapter: MessengerAdapter,
   entityId: string,
@@ -110,25 +125,29 @@ async function sendOnlinePaymentUi(
   amountKopeks: number,
   init: Awaited<ReturnType<typeof initPayment>>,
 ): Promise<void> {
-  const text = messages.formatOnlinePaymentInstructions(amountKopeks, shortId, init.qrPayload)
+  const isCard = init.channel === 'card'
+  const text = isCard
+    ? messages.formatOnlineCardInstructions(amountKopeks, shortId)
+    : messages.formatOnlineSbpInstructions(amountKopeks, shortId)
+  const payButtonText = isCard ? BTN_PAY_ONLINE_CARD : BTN_PAY_ONLINE_SBP
   await adapter.sendText(
     target,
     text,
-    { inlineKeyboard: onlinePaymentKeyboard(entityId, init.qrPayload, init.paymentId) },
+    { inlineKeyboard: onlinePaymentKeyboard(entityId, init.payUrl, init.paymentId, payButtonText) },
   )
 }
 
 export async function handlePaymentMethodChoice(
   target: MessengerReplyTarget,
   user: BotUser,
-  method: 'sbp_transfer' | 'on_site' | 'tbank_online',
+  method: PayMethodCallback,
   entityId: string,
   adapter: MessengerAdapter,
 ): Promise<string> {
   const result = await selectPaymentMethod(entityId, mapPayMethod(method), user.externalId)
   const shortId = entityId.slice(-6)
 
-  if (result.method === PaymentMethod.TBANK_ONLINE) {
+  if (isTbankPayMethod(method)) {
     if (!isTbankConfigured()) {
       throw createError({
         statusCode: 400,
@@ -153,9 +172,9 @@ export async function handlePaymentMethodChoice(
       user: result.kind === 'batch' ? result.batch.user : result.order.user,
       batch: result.kind === 'batch' ? result.batch : undefined,
       order: result.kind === 'order' ? result.order : undefined,
-    })
+    }, tbankChannelFromMethod(method))
 
-    await sendOnlinePaymentUi(target, adapter, entityId, shortId, amountKopeks, init)
+    await sendTbankPaymentUi(target, adapter, entityId, shortId, amountKopeks, init)
     return 'Ожидаем оплату'
   }
 
