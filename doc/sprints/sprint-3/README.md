@@ -22,6 +22,7 @@
 | 03 | Init + GetQr (реальный API) | ✅ | PAY-02 | [tasks/03-init-getqr.md](./tasks/03-init-getqr.md) |
 | 04 | Webhook → PAID → печать | ✅ | PAY-03 | [tasks/04-webhook.md](./tasks/04-webhook.md) |
 | 05 | UX бота + E2E sandbox | 🟡 | PAY-02/03 | [tasks/05-bot-e2e.md](./tasks/05-bot-e2e.md) |
+| 07 | Откат polling → webhook | 🟡 workaround | PAY-03 | [tasks/07-revert-polling-to-webhooks.md](./tasks/07-revert-polling-to-webhooks.md) |
 | — | Облачная касса (ФЗ-54) | ⏸ | PAY-04 | после prod |
 
 ## Definition of Done

@@ -14,6 +14,7 @@
 | [bot-point-selection.md](./bot-point-selection.md) | Sprint 4–5 | Выбор точки, автовыбор последней, гибридный флоу |
 | [point-availability.md](./point-availability.md) | Sprint 1–5 | Статусы точки, блокировка offline, автопереключение |
 | [bot-support-flow.md](./bot-support-flow.md) | Sprint 5+ | Поддержка, автовозврат, TG-группа админов |
+| [staff-refund-in-chat.md](./staff-refund-in-chat.md) | 💡 backlog | Возврат Т-Банк из staff-чата (TG/MAX) |
 
 ## DOCX — три этапа
 

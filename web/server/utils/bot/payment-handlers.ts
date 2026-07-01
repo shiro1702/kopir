@@ -16,6 +16,7 @@ import {
   initPayment,
   type TbankPayChannel,
 } from '../payments/providers/tbank-acquiring'
+import { scheduleTbankPaymentWatcher } from '../payments/tbank-payment-watcher'
 import { prisma } from '../prisma'
 import {
   BTN_PAY_ONLINE_CARD,
@@ -176,6 +177,7 @@ export async function handlePaymentMethodChoice(
     }, tbankChannelFromMethod(method))
 
     await sendTbankPaymentUi(target, adapter, entityId, shortId, amountKopeks, init)
+    scheduleTbankPaymentWatcher(init.paymentId)
     return 'Ожидаем оплату'
   }
 

@@ -9,6 +9,7 @@ import {
   tbankInit,
   tbankCancel,
   verifyTbankNotificationToken,
+  type TbankApiResponse,
 } from '../tbank-client'
 
 export type TbankPayChannel = 'sbp' | 'card'
@@ -221,6 +222,48 @@ async function markPaymentConfirmed(
   })
 }
 
+export function isTbankPaymentSettled(state: TbankApiResponse): boolean {
+  return state.Status === 'CONFIRMED' && state.Success === true
+}
+
+export type TbankReconcileResult =
+  | { status: 'confirmed', entityId: string, alreadyConfirmed: boolean }
+  | { status: 'pending', bankStatus?: string | null }
+
+export async function reconcileTbankPayment(paymentId: string): Promise<TbankReconcileResult> {
+  const payment = await prisma.payment.findUnique({ where: { id: paymentId } })
+  if (!payment) {
+    throw createError({
+      statusCode: 404,
+      data: { error: 'Payment not found', code: 'PAYMENT_NOT_FOUND' },
+    })
+  }
+
+  if (payment.status === PaymentStatus.CONFIRMED) {
+    return {
+      status: 'confirmed',
+      entityId: resolveEntityIdFromPayment(payment),
+      alreadyConfirmed: true,
+    }
+  }
+
+  if (!payment.externalId) {
+    return { status: 'pending' }
+  }
+
+  const state = await tbankGetState(payment.externalId)
+  if (!isTbankPaymentSettled(state)) {
+    return { status: 'pending', bankStatus: state.Status ?? null }
+  }
+
+  const processed = await processConfirmedPayment(payment, payment.externalId)
+  return {
+    status: 'confirmed',
+    entityId: processed.entityId!,
+    alreadyConfirmed: Boolean(processed.alreadyConfirmed),
+  }
+}
+
 async function processConfirmedPayment(payment: {
   id: string
   batchId: string | null
@@ -278,7 +321,9 @@ export async function handleTbankNotification(payload: Record<string, unknown>) 
     })
   }
 
-  return processConfirmedPayment(payment, payload.PaymentId as string | number | null)
+  const processed = await processConfirmedPayment(payment, payload.PaymentId as string | number | null)
+  console.log('[tbank] webhook confirmed payment:', merchantOrderId, processed.entityId)
+  return processed
 }
 
 /** Dev/test mock webhook without T-Bank Token signature. */
@@ -338,21 +383,14 @@ export async function checkTbankPaymentStatus(paymentId: string, userExternalId:
   const { assertUserOwnsPayment } = await import('../service')
   await assertUserOwnsPayment(userExternalId, ownerUser.id)
 
-  if (payment.status === PaymentStatus.CONFIRMED) {
+  const reconciled = await reconcileTbankPayment(paymentId)
+  if (reconciled.status === 'pending') {
+    return { ok: true, pending: true, status: reconciled.bankStatus ?? null }
+  }
+  if (reconciled.alreadyConfirmed) {
     return { ok: true, alreadyConfirmed: true }
   }
-
-  if (!payment.externalId) {
-    return { ok: true, pending: true }
-  }
-
-  const state = await tbankGetState(payment.externalId)
-  const confirmed = state.Status === 'CONFIRMED' && state.Success === true
-  if (!confirmed) {
-    return { ok: true, pending: true, status: state.Status ?? null }
-  }
-
-  return processConfirmedPayment(payment, payment.externalId)
+  return { ok: true, entityId: reconciled.entityId }
 }
 
 export function verifyTbankWebhookSecret(header: string | undefined): boolean {

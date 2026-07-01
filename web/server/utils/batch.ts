@@ -1,4 +1,4 @@
-import { OrderBatchStatus, OrderStatus, type Order, type OrderBatch } from '@prisma/client'
+import { OrderBatchStatus, OrderStatus, PaymentMethod, type Order, type OrderBatch } from '@prisma/client'
 import { deleteOrderFile } from './blob'
 import { getPricePerPageKopeks } from './calculation'
 import { prisma } from './prisma'
@@ -457,7 +457,13 @@ export async function confirmBatchPayment(batchId: string) {
     const { notifyBatchPaymentConfirmed } = await import('./bot/core')
     const freshPoint = await prisma.point.findUnique({ where: { id: batch.pointId } })
     const agentOffline = freshPoint ? !isPointAgentOnline(freshPoint) : true
-    await notifyBatchPaymentConfirmed(batch.user, batchId, batch.orders.length, agentOffline)
+    await notifyBatchPaymentConfirmed(
+      batch.user,
+      batchId,
+      batch.orders.length,
+      agentOffline,
+      batch.paymentMethod === PaymentMethod.TBANK_ONLINE,
+    )
   } catch (error) {
     console.error('[batch] payment notify failed:', batchId, error)
   }

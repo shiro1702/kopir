@@ -93,4 +93,5 @@
 | Автовозврат при offline | — | 5+ |
 | Группа поддержки + reply-мост | — | 5 |
 | Внутренний баланс для перенаправления | — | backlog |
+| Возврат оплаты сотрудником в staff-чате | PAY-02 | backlog → [staff-refund-in-chat.md](./staff-refund-in-chat.md) |
 | AI-классификация (Groq) | AI-01 | ⏸ |

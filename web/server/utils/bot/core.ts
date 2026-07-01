@@ -812,10 +812,11 @@ export async function notifyBatchPaymentConfirmed(
   batchId: string,
   fileCount: number,
   agentOffline = false,
+  onlinePayment = false,
 ): Promise<void> {
   await sendToUser(
     user,
-    messages.formatBatchPaymentConfirmed(batchId.slice(-6), fileCount, agentOffline),
+    messages.formatBatchPaymentConfirmed(batchId.slice(-6), fileCount, agentOffline, onlinePayment),
   )
 }
 

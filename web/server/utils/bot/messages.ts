@@ -165,11 +165,15 @@ export function formatBatchPaymentConfirmed(
   batchShortId: string,
   fileCount: number,
   agentOffline = false,
+  onlinePayment = false,
 ): string {
+  const afterPay = onlinePayment
+    ? 'Печать запустится автоматически.'
+    : 'Сотрудник запустит печать.'
   const base = (
     `✅ Оплата принята!\n`
     + `Пачка #${batchShortId} (${fileCount} файлов)\n`
-    + 'Сотрудник запустит печать.'
+    + afterPay
   )
   return agentOffline ? `${base}\n\n${MSG_AGENT_OFFLINE_AFTER_PAYMENT}` : base
 }
