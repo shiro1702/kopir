@@ -53,7 +53,17 @@ export default defineEventHandler(async (event) => {
     include: {
       user: true,
       point: true,
-      batch: { select: { createdAt: true } },
+      batch: {
+        select: {
+          createdAt: true,
+          payments: {
+            where: { status: { in: [PaymentStatus.CONFIRMED, PaymentStatus.REFUNDED] } },
+            orderBy: { confirmedAt: 'desc' },
+            take: 1,
+            select: { id: true, status: true, externalId: true },
+          },
+        },
+      },
       payments: {
         where: { status: { in: [PaymentStatus.CONFIRMED, PaymentStatus.REFUNDED] } },
         orderBy: { confirmedAt: 'desc' },
@@ -65,9 +75,12 @@ export default defineEventHandler(async (event) => {
 
   return {
     orders: orders.map((order) => {
-      const latestPayment = order.payments[0] ?? null
+      const latestPayment = order.batchId
+        ? (order.batch?.payments[0] ?? null)
+        : (order.payments[0] ?? null)
+      const isRefundLeader = !order.batchId || order.batchIndex === 1
       const canRefund = isTbankPaymentMethod(order.paymentMethod)
-        && !order.batchId
+        && isRefundLeader
         && latestPayment?.status === PaymentStatus.CONFIRMED
         && Boolean(latestPayment.externalId)
 

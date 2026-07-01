@@ -363,6 +363,75 @@ export function verifyTbankWebhookSecret(header: string | undefined): boolean {
   return header === secret
 }
 
+async function refundConfirmedTbankPayment(payment: {
+  id: string
+  externalId: string | null
+  amountKopeks: number
+}) {
+  if (!payment.externalId) {
+    throw createError({
+      statusCode: 400,
+      data: { error: 'Payment has no T-Bank PaymentId', code: 'INVALID_PAYMENT' },
+    })
+  }
+
+  await tbankCancel(payment.externalId, payment.amountKopeks)
+
+  await prisma.payment.update({
+    where: { id: payment.id },
+    data: { status: PaymentStatus.REFUNDED },
+  })
+
+  return {
+    paymentId: payment.id,
+    amountKopeks: payment.amountKopeks,
+    refunded: true,
+  }
+}
+
+export async function refundTbankPaymentForBatch(batchId: string) {
+  const batch = await prisma.orderBatch.findUnique({
+    where: { id: batchId },
+    include: {
+      payments: {
+        where: { status: PaymentStatus.CONFIRMED },
+        orderBy: { confirmedAt: 'desc' },
+        take: 1,
+      },
+    },
+  })
+
+  if (!batch) {
+    throw createError({
+      statusCode: 404,
+      data: { error: 'Batch not found', code: 'BATCH_NOT_FOUND' },
+    })
+  }
+
+  if (!isTbankPaymentMethod(batch.paymentMethod)) {
+    throw createError({
+      statusCode: 400,
+      data: { error: 'Refund is only available for online T-Bank payments', code: 'INVALID_PAYMENT_METHOD' },
+    })
+  }
+
+  const payment = batch.payments[0]
+  if (!payment) {
+    throw createError({
+      statusCode: 400,
+      data: { error: 'No confirmed payment found for this batch', code: 'PAYMENT_NOT_FOUND' },
+    })
+  }
+
+  const result = await refundConfirmedTbankPayment(payment)
+
+  return {
+    id: batch.id,
+    kind: 'batch' as const,
+    ...result,
+  }
+}
+
 export async function refundTbankPaymentForOrder(orderId: string) {
   const order = await prisma.order.findUnique({
     where: { id: orderId },
@@ -383,10 +452,7 @@ export async function refundTbankPaymentForOrder(orderId: string) {
   }
 
   if (order.batchId) {
-    throw createError({
-      statusCode: 400,
-      data: { error: 'Use batch refund for orders in a batch', code: 'BATCH_ORDER' },
-    })
+    return refundTbankPaymentForBatch(order.batchId)
   }
 
   if (!isTbankPaymentMethod(order.paymentMethod)) {
@@ -404,25 +470,12 @@ export async function refundTbankPaymentForOrder(orderId: string) {
     })
   }
 
-  if (!payment.externalId) {
-    throw createError({
-      statusCode: 400,
-      data: { error: 'Payment has no T-Bank PaymentId', code: 'INVALID_PAYMENT' },
-    })
-  }
-
-  await tbankCancel(payment.externalId, payment.amountKopeks)
-
-  await prisma.payment.update({
-    where: { id: payment.id },
-    data: { status: PaymentStatus.REFUNDED },
-  })
+  const result = await refundConfirmedTbankPayment(payment)
 
   return {
     id: order.id,
-    paymentId: payment.id,
-    amountKopeks: payment.amountKopeks,
-    refunded: true,
+    kind: 'order' as const,
+    ...result,
   }
 }
 

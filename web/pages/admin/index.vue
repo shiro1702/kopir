@@ -230,9 +230,17 @@ async function startPrint(orderId) {
   }
 }
 
-async function refundPayment(orderId) {
+function refundConfirmMessage(order) {
+  if (order.batchId) {
+    return 'Вернуть оплату пачки через Т-Банк?'
+  }
+  return 'Вернуть оплату через Т-Банк?'
+}
+
+async function refundPayment(order) {
   if (!adminSecret.value || refundingId.value) return
-  if (!confirm('Вернуть оплату через Т-Банк?')) return
+  if (!confirm(refundConfirmMessage(order))) return
+  const orderId = order.id
   refundingId.value = orderId
   error.value = ''
   try {
@@ -638,9 +646,9 @@ function formatPointCell(point) {
                     v-if="order.canRefund"
                     class="rounded bg-rose-600 px-3 py-1 text-white hover:bg-rose-700 disabled:opacity-50"
                     :disabled="refundingId === order.id"
-                    @click="refundPayment(order.id)"
+                    @click="refundPayment(order)"
                   >
-                    {{ refundingId === order.id ? '...' : 'Возврат' }}
+                    {{ refundingId === order.id ? '...' : (order.batchId ? 'Возврат пачки' : 'Возврат') }}
                   </button>
                 </td>
               </tr>
