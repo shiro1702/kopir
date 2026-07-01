@@ -21,7 +21,7 @@ const ADMIN_TABS = [
   },
 ]
 
-const adminSecret = ref('')
+const { adminSecret, saveSecret: persistAdminSecret, authHeaders, rememberOnSuccess } = useAdminAuth()
 const orders = ref([])
 const adminConfig = ref(null)
 const loading = ref(false)
@@ -112,13 +112,11 @@ const flatOrders = computed(() => {
 })
 
 onMounted(() => {
-  const storedSecret = localStorage.getItem('kopir_admin_secret')
   const storedTab = localStorage.getItem('kopir_admin_tab')
   if (storedTab && ADMIN_TABS.some((tab) => tab.id === storedTab)) {
     activeTab.value = storedTab
   }
-  if (storedSecret) {
-    adminSecret.value = storedSecret
+  if (adminSecret.value) {
     fetchOrders()
   }
   refreshTimer = setInterval(() => {
@@ -138,17 +136,13 @@ watch(activeTab, (tab) => {
 })
 
 function saveSecret() {
-  if (!adminSecret.value.trim()) {
-    error.value = 'Введите ADMIN_SECRET'
+  const validationError = persistAdminSecret()
+  if (validationError) {
+    error.value = validationError
     return
   }
-  localStorage.setItem('kopir_admin_secret', adminSecret.value.trim())
   error.value = ''
   fetchOrders()
-}
-
-function authHeaders() {
-  return { Authorization: `Bearer ${adminSecret.value}` }
 }
 
 async function fetchAdminConfig() {
@@ -174,6 +168,7 @@ async function fetchOrders() {
       query,
       headers: authHeaders(),
     })
+    rememberOnSuccess()
     orders.value = data.orders
   } catch (e) {
     error.value = e?.data?.error ?? 'Ошибка загрузки заказов'

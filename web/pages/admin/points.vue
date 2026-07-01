@@ -5,13 +5,7 @@ const PAYMENT_METHODS = [
   { id: 'TBANK_ONLINE', label: 'Онлайн (Т-Банк)' },
 ]
 
-const adminSecret = ref('')
-if (import.meta.client) {
-  const storedSecret = localStorage.getItem('kopir_admin_secret')
-  if (storedSecret) {
-    adminSecret.value = storedSecret
-  }
-}
+const { adminSecret, saveSecret: persistAdminSecret, authHeaders, rememberOnSuccess } = useAdminAuth()
 
 const points = ref([])
 const loading = ref(!!adminSecret.value)
@@ -40,11 +34,10 @@ useHead({
 
 let refreshTimer = null
 
-watch(adminSecret, (secret) => {
-  if (secret) fetchPoints()
-}, { immediate: true })
-
 onMounted(() => {
+  if (adminSecret.value) {
+    fetchPoints()
+  }
   refreshTimer = setInterval(() => {
     if (adminSecret.value) fetchPoints()
   }, 15000)
@@ -59,17 +52,13 @@ onUnmounted(() => {
 })
 
 function saveSecret() {
-  if (!adminSecret.value.trim()) {
-    error.value = 'Введите ADMIN_SECRET'
+  const validationError = persistAdminSecret()
+  if (validationError) {
+    error.value = validationError
     return
   }
-  localStorage.setItem('kopir_admin_secret', adminSecret.value.trim())
   error.value = ''
   fetchPoints()
-}
-
-function authHeaders() {
-  return { Authorization: `Bearer ${adminSecret.value}` }
 }
 
 function resetForm() {
@@ -117,6 +106,7 @@ async function fetchPoints() {
   error.value = ''
   try {
     const data = await $fetch('/api/admin/points', { headers: authHeaders() })
+    rememberOnSuccess()
     points.value = data.points
     try {
       const config = await $fetch('/api/admin/config', { headers: authHeaders() })
