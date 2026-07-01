@@ -29,6 +29,7 @@ const error = ref('')
 const confirmingId = ref(null)
 const printingId = ref(null)
 const confirmingBatchId = ref(null)
+const refundingId = ref(null)
 const activeTab = ref('payment')
 
 useHead({
@@ -226,6 +227,24 @@ async function startPrint(orderId) {
     error.value = e?.data?.error ?? 'Не удалось запустить печать'
   } finally {
     printingId.value = null
+  }
+}
+
+async function refundPayment(orderId) {
+  if (!adminSecret.value || refundingId.value) return
+  if (!confirm('Вернуть оплату через Т-Банк?')) return
+  refundingId.value = orderId
+  error.value = ''
+  try {
+    await $fetch(`/api/admin/orders/${orderId}/refund`, {
+      method: 'POST',
+      headers: authHeaders(),
+    })
+    await fetchOrders()
+  } catch (e) {
+    error.value = e?.data?.error ?? 'Не удалось выполнить возврат'
+  } finally {
+    refundingId.value = null
   }
 }
 
@@ -440,10 +459,7 @@ function formatPointCell(point) {
               <th class="px-4 py-3">
                 Статус
               </th>
-              <th
-                v-if="isPaymentTab"
-                class="px-4 py-3"
-              />
+              <th class="px-4 py-3" />
             </tr>
           </thead>
           <tbody>
@@ -605,11 +621,27 @@ function formatPointCell(point) {
                 <td class="px-4 py-3">
                   <span>{{ orderStatusLabel(order) }}</span>
                   <span
+                    v-if="order.paymentRefunded"
+                    class="mt-0.5 block text-xs text-amber-700"
+                  >
+                    Возврат выполнен
+                  </span>
+                  <span
                     v-if="order.status === 'FAILED' && order.errorMessage"
                     class="mt-0.5 block text-xs text-red-600"
                   >
                     {{ order.errorMessage }}
                   </span>
+                </td>
+                <td class="px-4 py-3">
+                  <button
+                    v-if="order.canRefund"
+                    class="rounded bg-rose-600 px-3 py-1 text-white hover:bg-rose-700 disabled:opacity-50"
+                    :disabled="refundingId === order.id"
+                    @click="refundPayment(order.id)"
+                  >
+                    {{ refundingId === order.id ? '...' : 'Возврат' }}
+                  </button>
                 </td>
               </tr>
             </template>
@@ -624,7 +656,7 @@ function formatPointCell(point) {
             </tr>
             <tr v-if="!loading && !isPaymentTab && flatOrders.length === 0 && adminSecret">
               <td
-                colspan="8"
+                colspan="9"
                 class="px-4 py-8 text-center text-gray-500"
               >
                 {{ currentTab.emptyMessage }}
@@ -632,7 +664,7 @@ function formatPointCell(point) {
             </tr>
             <tr v-if="loading">
               <td
-                :colspan="isPaymentTab ? 9 : 8"
+                :colspan="isPaymentTab ? 9 : 9"
                 class="px-4 py-8 text-center text-gray-500"
               >
                 Загрузка...

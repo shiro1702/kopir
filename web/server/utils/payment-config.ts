@@ -27,7 +27,7 @@ function parseEnabledMethodsFromEnv(raw: string): PaymentMethod[] {
   const methods: PaymentMethod[] = []
   for (const part of raw.split(',')) {
     const value = part.trim().toUpperCase()
-    if (value === 'SBP_TRANSFER' || value === 'ON_SITE' || value === 'TBANK_ONLINE') {
+    if (value === 'SBP_TRANSFER' || value === 'ON_SITE' || value === 'TBANK_SBP' || value === 'TBANK_ONLINE') {
       methods.push(value)
     }
   }
@@ -51,7 +51,7 @@ export function getEnabledPaymentMethods(point: PointTransferFields): PaymentMet
     if (method === 'SBP_TRANSFER' && !getTransferPhone(point)) {
       continue
     }
-    if (method === 'TBANK_ONLINE' && !isTbankConfigured()) {
+    if ((method === 'TBANK_SBP' || method === 'TBANK_ONLINE') && !isTbankConfigured()) {
       continue
     }
     if (!result.includes(method)) {

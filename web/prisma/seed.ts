@@ -12,6 +12,7 @@ async function main() {
       paymentMethodsEnabled: [
         PaymentMethod.SBP_TRANSFER,
         PaymentMethod.ON_SITE,
+        PaymentMethod.TBANK_SBP,
         PaymentMethod.TBANK_ONLINE,
       ],
     },
@@ -23,6 +24,7 @@ async function main() {
       paymentMethodsEnabled: [
         PaymentMethod.SBP_TRANSFER,
         PaymentMethod.ON_SITE,
+        PaymentMethod.TBANK_SBP,
         PaymentMethod.TBANK_ONLINE,
       ],
     },

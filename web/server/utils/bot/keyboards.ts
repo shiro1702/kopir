@@ -143,7 +143,7 @@ export function payChangeMethodPayload(entityId: string): string {
 
 export function paymentMethodKeyboard(
   entityId: string,
-  methods: Array<'SBP_TRANSFER' | 'ON_SITE' | 'TBANK_ONLINE'>,
+  methods: Array<'SBP_TRANSFER' | 'ON_SITE' | 'TBANK_SBP' | 'TBANK_ONLINE'>,
 ): InlineKeyboardButton[][] {
   const rows: InlineKeyboardButton[][] = []
   const manualRow: InlineKeyboardButton[] = []
@@ -156,11 +156,15 @@ export function paymentMethodKeyboard(
   if (manualRow.length) {
     rows.push(manualRow)
   }
+  const onlineRow: InlineKeyboardButton[] = []
+  if (methods.includes('TBANK_SBP')) {
+    onlineRow.push({ text: BTN_PAY_ONLINE_SBP, callbackData: payMethodPayload('tbank_sbp', entityId) })
+  }
   if (methods.includes('TBANK_ONLINE')) {
-    rows.push([
-      { text: BTN_PAY_ONLINE_SBP, callbackData: payMethodPayload('tbank_sbp', entityId) },
-      { text: BTN_PAY_ONLINE_CARD, callbackData: payMethodPayload('tbank_card', entityId) },
-    ])
+    onlineRow.push({ text: BTN_PAY_ONLINE_CARD, callbackData: payMethodPayload('tbank_card', entityId) })
+  }
+  if (onlineRow.length) {
+    rows.push(onlineRow)
   }
   return rows
 }

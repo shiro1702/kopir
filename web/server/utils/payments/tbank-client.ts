@@ -167,3 +167,14 @@ export async function tbankGetState(paymentId: string | number): Promise<TbankAp
     PaymentId: paymentId,
   })
 }
+
+export async function tbankCancel(
+  paymentId: string | number,
+  amountKopeks?: number,
+): Promise<TbankApiResponse> {
+  const params: TbankRequestParams = { PaymentId: paymentId }
+  if (amountKopeks !== undefined) {
+    params.Amount = amountKopeks
+  }
+  return postTbank<TbankApiResponse>('Cancel', params)
+}

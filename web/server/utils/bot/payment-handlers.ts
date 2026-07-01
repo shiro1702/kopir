@@ -31,7 +31,8 @@ import type { BotUser, MessengerAdapter, MessengerReplyTarget } from './types'
 
 function mapPayMethod(method: PayMethodCallback): PaymentMethod {
   if (method === 'sbp_transfer') return PaymentMethod.SBP_TRANSFER
-  if (method === 'tbank_sbp' || method === 'tbank_card' || method === 'tbank_online') {
+  if (method === 'tbank_sbp') return PaymentMethod.TBANK_SBP
+  if (method === 'tbank_card' || method === 'tbank_online') {
     return PaymentMethod.TBANK_ONLINE
   }
   return PaymentMethod.ON_SITE
@@ -167,7 +168,7 @@ export async function handlePaymentMethodChoice(
       entityId,
       shortId,
       amountKopeks,
-      paymentMethod: PaymentMethod.TBANK_ONLINE,
+      paymentMethod: result.method,
       point,
       user: result.kind === 'batch' ? result.batch.user : result.order.user,
       batch: result.kind === 'batch' ? result.batch : undefined,

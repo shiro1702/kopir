@@ -31,6 +31,7 @@ enum OrderBatchStatus {
 enum PaymentMethod {
   SBP_TRANSFER
   ON_SITE
+  TBANK_SBP
   TBANK_ONLINE
 }
 
@@ -39,6 +40,7 @@ enum PaymentStatus {
   CONFIRMED
   REJECTED
   CANCELLED
+  REFUNDED
 }
 
 enum MessengerPlatform {

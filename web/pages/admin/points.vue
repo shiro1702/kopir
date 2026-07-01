@@ -1,8 +1,9 @@
 <script setup>
 const PAYMENT_METHODS = [
-  { id: 'SBP_TRANSFER', label: 'Перевод СБП' },
+  { id: 'SBP_TRANSFER', label: 'Перевод' },
+  { id: 'TBANK_SBP', label: 'СБП', needsTbank: true },
+  { id: 'TBANK_ONLINE', label: 'Карта', needsTbank: true },
   { id: 'ON_SITE', label: 'На месте' },
-  { id: 'TBANK_ONLINE', label: 'Онлайн (Т-Банк)' },
 ]
 
 const { adminSecret, saveSecret: persistAdminSecret, authHeaders, rememberOnSuccess } = useAdminAuth()
@@ -161,6 +162,10 @@ async function savePoint() {
   } finally {
     saving.value = false
   }
+}
+
+function isTbankMethod(method) {
+  return method.needsTbank === true
 }
 
 function toggleMethod(methodId) {
@@ -511,7 +516,7 @@ function telegramBotLabel() {
             </p>
           </div>
           <div>
-            <label class="mb-1 block text-sm text-gray-700">Телефон СБП</label>
+            <label class="mb-1 block text-sm text-gray-700">Телефон для перевода</label>
             <input
               v-model="form.transferPhone"
               class="w-full rounded border px-3 py-2 text-sm"
@@ -533,13 +538,13 @@ function telegramBotLabel() {
                 v-for="method in PAYMENT_METHODS"
                 :key="method.id"
                 class="flex items-center gap-2 text-sm"
-                :class="method.id === 'TBANK_ONLINE' && !tbankConfigured ? 'opacity-50' : ''"
-                :title="method.id === 'TBANK_ONLINE' && !tbankConfigured ? 'Задайте TBANK_TERMINAL_KEY и TBANK_PASSWORD' : ''"
+                :class="isTbankMethod(method) && !tbankConfigured ? 'opacity-50' : ''"
+                :title="isTbankMethod(method) && !tbankConfigured ? 'Задайте TBANK_TERMINAL_KEY и TBANK_PASSWORD' : ''"
               >
                 <input
                   type="checkbox"
                   :checked="form.paymentMethodsEnabled.includes(method.id)"
-                  :disabled="method.id === 'TBANK_ONLINE' && !tbankConfigured"
+                  :disabled="isTbankMethod(method) && !tbankConfigured"
                   @change="toggleMethod(method.id)"
                 >
                 {{ method.label }}

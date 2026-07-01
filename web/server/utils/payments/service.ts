@@ -127,8 +127,10 @@ export async function selectPaymentMethod(
   if (isManual && !isTerminalPaymentMode()) {
     throw paymentError('Manual payment methods are only available in terminal mode', 'INVALID_PAYMENT_MODE')
   }
-  if (method === PaymentMethod.TBANK_ONLINE && !isTbankConfigured()) {
-    throw paymentError('Online payment is not configured', 'TBANK_NOT_CONFIGURED', 503)
+  if (method === PaymentMethod.TBANK_SBP || method === PaymentMethod.TBANK_ONLINE) {
+    if (!isTbankConfigured()) {
+      throw paymentError('Online payment is not configured', 'TBANK_NOT_CONFIGURED', 503)
+    }
   }
 
   const resolved = await resolvePaymentEntity(entityId)

@@ -1,11 +1,13 @@
 import { OrderStatus, PaymentMethod, PaymentStatus } from '@prisma/client'
 import { prisma } from '../../prisma'
 import { getTbankPassword, getTbankWebhookSecret } from '../../tbank-config'
+import { isTbankPaymentMethod } from '../methods'
 import type { PaymentContext } from '../types'
 import {
   tbankGetQr,
   tbankGetState,
   tbankInit,
+  tbankCancel,
   verifyTbankNotificationToken,
 } from '../tbank-client'
 
@@ -167,10 +169,10 @@ async function confirmTbankOrderPayment(orderId: string) {
     })
   }
 
-  if (order.paymentMethod !== PaymentMethod.TBANK_ONLINE) {
+  if (!isTbankPaymentMethod(order.paymentMethod)) {
     throw createError({
       statusCode: 400,
-      data: { error: 'Order payment method is not TBANK_ONLINE', code: 'INVALID_PAYMENT_METHOD' },
+      data: { error: 'Order payment method is not online acquiring', code: 'INVALID_PAYMENT_METHOD' },
     })
   }
 
@@ -190,10 +192,10 @@ export async function confirmTbankPayment(entityId: string) {
 
   if (resolved.kind === 'batch') {
     const batch = resolved.batch
-    if (batch.paymentMethod !== PaymentMethod.TBANK_ONLINE) {
+    if (!isTbankPaymentMethod(batch.paymentMethod)) {
       throw createError({
         statusCode: 400,
-        data: { error: 'Batch payment method is not TBANK_ONLINE', code: 'INVALID_PAYMENT_METHOD' },
+        data: { error: 'Batch payment method is not online acquiring', code: 'INVALID_PAYMENT_METHOD' },
       })
     }
     const { confirmBatchPayment } = await import('../../batch')
@@ -359,6 +361,69 @@ export function verifyTbankWebhookSecret(header: string | undefined): boolean {
     return true
   }
   return header === secret
+}
+
+export async function refundTbankPaymentForOrder(orderId: string) {
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    include: {
+      payments: {
+        where: { status: PaymentStatus.CONFIRMED },
+        orderBy: { confirmedAt: 'desc' },
+        take: 1,
+      },
+    },
+  })
+
+  if (!order) {
+    throw createError({
+      statusCode: 404,
+      data: { error: 'Order not found', code: 'ORDER_NOT_FOUND' },
+    })
+  }
+
+  if (order.batchId) {
+    throw createError({
+      statusCode: 400,
+      data: { error: 'Use batch refund for orders in a batch', code: 'BATCH_ORDER' },
+    })
+  }
+
+  if (!isTbankPaymentMethod(order.paymentMethod)) {
+    throw createError({
+      statusCode: 400,
+      data: { error: 'Refund is only available for online T-Bank payments', code: 'INVALID_PAYMENT_METHOD' },
+    })
+  }
+
+  const payment = order.payments[0]
+  if (!payment) {
+    throw createError({
+      statusCode: 400,
+      data: { error: 'No confirmed payment found for this order', code: 'PAYMENT_NOT_FOUND' },
+    })
+  }
+
+  if (!payment.externalId) {
+    throw createError({
+      statusCode: 400,
+      data: { error: 'Payment has no T-Bank PaymentId', code: 'INVALID_PAYMENT' },
+    })
+  }
+
+  await tbankCancel(payment.externalId, payment.amountKopeks)
+
+  await prisma.payment.update({
+    where: { id: payment.id },
+    data: { status: PaymentStatus.REFUNDED },
+  })
+
+  return {
+    id: order.id,
+    paymentId: payment.id,
+    amountKopeks: payment.amountKopeks,
+    refunded: true,
+  }
 }
 
 export function isLegacyTbankWebhookPayload(body: unknown): body is TbankLegacyWebhookPayload {

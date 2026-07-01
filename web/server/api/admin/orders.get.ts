@@ -1,5 +1,6 @@
-import { OrderStatus } from '@prisma/client'
+import { OrderStatus, PaymentStatus } from '@prisma/client'
 import { assertAdminAuth } from '../../utils/admin-auth'
+import { isTbankPaymentMethod } from '../../utils/payments/methods'
 import { pointAgentStatusPayload } from '../../utils/points'
 import { prisma } from '../../utils/prisma'
 
@@ -53,33 +54,50 @@ export default defineEventHandler(async (event) => {
       user: true,
       point: true,
       batch: { select: { createdAt: true } },
+      payments: {
+        where: { status: { in: [PaymentStatus.CONFIRMED, PaymentStatus.REFUNDED] } },
+        orderBy: { confirmedAt: 'desc' },
+        take: 1,
+        select: { id: true, status: true, externalId: true },
+      },
     },
   })
 
   return {
-    orders: orders.map((order) => ({
-      id: order.id,
-      shortId: order.id.slice(-6),
-      fileName: order.fileName,
-      pageCount: order.pageCount,
-      amountKopeks: order.amountKopeks,
-      batchId: order.batchId,
-      batchIndex: order.batchIndex,
-      batchCreatedAt: order.batch?.createdAt.toISOString() ?? null,
-      paymentConfirmedAt: order.paymentConfirmedAt?.toISOString() ?? null,
-      status: order.status,
-      createdAt: order.createdAt.toISOString(),
-      paidAt: order.paidAt?.toISOString() ?? null,
-      printedAt: order.printedAt?.toISOString() ?? null,
-      errorMessage: order.errorMessage,
-      user: {
-        messenger: order.user.telegramId ? 'telegram' : 'max',
-        telegramId: order.user.telegramId?.toString() ?? null,
-        maxUserId: order.user.maxUserId?.toString() ?? null,
-        username: order.user.username,
-        firstName: order.user.firstName,
-      },
-      point: pointAgentStatusPayload(order.point),
-    })),
+    orders: orders.map((order) => {
+      const latestPayment = order.payments[0] ?? null
+      const canRefund = isTbankPaymentMethod(order.paymentMethod)
+        && !order.batchId
+        && latestPayment?.status === PaymentStatus.CONFIRMED
+        && Boolean(latestPayment.externalId)
+
+      return {
+        id: order.id,
+        shortId: order.id.slice(-6),
+        fileName: order.fileName,
+        pageCount: order.pageCount,
+        amountKopeks: order.amountKopeks,
+        batchId: order.batchId,
+        batchIndex: order.batchIndex,
+        batchCreatedAt: order.batch?.createdAt.toISOString() ?? null,
+        paymentConfirmedAt: order.paymentConfirmedAt?.toISOString() ?? null,
+        paymentMethod: order.paymentMethod,
+        paymentRefunded: latestPayment?.status === PaymentStatus.REFUNDED,
+        canRefund,
+        status: order.status,
+        createdAt: order.createdAt.toISOString(),
+        paidAt: order.paidAt?.toISOString() ?? null,
+        printedAt: order.printedAt?.toISOString() ?? null,
+        errorMessage: order.errorMessage,
+        user: {
+          messenger: order.user.telegramId ? 'telegram' : 'max',
+          telegramId: order.user.telegramId?.toString() ?? null,
+          maxUserId: order.user.maxUserId?.toString() ?? null,
+          username: order.user.username,
+          firstName: order.user.firstName,
+        },
+        point: pointAgentStatusPayload(order.point),
+      }
+    }),
   }
 })
