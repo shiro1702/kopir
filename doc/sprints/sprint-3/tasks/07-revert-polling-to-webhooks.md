@@ -40,11 +40,11 @@
 
 | Файл | Назначение |
 |------|------------|
-| `web/server/utils/payments/tbank-payment-watcher.ts` | Цикл `GetState`, `scheduleTbankPaymentWatcher` |
-| `web/server/api/payments/tbank/watch.post.ts` | Фоновый watch на Vercel (`waitUntil` + `AGENT_API_KEY`) |
+| `web/server/utils/payments/tbank-payment-watcher.ts` | Polling `GetState` (цепочка коротких invocations на Vercel) |
+| `web/server/api/payments/tbank/watch.post.ts` | Один шаг poll + планирование следующего `POST /watch` |
 | `web/server/utils/site-url.ts` | `getPublicSiteUrl()` для вызова `/watch` с того же хоста |
 
-> ⚠️ Watcher в коммите импортирует `reconcileTbankPayment`, которая появилась только в **незакоммиченных** правках `tbank-acquiring.ts`. Сейчас workaround полностью работает только с локальными изменениями.
+> **Vercel:** длинный `while` + `waitUntil` не работает — после `200 OK` функция завершается (лимит ~10–60 с). Исправление: каждый `/watch` делает один `GetState`, ждёт 3 с и вызывает себя снова через `fetch` (новая invocation). В логах должны появляться строки `[tbank] poll pending:` каждые ~3 с.
 
 ### Незакоммиченные изменения (на момент создания документа)
 

@@ -1,10 +1,13 @@
 import { assertAgentAuth } from '../../../utils/agent-auth'
-import { runTbankPaymentWatcher } from '../../../utils/payments/tbank-payment-watcher'
+import {
+  runTbankPaymentWatcherStep,
+  scheduleChainedTbankWatch,
+} from '../../../utils/payments/tbank-payment-watcher'
 
 export default defineEventHandler(async (event) => {
   assertAgentAuth(event)
 
-  const body = await readBody<{ paymentId?: string }>(event)
+  const body = await readBody<{ paymentId?: string, startedAt?: number }>(event)
   const paymentId = String(body?.paymentId ?? '').trim()
   if (!paymentId) {
     throw createError({
@@ -13,15 +16,16 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const task = runTbankPaymentWatcher(paymentId)
-  const waitUntil = (event as { waitUntil?: (promise: Promise<unknown>) => void }).waitUntil
-    ?? (event.context as { waitUntil?: (promise: Promise<unknown>) => void }).waitUntil
-
-  if (typeof waitUntil === 'function') {
-    waitUntil(task)
-  } else {
-    void task
+  const startedAt = typeof body?.startedAt === 'number' ? body.startedAt : Date.now()
+  if (body?.startedAt === undefined) {
+    console.log('[tbank] watching payment:', paymentId)
   }
 
-  return { ok: true, watching: paymentId }
+  const status = await runTbankPaymentWatcherStep(paymentId, startedAt)
+
+  if (status === 'pending') {
+    await scheduleChainedTbankWatch(paymentId, startedAt)
+  }
+
+  return { ok: true, status }
 })
