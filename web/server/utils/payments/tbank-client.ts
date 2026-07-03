@@ -8,6 +8,7 @@ import {
   logTbankRequest,
   logTbankSuccess,
 } from './tbank-log'
+import { tbankFetch } from './tbank-fetch'
 
 const NESTED_TOKEN_KEYS = new Set(['DATA', 'Receipt', 'Items', 'Shops'])
 
@@ -106,7 +107,7 @@ async function postTbank<T extends TbankApiResponse>(
 
   let response: Response
   try {
-    response = await fetch(url, {
+    response = await tbankFetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),

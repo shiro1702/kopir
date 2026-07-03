@@ -357,6 +357,8 @@ TBANK_WEBHOOK_SECRET=""        # опционально: legacy dev-mock webhook
 NUXT_PUBLIC_SITE_URL=""        # fallback для NotificationURL
 ```
 
+**TLS (Russian Trusted CA):** корневые сертификаты Минцифры лежат в `web/certs/russian-trusted-ca-bundle.pem` и подключаются автоматически в `tbank-fetch.ts` (исходящие запросы Init/GetQr/Cancel). Переменная `NODE_EXTRA_CA_CERTS` не обязательна. Инструкция Т-Банка: [migration-russian-trusted-ca](https://developer.tbank.ru/eacq/intro/certificates/migration-russian-trusted-ca).
+
 **Включение в боте:** `/admin/points` → способы оплаты → «Онлайн (Т-Банк)». Без ключей чекбокс disabled. После `db:seed` у `point_dev_1` метод включён по умолчанию.
 
 **Webhook (prod):** Т-Банк шлёт POST с полем `Token` (SHA-256). Ответ сервера: `200` + тело `OK`.

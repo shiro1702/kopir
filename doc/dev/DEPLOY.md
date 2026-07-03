@@ -297,6 +297,7 @@ Preview получают те же env vars (если включены для Pr
 | Бот не отвечает | Webhook не зарегистрирован | `set-bot-webhooks.sh` |
 | `Point not found` | Нет seed | `npm run db:seed` с prod URL |
 | Too many DB connections | Direct URL вместо pooled | Переключить на pooler в Neon |
+| T-Bank `certificate verify failed` | Нет Russian Trusted CA | Сертификаты в `web/certs/` (авто); при сбое — redeploy |
 
 ---
 

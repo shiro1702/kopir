@@ -9,6 +9,9 @@ export default defineNuxtConfig({
   },
   nitro: {
     preset: 'vercel',
+    serverAssets: [
+      { baseName: 'certs', dir: './certs' },
+    ],
     // Prisma must stay external: bundling into ESM breaks __dirname in the query engine.
     // traceInclude copies .prisma/client binaries into the Vercel function output.
     externals: {
