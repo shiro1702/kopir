@@ -119,3 +119,21 @@ export function logTbankWebhookProcessed(
   const line = outcome === 'error' ? console.error : console.log
   line('[tbank] webhook processed', { outcome, ...meta })
 }
+
+type WaitUntilEvent = {
+  waitUntil?: (promise: Promise<unknown>) => void
+  context?: { waitUntil?: (promise: Promise<unknown>) => void }
+}
+
+/** Run webhook DB work after responding OK (Vercel waitUntil when available). */
+export function scheduleWebhookBackgroundTask(
+  event: WaitUntilEvent,
+  task: Promise<unknown>,
+): void {
+  const waitUntil = event.waitUntil ?? event.context?.waitUntil
+  if (typeof waitUntil === 'function') {
+    waitUntil(task)
+    return
+  }
+  void task
+}

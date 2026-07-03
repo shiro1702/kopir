@@ -1,9 +1,18 @@
 import {
   handleTbankLegacyWebhook,
-  handleTbankNotification,
   isLegacyTbankWebhookPayload,
+  processTbankWebhookNotification,
   verifyTbankWebhookSecret,
 } from '../../../utils/payments/providers/tbank-acquiring'
+import { scheduleWebhookBackgroundTask } from '../../../utils/payments/tbank-log'
+
+import type { H3Event } from 'h3'
+
+function respondTbankOk(event: H3Event) {
+  setResponseStatus(event, 200)
+  setHeader(event, 'Content-Type', 'text/plain; charset=utf-8')
+  return 'OK'
+}
 
 export default defineEventHandler(async (event) => {
   const body = await readBody<Record<string, unknown>>(event)
@@ -23,16 +32,7 @@ export default defineEventHandler(async (event) => {
     return handleTbankLegacyWebhook(body)
   }
 
-  setResponseStatus(event, 200)
-  setHeader(event, 'Content-Type', 'text/plain; charset=utf-8')
-  try {
-    await handleTbankNotification(body)
-  } catch (error) {
-    const code = error && typeof error === 'object' && 'data' in error
-      ? (error as { data?: { code?: string } }).data?.code
-      : undefined
-    console.error('[tbank] webhook handler error', { code, error })
-    throw error
-  }
-  return 'OK'
+  // T-Bank requires 200 + plain "OK" even when processing fails (they retry on errors).
+  scheduleWebhookBackgroundTask(event, processTbankWebhookNotification(body))
+  return respondTbankOk(event)
 })

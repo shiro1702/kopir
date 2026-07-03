@@ -9,6 +9,11 @@ const POLL_MAX_MS = Math.max(
   POLL_INTERVAL_MS,
   Number(process.env.TBANK_PAYMENT_POLL_MAX_MS ?? 20 * 60 * 1000),
 )
+/** Max time for one serverless invocation (Vercel kills self-fetch chains with 508). */
+const WATCH_INVOCATION_BUDGET_MS = Math.max(
+  POLL_INTERVAL_MS * 2,
+  Number(process.env.TBANK_WATCH_INVOCATION_BUDGET_MS ?? 50_000),
+)
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
@@ -70,13 +75,28 @@ async function postWatchRequest(paymentId: string, startedAt: number): Promise<b
   return true
 }
 
-/** Next poll via new serverless invocation (Vercel kills long loops after HTTP response). */
-export async function scheduleChainedTbankWatch(
+/**
+ * Poll GetState in one invocation (no chained self-fetch — Vercel returns 508 after ~4 nested calls).
+ */
+export async function runTbankPaymentWatcherBatch(
   paymentId: string,
   startedAt: number,
-): Promise<void> {
-  await sleep(POLL_INTERVAL_MS)
-  await postWatchRequest(paymentId, startedAt)
+): Promise<TbankWatchStepResult> {
+  const invocationDeadline = Date.now() + WATCH_INVOCATION_BUDGET_MS
+
+  while (Date.now() < invocationDeadline && Date.now() - startedAt < POLL_MAX_MS) {
+    const status = await runTbankPaymentWatcherStep(paymentId, startedAt)
+    if (status !== 'pending') {
+      return status
+    }
+    await sleep(POLL_INTERVAL_MS)
+  }
+
+  if (Date.now() - startedAt >= POLL_MAX_MS) {
+    return 'timeout'
+  }
+
+  return 'pending'
 }
 
 async function runTbankPaymentWatcherLocal(paymentId: string): Promise<void> {

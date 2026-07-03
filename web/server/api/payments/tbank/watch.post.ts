@@ -1,8 +1,5 @@
 import { assertAgentAuth } from '../../../utils/agent-auth'
-import {
-  runTbankPaymentWatcherStep,
-  scheduleChainedTbankWatch,
-} from '../../../utils/payments/tbank-payment-watcher'
+import { runTbankPaymentWatcherBatch } from '../../../utils/payments/tbank-payment-watcher'
 
 export default defineEventHandler(async (event) => {
   assertAgentAuth(event)
@@ -21,11 +18,6 @@ export default defineEventHandler(async (event) => {
     console.log('[tbank] watching payment:', paymentId)
   }
 
-  const status = await runTbankPaymentWatcherStep(paymentId, startedAt)
-
-  if (status === 'pending') {
-    await scheduleChainedTbankWatch(paymentId, startedAt)
-  }
-
+  const status = await runTbankPaymentWatcherBatch(paymentId, startedAt)
   return { ok: true, status }
 })

@@ -252,7 +252,8 @@ async function markPaymentConfirmed(
 }
 
 export function isTbankPaymentSettled(state: TbankApiResponse): boolean {
-  return state.Status === 'CONFIRMED' && state.Success === true
+  const success = state.Success === true || state.Success === 'true'
+  return state.Status === 'CONFIRMED' && success
 }
 
 export type TbankReconcileResult =
@@ -311,16 +312,20 @@ async function processConfirmedPayment(payment: {
   return { ok: true, result, entityId }
 }
 
-export async function handleTbankNotification(payload: Record<string, unknown>) {
+export type TbankWebhookProcessResult =
+  | { ok: true, ignored?: boolean, status?: string, entityId?: string, alreadyConfirmed?: boolean }
+  | { ok: false, code: string, error: string }
+
+/** Process T-Bank HTTP notification; never throws (errors logged, caller must respond OK). */
+export async function processTbankWebhookNotification(
+  payload: Record<string, unknown>,
+): Promise<TbankWebhookProcessResult> {
   logTbankWebhookReceived(payload)
 
   const password = getTbankPassword()
   if (!password) {
     logTbankWebhookProcessed('error', { reason: 'TBANK_NOT_CONFIGURED' })
-    throw createError({
-      statusCode: 500,
-      data: { error: 'T-Bank is not configured', code: 'TBANK_NOT_CONFIGURED' },
-    })
+    return { ok: false, code: 'TBANK_NOT_CONFIGURED', error: 'T-Bank is not configured' }
   }
 
   if (!verifyTbankNotificationToken(payload, password)) {
@@ -328,11 +333,9 @@ export async function handleTbankNotification(payload: Record<string, unknown>) 
       reason: 'INVALID_TOKEN',
       orderId: payload.OrderId ?? null,
       paymentId: payload.PaymentId ?? null,
+      passwordConfigured: true,
     })
-    throw createError({
-      statusCode: 401,
-      data: { error: 'Invalid notification token', code: 'INVALID_TOKEN' },
-    })
+    return { ok: false, code: 'INVALID_TOKEN', error: 'Invalid notification token' }
   }
 
   const status = String(payload.Status ?? '')
@@ -346,10 +349,7 @@ export async function handleTbankNotification(payload: Record<string, unknown>) 
   const merchantOrderId = String(payload.OrderId ?? '').trim()
   if (!merchantOrderId) {
     logTbankWebhookProcessed('error', { reason: 'MISSING_ORDER_ID' })
-    throw createError({
-      statusCode: 400,
-      data: { error: 'OrderId is required', code: 'INVALID_PAYLOAD' },
-    })
+    return { ok: false, code: 'INVALID_PAYLOAD', error: 'OrderId is required' }
   }
 
   const payment = await prisma.payment.findUnique({ where: { merchantOrderId } })
@@ -358,19 +358,49 @@ export async function handleTbankNotification(payload: Record<string, unknown>) 
       reason: 'PAYMENT_NOT_FOUND',
       merchantOrderId,
     })
-    throw createError({
-      statusCode: 404,
-      data: { error: 'Payment not found', code: 'PAYMENT_NOT_FOUND' },
-    })
+    return { ok: false, code: 'PAYMENT_NOT_FOUND', error: 'Payment not found' }
   }
 
-  const processed = await processConfirmedPayment(payment, payload.PaymentId as string | number | null)
-  logTbankWebhookProcessed('confirmed', {
-    merchantOrderId,
-    entityId: processed.entityId,
-    paymentId: payload.PaymentId ?? null,
-  })
-  return processed
+  try {
+    const processed = await processConfirmedPayment(payment, payload.PaymentId as string | number | null)
+    logTbankWebhookProcessed('confirmed', {
+      merchantOrderId,
+      entityId: processed.entityId,
+      paymentId: payload.PaymentId ?? null,
+    })
+    return {
+      ok: true,
+      entityId: processed.entityId,
+      alreadyConfirmed: Boolean(processed.alreadyConfirmed),
+    }
+  } catch (error) {
+    logTbankWebhookProcessed('error', {
+      reason: 'PROCESS_FAILED',
+      merchantOrderId,
+      error: error instanceof Error ? error.message : String(error),
+    })
+    return {
+      ok: false,
+      code: 'PROCESS_FAILED',
+      error: error instanceof Error ? error.message : 'Webhook processing failed',
+    }
+  }
+}
+
+export async function handleTbankNotification(payload: Record<string, unknown>) {
+  const result = await processTbankWebhookNotification(payload)
+  if (!result.ok) {
+    const statusCode = result.code === 'INVALID_TOKEN'
+      ? 401
+      : result.code === 'PAYMENT_NOT_FOUND'
+        ? 404
+        : 500
+    throw createError({
+      statusCode,
+      data: { error: result.error, code: result.code },
+    })
+  }
+  return result
 }
 
 /** Dev/test mock webhook without T-Bank Token signature. */
