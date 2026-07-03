@@ -1,5 +1,12 @@
 import { createHash } from 'node:crypto'
-import { getTbankApiUrl, getTbankNotificationUrl, getTbankPassword, getTbankTerminalKey } from '../tbank-config'
+import {
+  getTbankApiUrl,
+  getTbankNotificationUrl,
+  getTbankPassword,
+  getTbankTerminalKey,
+  isTbankReceiptEnabled,
+} from '../tbank-config'
+import { maybeBuildTbankReceipt } from './tbank-receipt'
 import {
   logTbankConfigHint,
   logTbankFailure,
@@ -12,7 +19,7 @@ import { tbankFetch } from './tbank-fetch'
 
 const NESTED_TOKEN_KEYS = new Set(['DATA', 'Receipt', 'Items', 'Shops'])
 
-export type TbankRequestParams = Record<string, string | number | boolean | null | undefined>
+export type TbankRequestParams = Record<string, string | number | boolean | null | undefined | object>
 
 export interface TbankApiResponse {
   Success: boolean
@@ -151,6 +158,8 @@ export interface TbankInitParams {
   merchantOrderId: string
   description: string
   notificationUrl?: string
+  receiptItemName?: string
+  receiptEmail?: string | null
 }
 
 export async function tbankInit(params: TbankInitParams): Promise<TbankApiResponse> {
@@ -165,6 +174,24 @@ export async function tbankInit(params: TbankInitParams): Promise<TbankApiRespon
   if (notificationUrl) {
     request.NotificationURL = notificationUrl
   }
+
+  const receipt = maybeBuildTbankReceipt({
+    amountKopeks: params.amountKopeks,
+    itemName: params.receiptItemName ?? params.description,
+    email: params.receiptEmail,
+  })
+  if (receipt) {
+    request.Receipt = receipt
+    console.log('[tbank] Init with Receipt (FFD 1.05)', {
+      taxation: receipt.Taxation,
+      itemName: receipt.Items[0]?.Name,
+      amountKopeks: params.amountKopeks,
+      hasEmail: Boolean(receipt.Email),
+    })
+  } else if (isTbankReceiptEnabled()) {
+    console.warn('[tbank] TBANK_RECEIPT_ENABLED but Receipt was not built')
+  }
+
   return postTbank<TbankApiResponse>('Init', request)
 }
 

@@ -66,6 +66,8 @@ export default defineNuxtConfig({
     tbankWebhookSecret: process.env.TBANK_WEBHOOK_SECRET ?? '',
     tbankApiUrl: process.env.TBANK_API_URL ?? 'https://securepay.tinkoff.ru/v2',
     tbankNotificationUrl: process.env.TBANK_NOTIFICATION_URL ?? '',
+    tbankReceiptEnabled: process.env.TBANK_RECEIPT_ENABLED ?? 'false',
+    tbankReceiptEmail: process.env.TBANK_RECEIPT_EMAIL ?? '',
     public: {
       appVersion: '0.0.1',
       siteUrl: process.env.NUXT_PUBLIC_SITE_URL ?? '',

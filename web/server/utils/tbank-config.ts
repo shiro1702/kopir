@@ -61,3 +61,61 @@ export function getTbankPassword(): string | null {
     return null
   }
 }
+
+function envFlag(name: string): boolean {
+  const raw = String(process.env[name] ?? '').trim().toLowerCase()
+  return raw === '1' || raw === 'true' || raw === 'yes'
+}
+
+function envString(name: string, fallback: string): string {
+  const fromEnv = String(process.env[name] ?? '').trim()
+  return fromEnv || fallback
+}
+
+/** Prod terminal with T-Checks: true. Test DEMO terminal: false. */
+export function isTbankReceiptEnabled(): boolean {
+  if (envFlag('TBANK_RECEIPT_ENABLED')) {
+    return true
+  }
+  try {
+    const config = useRuntimeConfig()
+    return String(config.tbankReceiptEnabled ?? '').trim().toLowerCase() === 'true'
+  } catch {
+    return false
+  }
+}
+
+export function getTbankReceiptEmail(): string | null {
+  const email = envString('TBANK_RECEIPT_EMAIL', '')
+  if (email) {
+    return email
+  }
+  try {
+    const config = useRuntimeConfig()
+    const fromConfig = String(config.tbankReceiptEmail ?? '').trim()
+    return fromConfig || null
+  } catch {
+    return null
+  }
+}
+
+/** FFD 1.05: usn_income = УСН 6% (доходы). */
+export function getTbankReceiptTaxation(): string {
+  return envString('TBANK_RECEIPT_TAXATION', 'usn_income')
+}
+
+export function getTbankReceiptTax(): string {
+  return envString('TBANK_RECEIPT_TAX', 'none')
+}
+
+export function getTbankReceiptPaymentObject(): string {
+  return envString('TBANK_RECEIPT_PAYMENT_OBJECT', 'service')
+}
+
+export function getTbankReceiptPaymentMethod(): string {
+  return envString('TBANK_RECEIPT_PAYMENT_METHOD', 'full_payment')
+}
+
+export function getTbankReceiptItemName(): string {
+  return envString('TBANK_RECEIPT_ITEM_NAME', 'Услуги копировального центра')
+}

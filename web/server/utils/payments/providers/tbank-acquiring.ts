@@ -41,6 +41,16 @@ function createMerchantOrderId(): string {
   return `kp_${ts}_${rand}`.slice(0, 36)
 }
 
+function buildReceiptItemName(ctx: PaymentContext): string {
+  if (ctx.kind === 'batch' && ctx.batch && ctx.batch.totalPages > 0) {
+    return `Печать, ${ctx.batch.totalPages} стр.`
+  }
+  if (ctx.order && ctx.order.pageCount > 0) {
+    return `Печать, ${ctx.order.pageCount} стр.`
+  }
+  return `Печать #${ctx.shortId}`
+}
+
 async function cancelPendingPaymentsForEntity(ctx: PaymentContext) {
   if (ctx.kind === 'batch') {
     await prisma.payment.updateMany({
@@ -85,6 +95,7 @@ export async function initPayment(
     amountKopeks: ctx.amountKopeks,
     merchantOrderId,
     description: `Печать #${ctx.shortId}`,
+    receiptItemName: buildReceiptItemName(ctx),
   })
 
   const externalPaymentId = initResult.PaymentId

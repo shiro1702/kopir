@@ -59,6 +59,7 @@ export function logTbankRequest(
   console.log('[tbank] request', {
     method,
     url: meta?.url,
+    receiptIncluded: Object.prototype.hasOwnProperty.call(params, 'Receipt'),
     params: sanitizeTbankParams(params),
   })
 }
