@@ -1,5 +1,13 @@
 import { createHash } from 'node:crypto'
 import { getTbankApiUrl, getTbankNotificationUrl, getTbankPassword, getTbankTerminalKey } from '../tbank-config'
+import {
+  logTbankConfigHint,
+  logTbankFailure,
+  logTbankInvalidResponse,
+  logTbankNetworkError,
+  logTbankRequest,
+  logTbankSuccess,
+} from './tbank-log'
 
 const NESTED_TOKEN_KEYS = new Set(['DATA', 'Receipt', 'Items', 'Shops'])
 
@@ -93,6 +101,9 @@ async function postTbank<T extends TbankApiResponse>(
   const apiUrl = getTbankApiUrl()
   const url = `${apiUrl.replace(/\/$/, '')}/${method}`
 
+  logTbankConfigHint(terminalKey, Boolean(password))
+  logTbankRequest(method, body, { url })
+
   let response: Response
   try {
     response = await fetch(url, {
@@ -101,7 +112,7 @@ async function postTbank<T extends TbankApiResponse>(
       body: JSON.stringify(body),
     })
   } catch (error) {
-    console.error('[tbank] request failed:', method, error)
+    logTbankNetworkError(method, error)
     throw tbankError('T-Bank API unreachable', 'TBANK_NETWORK_ERROR')
   }
 
@@ -109,10 +120,12 @@ async function postTbank<T extends TbankApiResponse>(
   try {
     data = await response.json() as T
   } catch {
+    logTbankInvalidResponse(method, response.status)
     throw tbankError('Invalid T-Bank API response', 'TBANK_INVALID_RESPONSE')
   }
 
   if (!response.ok) {
+    logTbankFailure(method, data, response.status)
     throw tbankError(
       data.Message ?? `T-Bank HTTP ${response.status}`,
       data.ErrorCode ?? 'TBANK_HTTP_ERROR',
@@ -121,12 +134,14 @@ async function postTbank<T extends TbankApiResponse>(
   }
 
   if (!data.Success) {
+    logTbankFailure(method, data, response.status)
     throw tbankError(
       data.Message ?? data.Details ?? 'T-Bank request failed',
       data.ErrorCode ?? 'TBANK_API_ERROR',
     )
   }
 
+  logTbankSuccess(method, data)
   return data
 }
 

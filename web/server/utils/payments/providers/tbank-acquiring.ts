@@ -11,6 +11,7 @@ import {
   verifyTbankNotificationToken,
   type TbankApiResponse,
 } from '../tbank-client'
+import { logTbankWebhookProcessed, logTbankWebhookReceived } from '../tbank-log'
 
 export type TbankPayChannel = 'sbp' | 'card'
 
@@ -61,6 +62,15 @@ export async function initPayment(
   await cancelPendingPaymentsForEntity(ctx)
 
   const merchantOrderId = createMerchantOrderId()
+  console.log('[tbank] initPayment', {
+    kind: ctx.kind,
+    entityId: ctx.entityId,
+    shortId: ctx.shortId,
+    channel,
+    amountKopeks: ctx.amountKopeks,
+    merchantOrderId,
+  })
+
   const payment = await prisma.payment.create({
     data: {
       merchantOrderId,
@@ -79,6 +89,14 @@ export async function initPayment(
 
   const externalPaymentId = initResult.PaymentId
   if (externalPaymentId === undefined || externalPaymentId === null) {
+    console.error('[tbank] initPayment missing PaymentId', {
+      merchantOrderId,
+      initResult: {
+        errorCode: initResult.ErrorCode,
+        message: initResult.Message,
+        details: initResult.Details,
+      },
+    })
     throw createError({
       statusCode: 502,
       data: { error: 'T-Bank Init did not return PaymentId', code: 'TBANK_INIT_FAILED' },
@@ -283,8 +301,11 @@ async function processConfirmedPayment(payment: {
 }
 
 export async function handleTbankNotification(payload: Record<string, unknown>) {
+  logTbankWebhookReceived(payload)
+
   const password = getTbankPassword()
   if (!password) {
+    logTbankWebhookProcessed('error', { reason: 'TBANK_NOT_CONFIGURED' })
     throw createError({
       statusCode: 500,
       data: { error: 'T-Bank is not configured', code: 'TBANK_NOT_CONFIGURED' },
@@ -292,6 +313,11 @@ export async function handleTbankNotification(payload: Record<string, unknown>) 
   }
 
   if (!verifyTbankNotificationToken(payload, password)) {
+    logTbankWebhookProcessed('error', {
+      reason: 'INVALID_TOKEN',
+      orderId: payload.OrderId ?? null,
+      paymentId: payload.PaymentId ?? null,
+    })
     throw createError({
       statusCode: 401,
       data: { error: 'Invalid notification token', code: 'INVALID_TOKEN' },
@@ -302,11 +328,13 @@ export async function handleTbankNotification(payload: Record<string, unknown>) 
   const success = payload.Success === true || payload.Success === 'true'
 
   if (status !== 'CONFIRMED' || !success) {
+    logTbankWebhookProcessed('ignored', { status, success })
     return { ok: true, ignored: true, status }
   }
 
   const merchantOrderId = String(payload.OrderId ?? '').trim()
   if (!merchantOrderId) {
+    logTbankWebhookProcessed('error', { reason: 'MISSING_ORDER_ID' })
     throw createError({
       statusCode: 400,
       data: { error: 'OrderId is required', code: 'INVALID_PAYLOAD' },
@@ -315,6 +343,10 @@ export async function handleTbankNotification(payload: Record<string, unknown>) 
 
   const payment = await prisma.payment.findUnique({ where: { merchantOrderId } })
   if (!payment) {
+    logTbankWebhookProcessed('error', {
+      reason: 'PAYMENT_NOT_FOUND',
+      merchantOrderId,
+    })
     throw createError({
       statusCode: 404,
       data: { error: 'Payment not found', code: 'PAYMENT_NOT_FOUND' },
@@ -322,7 +354,11 @@ export async function handleTbankNotification(payload: Record<string, unknown>) 
   }
 
   const processed = await processConfirmedPayment(payment, payload.PaymentId as string | number | null)
-  console.log('[tbank] webhook confirmed payment:', merchantOrderId, processed.entityId)
+  logTbankWebhookProcessed('confirmed', {
+    merchantOrderId,
+    entityId: processed.entityId,
+    paymentId: payload.PaymentId ?? null,
+  })
   return processed
 }
 

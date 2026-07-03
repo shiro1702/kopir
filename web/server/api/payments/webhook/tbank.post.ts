@@ -25,6 +25,14 @@ export default defineEventHandler(async (event) => {
 
   setResponseStatus(event, 200)
   setHeader(event, 'Content-Type', 'text/plain; charset=utf-8')
-  await handleTbankNotification(body)
+  try {
+    await handleTbankNotification(body)
+  } catch (error) {
+    const code = error && typeof error === 'object' && 'data' in error
+      ? (error as { data?: { code?: string } }).data?.code
+      : undefined
+    console.error('[tbank] webhook handler error', { code, error })
+    throw error
+  }
   return 'OK'
 })
