@@ -119,7 +119,3 @@ export function getTbankReceiptPaymentMethod(): string {
 export function getTbankReceiptItemName(): string {
   return envString('TBANK_RECEIPT_ITEM_NAME', 'Услуги копировального центра')
 }
-
-export function getTbankCashboxApiUrl(): string {
-  return envString('TBANK_CASHBOX_API_URL', 'https://securepay.tinkoff.ru/cashbox')
-}

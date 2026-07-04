@@ -2,7 +2,7 @@ import type { User } from '@prisma/client'
 import { isTbankReceiptEnabled } from '../tbank-config'
 import { prisma } from '../prisma'
 import { scheduleWebhookBackgroundTask } from './tbank-log'
-import { extractReceiptUrl, resolveTbankReceiptUrl } from './tbank-receipt-link'
+import { resolveTbankReceiptUrl } from './tbank-receipt-link'
 
 type WaitUntilEvent = {
   waitUntil?: (promise: Promise<unknown>) => void
@@ -44,9 +44,7 @@ export async function sendTbankReceiptToCustomer(
   }
 
   const shortId = (payment.batchId ?? payment.orderId ?? paymentId).slice(-6)
-  const hintUrl = webhookPayload ? extractReceiptUrl(webhookPayload) : null
-
-  const receiptUrl = await resolveTbankReceiptUrl(payment.externalId, hintUrl)
+  const receiptUrl = resolveTbankReceiptUrl(webhookPayload)
   if (!receiptUrl) {
     console.warn('[tbank] receipt url unavailable for customer notify:', paymentId)
     return

@@ -1,7 +1,6 @@
 import { createHash } from 'node:crypto'
 import {
   getTbankApiUrl,
-  getTbankCashboxApiUrl,
   getTbankNotificationUrl,
   getTbankPassword,
   getTbankTerminalKey,
@@ -217,13 +216,6 @@ export async function tbankGetQr(
 
 export async function tbankGetState(paymentId: string | number): Promise<TbankApiResponse> {
   return postTbank<TbankApiResponse>('GetState', {
-    PaymentId: paymentId,
-  })
-}
-
-/** Cashbox API: fiscal receipt status + OFD link (T-Checks). */
-export async function tbankGetReceiptState(paymentId: string | number): Promise<TbankApiResponse> {
-  return postTbankToBase(getTbankCashboxApiUrl(), 'GetReceiptState', {
     PaymentId: paymentId,
   })
 }
