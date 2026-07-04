@@ -1,6 +1,6 @@
 # Оплата в боте: перевод и «на месте»
 
-> **Статус:** пилот (Sprint 1) ✅; эквайринг — [Sprint 3](../sprints/sprint-3/README.md) (sandbox DEMO)  
+> **Статус:** ручная оплата ✅; онлайн эквайринг prod ✅; касса ATOL 🟡  
 > **Feature IDs:** PAY-01 (расширение), PAY-02/03 (эквайринг), UX-12  
 > **Связано:** [FEATURES.md](../project/FEATURES.md), [BOT_MESSENGERS.md](../project/BOT_MESSENGERS.md), [sprint-1/tasks/13-payment-method-choice.md](../sprints/sprint-1/tasks/13-payment-method-choice.md)
 
@@ -382,15 +382,18 @@ sequenceDiagram
 
 ---
 
-## Диаграмма: эквайринг (Sprint 2+)
+## Диаграмма: эквайринг (Sprint 3+)
 
-Тот же UX в Mini App / боте, но вместо staff confirm:
+**Актуальный UX в боте (Telegram vs MAX):** [online-payment-bot-flow.md](./online-payment-bot-flow.md)
+
+Кратко:
 
 ```
-Клиент → «Оплатить СБП» → PaymentProvider.initiateOnline()
-       → QR / deep link Т-Банка
-       → webhook succeeded → confirmPayment() → PAID → печать
+Клиент → «СБП» / «карта» → Т-Банк Init → оплата в банке
+       → webhook CONFIRMED → confirmPayment() → PAID → печать
 ```
+
+В Telegram дополнительно: кнопка «Проверить» (polling GetState), если webhook задержался.
 
 Ручные методы (`SBP_TRANSFER`, `ON_SITE`) остаются в `paymentMethodsEnabled` для точек без договора эквайринга.
 

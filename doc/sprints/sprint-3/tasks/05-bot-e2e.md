@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Статус** | 🟡 code done, E2E pending |
+| **Статус** | 🟡 code done, E2E optional (реализация принята 05.07) |
 | **Feature** | PAY-02, PAY-03 |
 
 ## UX

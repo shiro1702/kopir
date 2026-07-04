@@ -6,6 +6,8 @@ Kopir — SaaS self-service печати. Monorepo: `web/` (Nuxt 3 + Nitro) + `d
 
 **Обязательно читай перед работой:** `doc/project/PROJECT.md`, `doc/project/FEATURES.md`, `doc/sprints/SPRINTS.md`, `doc/project/BOT_MESSENGERS.md` (боты).
 
+При изменении UX бота (кнопки, тексты, оплата): синхронизируй `doc/product/bot-user-flow*.md/html/svg/png` — см. `.cursor/rules/bot-ux-docs-sync.mdc`.
+
 ## Стек
 
 - **web/**: Nuxt 3, Vue 3 Composition API + `<script setup>`, Nitro, TypeScript, Prisma, Neon (PostgreSQL), Vercel Blob, Redis (Sprint 1+), Tailwind

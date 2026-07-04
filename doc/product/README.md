@@ -3,6 +3,7 @@
 | Документ | Статус | Тема |
 |----------|--------|------|
 | [payment-flow.md](./payment-flow.md) | **Sprint 1** ✅ | Перевод / на месте → staff confirm → эквайринг (Т-Банк, ЮKassa) |
+| [online-payment-bot-flow.md](./online-payment-bot-flow.md) | **Sprint 3** ✅ | Онлайн СБП/карта в TG и MAX: UX, ссылки, webhook |
 | [docx-conversion.md](./docx-conversion.md) | **Sprint 0.1** | Word на ПК: подсчёт листов → quote → печать |
 | [color-printing.md](./color-printing.md) | Этап 3+ | Постраничный анализ цвета, маршрутизация |
 | [byop-hybrid-printing.md](./byop-hybrid-printing.md) | Этап 4 (боксы) | BYOP, гибрид «наша / своя бумага», CUPS |

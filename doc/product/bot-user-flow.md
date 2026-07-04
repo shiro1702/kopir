@@ -2,19 +2,22 @@
 
 > **Назначение:** единая карта взаимодействия пользователя с ботом (Telegram / MAX): команды, кнопки, условия показа, переходы.  
 > **Код:** `web/server/utils/bot/`, адаптеры `telegram/`, `max/`.  
-> **Обновлено:** 01.07.2026
+> **Обновлено:** 05.07.2026
 
 ### Визуальные схемы
 
 | Формат | Файл | Как открыть |
 |--------|------|-------------|
 | **Интерактивная** (вкладки, zoom) | [bot-user-flow-diagram.html](./bot-user-flow-diagram.html) | `open doc/product/bot-user-flow-diagram.html` |
-| **Картинка-обзор** | [bot-user-flow-overview.png](./bot-user-flow-overview.png) | для презентаций / Notion |
+| **Картинка-обзор** | [bot-user-flow-overview.png](./bot-user-flow-overview.png) | превью; исходник [bot-user-flow-overview.svg](./bot-user-flow-overview.svg) |
 | **Живой чеклист** | [bot-user-flow-status.md](./bot-user-flow-status.md) | быстрое обновление статусов |
+
+> **Синхронизация:** при изменении UX бота обновляй весь пакет — см. `.cursor/rules/bot-ux-docs-sync.mdc`.  
+> **Пересобрать PNG:** `cd doc/product && npx @resvg/resvg-js-cli bot-user-flow-overview.svg bot-user-flow-overview.png`
 
 ![Обзор флоу бота](./bot-user-flow-overview.png)
 
-**Связанные документы:** [payment-flow.md](./payment-flow.md) · [batch-edit-flow.md](./batch-edit-flow.md) · [bot-point-selection.md](./bot-point-selection.md) · [point-availability.md](./point-availability.md) · [bot-support-flow.md](./bot-support-flow.md) · [BOT_MESSENGERS.md](../project/BOT_MESSENGERS.md) · [SPRINTS.md](../sprints/SPRINTS.md) · [ROADMAP.md](../roadmap/ROADMAP.md)
+**Связанные документы:** [payment-flow.md](./payment-flow.md) · [online-payment-bot-flow.md](./online-payment-bot-flow.md) · [batch-edit-flow.md](./batch-edit-flow.md) · [bot-point-selection.md](./bot-point-selection.md) · [point-availability.md](./point-availability.md) · [bot-support-flow.md](./bot-support-flow.md) · [BOT_MESSENGERS.md](../project/BOT_MESSENGERS.md) · [SPRINTS.md](../sprints/SPRINTS.md) · [ROADMAP.md](../roadmap/ROADMAP.md)
 
 ---
 
@@ -40,13 +43,13 @@
 |------|--------|--------|------------|
 | `/start`, deep link `point_*` | ✅ | 0 | Привязка точки через `preferences` |
 | `/bind` (staff) | ✅ | 2 | Токен из админки `/admin/points` |
-| Сбор пачки (batch) | ✅ | 0.2 | До 5 файлов, `COLLECTING` |
+| Сбор нескольких файлов (batch) | ✅ | 0.2 | До 5 файлов; в UI: «Файлов: N из 5», «Отменить всё» |
 | PDF + Word (.doc/.docx) | ✅ | 0.1 | Word → `CALCULATING` на агенте |
-| Reply-клавиатура «Оплатить» / «Отменить» | ✅ | 0.2 | TG: reply; MAX: inline callback |
-| Удаление файла из пачки | ✅ | 1 | Inline `batch_remove:*` |
+| Reply-клавиатура «Оплатить» / «Отменить всё» | ✅ | 0.2 | TG: reply; MAX: inline callback |
+| Удаление файла из списка | ✅ | 1 | Inline `batch_remove:*` |
 | Статусные сообщения (edit + typing) | ✅ | 1 | Один messageId на файл |
 | Выбор способа оплаты | ✅ | 1 | Перевод / на месте |
-| Т-Банк СБП онлайн | 🟡 | 3 | Init/GetQr/webhook ✅; E2E sandbox ⬜ |
+| Т-Банк СБП + карта онлайн | ✅ | 3 | TG: callback + auto-open; MAX: прямые URL; см. [online-payment-bot-flow.md](./online-payment-bot-flow.md) |
 | «Готово!» после печати | 🟡 | 1 | Код частично; UX-10 не закрыт |
 | Блокировка offline-точки | ⬜ | 1 | MON-02 |
 | Повтор печати клиентом | ✅ | 1 | `order_retry:*` при сбое |
@@ -56,7 +59,7 @@
 | VK / Viber бот | ⬜ | 5 | WEB-16, WEB-17 |
 | AI FAQ в боте | ⏸ | — | AI-01 |
 
-**Активный спринт:** [Sprint 3 — Т-Банк](../sprints/sprint-3/README.md) (sandbox).
+**Активный спринт:** [Sprint 4 — ЛК партнёра в боте](../sprints/sprint-4/README.md). Эквайринг prod ✅.
 
 ---
 
@@ -100,14 +103,14 @@ flowchart LR
 | `/start bind_<token>` | Staff | токен из админки | Привязка `StaffChannel` к точке | ✅ |
 | `/bind <token>` | Staff | альтернатива deep link | То же, что `bind_*` в `/start` | ✅ |
 | Текст `✅ Оплатить` | Клиент | TG only; есть пачка `COLLECTING`; режим `ready` | `finalizeBatch` → выбор оплаты | ✅ |
-| Текст `❌ Отменить пачку` | Клиент | TG; есть пачка `COLLECTING` | `cancelBatch` | ✅ |
+| Текст `❌ Отменить всё` | Клиент | TG; есть batch `COLLECTING` | `cancelBatch` | ✅ |
 
 ### Reply-клавиатура (Telegram)
 
 | Кнопка | Показать когда | Скрыть когда |
 |--------|----------------|--------------|
-| `✅ Оплатить` | `getBatchKeyboardMode === 'ready'` (нет файлов в `CALCULATING`) | `calculating` или пачки нет |
-| `❌ Отменить пачку` | Всегда, пока пачка `COLLECTING` | После finalize / cancel |
+| `✅ Оплатить` | `getBatchKeyboardMode === 'ready'` (нет файлов в `CALCULATING`) | `calculating` или batch нет |
+| `❌ Отменить всё` | Всегда, пока batch `COLLECTING` | После finalize / cancel |
 
 MAX: те же действия через **inline** `batch_finalize` / `batch_cancel` (reply-клавиатуры нет).
 
@@ -115,17 +118,18 @@ MAX: те же действия через **inline** `batch_finalize` / `batch_
 
 | Payload | Экран / контекст | Условие | Статус |
 |---------|------------------|---------|--------|
-| `batch_finalize` | Управление пачкой | MAX; пачка `COLLECTING`, mode `ready` | ✅ |
-| `batch_cancel` | Управление пачкой | Пачка `COLLECTING` | ✅ |
-| `batch_remove:{orderId}` | Сообщение файла | Пачка `COLLECTING`; order не `CALCULATING` | ✅ |
+| `batch_finalize` | Сбор файлов | MAX; batch `COLLECTING`, mode `ready` | ✅ |
+| `batch_cancel` | Сбор файлов | batch `COLLECTING` | ✅ |
+| `batch_remove:{orderId}` | Сообщение файла | batch `COLLECTING`; order не `CALCULATING` | ✅ |
 | `batch_remove_confirm:{orderId}` | Подтверждение удаления | После «Удалить» | ✅ |
 | `batch_remove_cancel:{orderId}` | Отмена удаления | На экране confirm | ✅ |
 | `pay_method:sbp_transfer:{id}` | После finalize | Метод в `paymentMethodsEnabled` + есть телефон | ✅ |
 | `pay_method:on_site:{id}` | После finalize | Метод включён на точке | ✅ |
-| `pay_method:tbank_online:{id}` | После finalize | Метод + `isTbankConfigured()` | 🟡 |
+| `pay_method:tbank_sbp:{id}` | После finalize | Метод + Т-Банк; TG: callback→open; MAX: url в кнопке | ✅ |
+| `pay_method:tbank_card:{id}` | После finalize | То же для карты (`TBANK_ONLINE`) | ✅ |
 | `pay_claimed:{id}` | Инструкция перевода | Выбран `SBP_TRANSFER` | ✅ |
 | `pay_change_method:{id}` | Любой способ до confirm | `AWAITING_PAYMENT`, нет `paymentConfirmedAt` | ✅ |
-| `pay_check_status:{paymentId}` | Онлайн СБП | После Init Т-Банка | 🟡 |
+| `pay_check_status:{paymentId}` | После онлайн-оплаты | Только Telegram; polling GetState | ✅ |
 | `order_retry:{orderId}` | Ошибка печати | Order в failed-состоянии | ✅ |
 
 `{id}` = `orderId` или `batchId`.
@@ -168,17 +172,17 @@ stateDiagram-v2
   }
 
   Collecting --> AwaitingPayment: Оплатить / batch_finalize (✅)
-  Collecting --> Cancelled: Отменить пачку (✅)
+  Collecting --> Cancelled: Отменить всё (✅)
   Cancelled --> Idle: MSG_BATCH_CANCELLED
 
   state AwaitingPayment {
     [*] --> ChooseMethod
     ChooseMethod --> TransferPending: перевод СБП (✅)
     ChooseMethod --> OnSitePending: на месте (✅)
-    ChooseMethod --> OnlinePending: Т-Банк СБП (🟡)
+    ChooseMethod --> OnlinePending: Т-Банк СБП / карта (✅)
     TransferPending --> StaffConfirm: клиент «Я оплатил» (✅)
     OnSitePending --> StaffConfirm: staff уведомлён сразу (✅)
-    OnlinePending --> Paid: webhook / проверить оплату (🟡)
+    OnlinePending --> Paid: webhook (+ «Проверить» в TG) (✅)
     ChooseMethod --> ChooseMethod: другой способ (✅)
     TransferPending --> StaffConfirm: staff confirm
     OnSitePending --> StaffConfirm: staff confirm
@@ -247,42 +251,58 @@ flowchart TD
 
 ## Диаграмма: оплата
 
+> **Детально (онлайн TG vs MAX):** [online-payment-bot-flow.md](./online-payment-bot-flow.md)
+
 ```mermaid
 flowchart TD
   subgraph finalize [После «Оплатить» ✅]
-    F1[formatBatchSummary]
+    F1[formatBatchSummary / N файлов к оплате]
     F2[formatPaymentMethodChoice]
     F3[inline: методы из Point.paymentMethodsEnabled]
   end
 
   F1 --> F2 --> F3
 
-  F3 --> M1[📱 Перевод]
-  F3 --> M2[💳 На месте]
-  F3 --> M3[💳 Онлайн СБП 🟡]
+  F3 --> M1[перевод]
+  F3 --> M2[на месте]
+  F3 --> M3[СБП онлайн]
+  F3 --> M4[карта онлайн]
 
   M1 --> T1[Реквизиты + Я оплатил]
   M2 --> T2[Инструкция на стойку]
-  M3 --> T3[QR URL + Проверить оплату]
+
+  M3 --> P3{TG / MAX}
+  M4 --> P4{TG / MAX}
+
+  P3 -->|Telegram| TG3[callback → open bank + Проверить]
+  P3 -->|MAX| MAX3[url payUrl в кнопке]
+
+  P4 -->|Telegram| TG4[callback → pay.tbank.ru + Проверить]
+  P4 -->|MAX| MAX4[url pay.tbank.ru в кнопке]
+
+  TG3 --> WH[webhook → PAID]
+  TG4 --> WH
+  MAX3 --> WH
+  MAX4 --> WH
 
   T1 -->|pay_claimed| ST1[Staff: проверьте банк ✅]
   T2 --> ST2[Staff: клиент идёт на стойку ✅]
-  T3 -->|webhook| PAID[PAID + печать 🟡]
 
   ST1 --> CONF[staff_pay / staff_batch_confirm]
   ST2 --> CONF
-  CONF --> PAID
+  CONF --> PAID[PAID]
+  WH --> PAID
 
   PAID --> PRINT[Агент печатает ✅]
 
-  style M3 fill:#fff9c4
+  style WH fill:#e8f5e9
   style PAID fill:#e8f5e9
 ```
 
 Фильтрация методов (`payment-config.ts`):
 
 - `SBP_TRANSFER` — только если задан `transferPhone` (точка или env)
-- `TBANK_ONLINE` — только если настроен Т-Банк (sandbox/prod keys)
+- `TBANK_SBP`, `TBANK_ONLINE` — только если настроен Т-Банк (`isTbankConfigured()`)
 - `ON_SITE` — всегда, если включён в списке
 
 ---
@@ -310,10 +330,11 @@ sequenceDiagram
   ST->>B: Оплатить пачку / Оплата получена
   B->>A: print job
 
-  Note over C,A: Т-Банк (🟡)
-  C->>B: Онлайн СБП
+  Note over C,A: Т-Банк СБП / карта (✅) — см. online-payment-bot-flow.md
+  C->>B: выбор СБП или карта
+  B->>B: Init + open / url в кнопке (MAX)
   C->>B: оплата в банке
-  B->>B: webhook succeeded
+  B->>B: webhook CONFIRMED
   B->>A: print job (без staff)
 ```
 
@@ -384,11 +405,11 @@ Fallback staff-канала: env `STAFF_TELEGRAM_CHAT_ID` / `STAFF_MAX_USER_ID`,
 
 | Период | Фокус бота |
 |--------|------------|
-| **Июль, нед. 1** | Закрыть Sprint 3 sandbox E2E (10+ платежей) |
-| **Июль, нед. 2–3** | Sprint 2 хвосты: `/bind` в проде на 2–3 точках |
-| **Август** | Sprint 4: Mini App, partner-facing UX |
-| **До 1 сент.** | 5+ точек, «Готово!», VK deep link в QR |
-| **Сентябрь+** | Рост, принт-бокс сценарии (отдельный агент) |
+| **Июль, нед. 1–2** | Sprint 4: partner-бот ЛК, баланс, лендинг `/partners` |
+| **Июль, нед. 3–4** | Sprint 5 старт: реестр выплат PAY-07 |
+| **Август** | Sprint 5: 5+ точек, VK deep link, алерты |
+| **До 1 сент.** | Стабильность, super-admin GMV |
+| **Сентябрь+** | Рост, принт-бокс сценарии |
 
 ---
 

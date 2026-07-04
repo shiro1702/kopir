@@ -1,17 +1,23 @@
-# Sprint 3 — «Т-Банк» (онлайн СБП)
+# Sprint 3 — «Т-Банк» (онлайн СБП/карта)
 
 | | |
 |---|---|
-| **Период** | Июнь 2026 — sandbox; prod после договора |
-| **Статус** | 🟡 in_progress — sandbox с DEMO-терминалом |
-| **Цель** | Онлайн-оплата СБП в боте → автопечать без staff |
+| **Период** | Июнь – 5 июля 2026 |
+| **Статус** | ✅ закрыт |
+| **Цель** | Онлайн-оплата в боте → автопечать без staff |
 | **Этап roadmap** | [Этап 2c — Эквайринг](../../roadmap/ROADMAP.md#этап-2c--эквайринг-sprint-3) |
-| **Предусловие** | Sprint 2: админка точек, скелет `tbank`, `/bind` |
 
-## Блокер prod
+## Итог (05.07.2026)
 
-Номинальный счёт / боевой терминал — для prod и выплат партнёрам (PAY-07).  
-**Sandbox** разблокирован DEMO-ключами Т-Банка.
+| Компонент | Статус |
+|-----------|--------|
+| Боевой терминал Т-Касса | ✅ |
+| Init / GetQr / webhook | ✅ prod |
+| UX TG + MAX (СБП, карта, hybrid per-point) | ✅ |
+| Webhook → автопечать | ✅ (фоновый GetState polling **откатан**, см. task 07) |
+| «Проверить оплату» | ✅ ручной `GetState` fallback |
+| Облачная касса ATOL Online (PAY-04) | 🟡 на проверке |
+| Выплаты партнёрам | → Sprint 4–5 (PAY-06/07) |
 
 ## Задачи
 
@@ -21,28 +27,20 @@
 | 02 | Prisma `Payment` + миграция | ✅ | PAY-02 | [tasks/02-payment-model.md](./tasks/02-payment-model.md) |
 | 03 | Init + GetQr (реальный API) | ✅ | PAY-02 | [tasks/03-init-getqr.md](./tasks/03-init-getqr.md) |
 | 04 | Webhook → PAID → печать | ✅ | PAY-03 | [tasks/04-webhook.md](./tasks/04-webhook.md) |
-| 05 | UX бота + E2E sandbox | 🟡 | PAY-02/03 | [tasks/05-bot-e2e.md](./tasks/05-bot-e2e.md) |
-| 07 | Откат polling → webhook | 🟡 workaround | PAY-03 | [tasks/07-revert-polling-to-webhooks.md](./tasks/07-revert-polling-to-webhooks.md) |
-| — | Облачная касса (ФЗ-54) | ⏸ | PAY-04 | после prod |
+| 05 | UX бота + E2E | ✅ | PAY-02/03 | [tasks/05-bot-e2e.md](./tasks/05-bot-e2e.md) |
+| 06 | Логирование webhook | ✅ | PAY-03 | [tasks/06-tbank-webhook-logging.md](./tasks/06-tbank-webhook-logging.md) |
+| 07 | Откат GetState-polling | ✅ | PAY-03 | [tasks/07-revert-polling-to-webhooks.md](./tasks/07-revert-polling-to-webhooks.md) |
+| — | Облачная касса ATOL (ФЗ-54) | 🟡 | PAY-04 | на проверке |
+| — | 100+ prod-транзакций | ⏸ | PAY-02 | метрика масштаба |
 
 ## Definition of Done
 
-- [x] Код: Init/GetQr, webhook с Token, кнопка «Оплатить СБП»
-- [ ] E2E: ≥10 sandbox-платежей ([REPORT.md](./REPORT.md))
-- [ ] Prod: боевой терминал + 100+ транзакций
-- [x] `TBANK_ONLINE` per-point в админке
-- [ ] Первая выплата партнёру (PAY-07)
-
-## Ключевые файлы
-
-```
-web/server/utils/payments/tbank-client.ts
-web/server/utils/payments/providers/tbank-acquiring.ts
-web/server/api/payments/webhook/tbank.post.ts
-web/server/utils/bot/payment-handlers.ts
-web/prisma/schema.prisma — model Payment
-```
+- [x] Prod-терминал, ключи в `web/.env`
+- [x] Webhook подтверждает оплату → печать без «Проверить»
+- [x] Фоновый polling удалён (`tbank-payment-watcher` нет в коде)
+- [ ] ATOL Online подключена, чек клиенту (PAY-04)
+- [ ] 100+ транзакций (операционная метрика)
 
 ## После спринта
 
-→ [Sprint 4 — Онбординг](../SPRINTS.md#sprint-4--онбординг-без-созвона)
+→ [Sprint 4 — ЛК партнёра в боте](../sprint-4/README.md)

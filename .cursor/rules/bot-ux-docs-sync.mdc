@@ -1,0 +1,50 @@
+---
+description: Синхронизация документации UX бота (диаграммы, тексты, статусы)
+globs: doc/product/bot-user-flow*.md,doc/product/bot-user-flow*.html,doc/product/online-payment-bot-flow.md,web/server/utils/bot/messages.ts,web/server/utils/bot/payment-handlers.ts,web/server/utils/bot/keyboards.ts
+alwaysApply: false
+---
+
+# Bot UX docs — держать в актуальном состоянии
+
+При изменении клиентского флоу бота (кнопки, тексты, оплата, batch) **обнови все связанные артефакты в одном PR**.
+
+## Пакет файлов (источник истины → визуализация)
+
+| Приоритет | Файл | Роль |
+|-----------|------|------|
+| 1 | `web/server/utils/bot/messages.ts`, `keyboards.ts`, `payment-handlers.ts` | **Код** — реальное поведение |
+| 2 | `doc/product/online-payment-bot-flow.md` | Детали онлайн-оплаты TG vs MAX |
+| 3 | `doc/product/bot-user-flow.md` | Полная карта: callbacks, mermaid, таблица статусов |
+| 4 | `doc/product/bot-user-flow-status.md` | Короткий чеклист ✅/🟡/⬜ |
+| 5 | `doc/product/bot-user-flow-diagram.html` | Интерактивные диаграммы + SVG обзор |
+| 6 | `doc/product/bot-user-flow-overview.svg` | Исходник PNG-обзора |
+| 7 | `doc/product/bot-user-flow-overview.png` | Экспорт для Notion/презентаций |
+
+## Когда обновлять
+
+- Новая/изменённая кнопка или текст в боте
+- Новый callback payload (`pay_*`, `batch_*`, `staff_*`)
+- Изменение флоу оплаты (Telegram vs MAX)
+- Смена статуса спринта (✅ закрыто / 🟡 частично)
+
+## Чеклист перед merge
+
+1. Тексты в `messages.ts` совпадают с диаграммами (без устаревшего «пачка» в клиентском UI)
+2. `bot-user-flow.md` — таблица «Текущее состояние» и mermaid оплаты
+3. `bot-user-flow-status.md` — дата в шапке
+4. `bot-user-flow-diagram.html` — вкладки Обзор / Оплата / Staff + дата в header
+5. PNG/SVG: правь `bot-user-flow-overview.svg` (или SVG во вкладке «Обзор» в HTML), затем:
+   `cd doc/product && npx @resvg/resvg-js-cli bot-user-flow-overview.svg bot-user-flow-overview.png`
+
+## Терминология (клиент)
+
+- ✅ «Файлов: N из 5», «Отменить всё», «N файлов к оплате»
+- ❌ «пачка» в клиентских текстах и диаграммах (в коде batch — ок)
+
+## Онлайн-оплата (кратко для диаграмм)
+
+- **Telegram:** callback СБП/карта → `answerCallbackQuery.url` → сообщение «Проверить»
+- **MAX:** при показе способа — прямые URL Т-Банка в кнопках, без «Проверить»
+- **Оба:** webhook `POST /api/payments/webhook/tbank` → печать
+
+Подробности: `doc/product/online-payment-bot-flow.md`.

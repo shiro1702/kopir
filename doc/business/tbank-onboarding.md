@@ -56,7 +56,8 @@
 | 2 | Заявка на Т-Кассу (Telegram-бот) | 1–2 дня одобрение |
 | 3 | Подключить облачную кассу | параллельно |
 | 4 | Включить СБП, вставить ключи в `web/` | после одобрения |
-| 5 | Sandbox E2E: 10+ тестовых платежей | Sprint 3 |
+| 5 | Prod E2E: оплата → webhook → печать | ✅ Sprint 3 |
+| 6 | ATOL Online — дождаться проверки | 🟡 PAY-04 |
 
 ---
 
@@ -67,4 +68,4 @@ web/server/utils/tbank/     # клиент API
 web/server/api/payments/      # Init, webhook
 ```
 
-Статус: Sprint 3 (sandbox ✅, prod keys TBD).
+Статус: Sprint 3 ✅ prod · касса ATOL 🟡 на проверке.

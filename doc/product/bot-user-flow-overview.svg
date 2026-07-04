@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 760 800" xmlns="http://www.w3.org/2000/svg" font-family="sans-serif">
+  <defs>
+    <marker id="a" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+      <polygon points="0 0,8 3,0 6" fill="#8b92a8"/>
+    </marker>
+    <style>
+      .t { fill:#e8eaef; font-size:13px }
+      .s { fill:#8b92a8; font-size:11px }
+      .d { fill:#1e3a2f; stroke:#3d9a6a; stroke-width:1.5 }
+      .p { fill:#3a3218; stroke:#c9a227; stroke-width:1.5 }
+      .n { fill:#252830; stroke:#6b7280; stroke-width:1.5 }
+      .l { stroke:#8b92a8; stroke-width:1.5; fill:none; marker-end:url(#a) }
+    </style>
+  </defs>
+  <rect width="760" height="800" fill="#0f1117"/>
+  <text class="t" x="380" y="28" text-anchor="middle" font-size="16" font-weight="600">Kopir bot flow (overview)</text>
+  <text class="s" x="380" y="48" text-anchor="middle">2026-07-05</text>
+
+  <rect class="d" x="280" y="70" width="200" height="48" rx="8"/>
+  <text class="t" x="380" y="98" text-anchor="middle">/start</text>
+  <line class="l" x1="380" y1="118" x2="380" y2="140"/>
+
+  <rect class="d" x="200" y="140" width="360" height="60" rx="8"/>
+  <text class="t" x="380" y="168" text-anchor="middle">Collect files (up to 5)</text>
+  <text class="s" x="380" y="186" text-anchor="middle">Cancel all</text>
+
+  <line class="l" x1="380" y1="200" x2="380" y2="222"/>
+  <rect class="d" x="220" y="222" width="320" height="44" rx="8"/>
+  <text class="t" x="380" y="248" text-anchor="middle">Pay - choose method</text>
+
+  <line class="l" x1="200" y1="266" x2="100" y2="300"/>
+  <line class="l" x1="300" y1="266" x2="280" y2="300"/>
+  <line class="l" x1="460" y1="266" x2="480" y2="300"/>
+  <line class="l" x1="560" y1="266" x2="660" y2="300"/>
+
+  <rect class="d" x="20" y="300" width="160" height="64" rx="8"/>
+  <text class="t" x="100" y="336" text-anchor="middle">transfer</text>
+
+  <rect class="d" x="200" y="300" width="160" height="64" rx="8"/>
+  <text class="t" x="280" y="336" text-anchor="middle">on-site</text>
+
+  <rect class="d" x="400" y="300" width="160" height="76" rx="8"/>
+  <text class="t" x="480" y="332" text-anchor="middle">SBP online</text>
+  <text class="s" x="480" y="352" text-anchor="middle">TG open / MAX url</text>
+
+  <rect class="d" x="580" y="300" width="160" height="76" rx="8"/>
+  <text class="t" x="660" y="332" text-anchor="middle">card</text>
+  <text class="s" x="660" y="352" text-anchor="middle">pay.tbank.ru</text>
+
+  <line class="l" x1="380" y1="376" x2="380" y2="410"/>
+  <rect class="d" x="200" y="410" width="360" height="52" rx="8"/>
+  <text class="t" x="380" y="440" text-anchor="middle">staff confirm / webhook</text>
+
+  <line class="l" x1="380" y1="462" x2="380" y2="484"/>
+  <rect class="d" x="260" y="484" width="240" height="44" rx="8"/>
+  <text class="t" x="380" y="510" text-anchor="middle">PAID - print</text>
+
+  <line class="l" x1="320" y1="528" x2="220" y2="560"/>
+  <line class="l" x1="440" y1="528" x2="540" y2="560"/>
+  <rect class="p" x="140" y="560" width="160" height="48" rx="8"/>
+  <text class="t" x="220" y="588" text-anchor="middle">Done!</text>
+  <rect class="d" x="460" y="560" width="160" height="48" rx="8"/>
+  <text class="t" x="540" y="588" text-anchor="middle">retry</text>
+</svg>

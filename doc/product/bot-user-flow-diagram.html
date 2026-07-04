@@ -138,7 +138,7 @@
 <body>
   <header>
     <h1>Kopir — флоу бота (Telegram / MAX)</h1>
-    <p>Интерактивная схема · обновлено 01.07.2026 · <code>doc/product/bot-user-flow.md</code></p>
+    <p>Интерактивная схема · обновлено 05.07.2026 · <a href="./bot-user-flow.md" style="color:var(--accent)">bot-user-flow.md</a> · <a href="./online-payment-bot-flow.md" style="color:var(--accent)">онлайн-оплата</a></p>
     <div class="legend">
       <span><i class="dot done"></i> ✅ Реализовано</span>
       <span><i class="dot partial"></i> 🟡 Частично</span>
@@ -152,6 +152,7 @@
     <button data-tab="file">Сбор файла</button>
     <button data-tab="payment">Оплата</button>
     <button data-tab="staff">Staff</button>
+    <button data-tab="online">Онлайн TG/MAX</button>
     <button data-tab="arch">Архитектура</button>
   </nav>
 
@@ -161,118 +162,121 @@
     <h2>Обзор: путь клиента</h2>
     <p class="desc">Упрощённая схема сверху вниз. Цвет рамки = статус реализации.</p>
 
-    <svg class="svg-overview" viewBox="0 0 720 920" xmlns="http://www.w3.org/2000/svg">
+    <svg class="svg-overview" viewBox="0 0 760 980" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <marker id="arrowhead" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
           <polygon points="0 0, 8 3, 0 6" fill="#8b92a8" />
         </marker>
       </defs>
 
-      <!-- Row 1 -->
-      <rect class="box-done" x="260" y="20" width="200" height="52" rx="8" />
-      <text class="box-label" x="360" y="42" text-anchor="middle">/start</text>
-      <text class="box-sub" x="360" y="58" text-anchor="middle">point_* deep link ✅</text>
+      <rect class="box-done" x="280" y="20" width="200" height="52" rx="8" />
+      <text class="box-label" x="380" y="42" text-anchor="middle">/start</text>
+      <text class="box-sub" x="380" y="58" text-anchor="middle">point_* deep link ✅</text>
 
-      <line class="arrow" x1="360" y1="72" x2="360" y2="100" />
+      <line class="arrow" x1="380" y1="72" x2="380" y2="100" />
 
-      <!-- Row 2 -->
-      <rect class="box-done" x="200" y="100" width="320" height="64" rx="8" />
-      <text class="box-label" x="360" y="122" text-anchor="middle">Сбор пачки COLLECTING</text>
-      <text class="box-sub" x="360" y="140" text-anchor="middle">PDF / Word · до 5 файлов · 🗑 удалить ✅</text>
-      <text class="box-sub" x="360" y="154" text-anchor="middle">Кнопки: «Оплатить» (если ready) · «Отменить»</text>
+      <rect class="box-done" x="200" y="100" width="360" height="68" rx="8" />
+      <text class="box-label" x="380" y="122" text-anchor="middle">Сбор файлов COLLECTING</text>
+      <text class="box-sub" x="380" y="140" text-anchor="middle">PDF / Word · до 5 · Файлов: N из 5 ✅</text>
+      <text class="box-sub" x="380" y="156" text-anchor="middle">«Оплатить» · «❌ Отменить всё» · 🗑</text>
 
-      <!-- Side branch cancel -->
-      <line class="arrow" x1="200" y1="132" x2="100" y2="132" />
-      <rect class="box-done" x="20" y="108" width="80" height="48" rx="6" />
-      <text class="box-label" x="60" y="130" text-anchor="middle" font-size="11">Отмена</text>
-      <text class="box-sub" x="60" y="144" text-anchor="middle">✅</text>
+      <line class="arrow" x1="200" y1="134" x2="90" y2="134" />
+      <rect class="box-done" x="10" y="110" width="80" height="48" rx="6" />
+      <text class="box-label" x="50" y="132" text-anchor="middle" font-size="11">Сброшено</text>
+      <text class="box-sub" x="50" y="146" text-anchor="middle">✅</text>
 
-      <line class="arrow" x1="360" y1="164" x2="360" y2="192" />
+      <line class="arrow" x1="380" y1="168" x2="380" y2="196" />
 
-      <!-- Row 3 finalize -->
-      <rect class="box-done" x="220" y="192" width="280" height="48" rx="8" />
-      <text class="box-label" x="360" y="214" text-anchor="middle">«Оплатить» → AWAITING_PAYMENT</text>
-      <text class="box-sub" x="360" y="230" text-anchor="middle">formatBatchSummary ✅</text>
+      <rect class="box-done" x="220" y="196" width="320" height="48" rx="8" />
+      <text class="box-label" x="380" y="218" text-anchor="middle">«Оплатить» → AWAITING_PAYMENT</text>
+      <text class="box-sub" x="380" y="234" text-anchor="middle">N файлов к оплате ✅</text>
 
-      <line class="arrow" x1="360" y1="240" x2="360" y2="268" />
+      <line class="arrow" x1="380" y1="244" x2="380" y2="272" />
 
-      <!-- Row 4 payment choice -->
-      <rect class="box-done" x="180" y="268" width="360" height="48" rx="8" />
-      <text class="box-label" x="360" y="290" text-anchor="middle">Выбор способа оплаты</text>
-      <text class="box-sub" x="360" y="306" text-anchor="middle">inline: перевод · на месте · онлайн 🟡</text>
+      <rect class="box-done" x="120" y="272" width="520" height="48" rx="8" />
+      <text class="box-label" x="380" y="294" text-anchor="middle">Выбор способа оплаты</text>
+      <text class="box-sub" x="380" y="310" text-anchor="middle">перевод · на месте · СБП · карта ✅</text>
 
-      <!-- Three branches -->
-      <line class="arrow" x1="240" y1="316" x2="120" y2="360" />
-      <line class="arrow" x1="360" y1="316" x2="360" y2="360" />
-      <line class="arrow" x1="480" y1="316" x2="600" y2="360" />
+      <line class="arrow" x1="200" y1="320" x2="100" y2="368" />
+      <line class="arrow" x1="300" y1="320" x2="280" y2="368" />
+      <line class="arrow" x1="460" y1="320" x2="480" y2="368" />
+      <line class="arrow" x1="560" y1="320" x2="660" y2="368" />
 
-      <rect class="box-done" x="40" y="360" width="160" height="72" rx="8" />
-      <text class="box-label" x="120" y="382" text-anchor="middle">📱 Перевод СБП</text>
-      <text class="box-sub" x="120" y="400" text-anchor="middle">реквизиты</text>
-      <text class="box-sub" x="120" y="416" text-anchor="middle">«Я оплатил» ✅</text>
+      <rect class="box-done" x="20" y="368" width="160" height="72" rx="8" />
+      <text class="box-label" x="100" y="390" text-anchor="middle">перевод</text>
+      <text class="box-sub" x="100" y="408" text-anchor="middle">реквизиты</text>
+      <text class="box-sub" x="100" y="424" text-anchor="middle">«Я оплатил» ✅</text>
 
-      <rect class="box-done" x="280" y="360" width="160" height="72" rx="8" />
-      <text class="box-label" x="360" y="382" text-anchor="middle">💳 На месте</text>
-      <text class="box-sub" x="360" y="400" text-anchor="middle">стойка копицентра</text>
-      <text class="box-sub" x="360" y="416" text-anchor="middle">staff сразу ✅</text>
+      <rect class="box-done" x="200" y="368" width="160" height="72" rx="8" />
+      <text class="box-label" x="280" y="390" text-anchor="middle">на месте</text>
+      <text class="box-sub" x="280" y="408" text-anchor="middle">стойка</text>
+      <text class="box-sub" x="280" y="424" text-anchor="middle">staff сразу ✅</text>
 
-      <rect class="box-partial" x="520" y="360" width="160" height="72" rx="8" />
-      <text class="box-label" x="600" y="382" text-anchor="middle">💳 Онлайн СБП</text>
-      <text class="box-sub" x="600" y="400" text-anchor="middle">Т-Банк QR</text>
-      <text class="box-sub" x="600" y="416" text-anchor="middle">webhook 🟡</text>
+      <rect class="box-done" x="400" y="368" width="160" height="88" rx="8" />
+      <text class="box-label" x="480" y="390" text-anchor="middle">СБП онлайн</text>
+      <text class="box-sub" x="480" y="406" text-anchor="middle">TG: tap→open</text>
+      <text class="box-sub" x="480" y="422" text-anchor="middle">MAX: url в кнопке</text>
+      <text class="box-sub" x="480" y="438" text-anchor="middle">✅</text>
 
-      <!-- Staff merge -->
-      <line class="arrow" x1="120" y1="432" x2="120" y2="480" />
-      <line class="arrow" x1="360" y1="432" x2="360" y2="480" />
-      <line class="arrow" x1="600" y1="432" x2="600" y2="460" />
-      <line class="arrow" x1="600" y1="460" x2="360" y2="460" />
-      <line class="arrow" x1="120" y1="480" x2="360" y2="480" />
+      <rect class="box-done" x="580" y="368" width="160" height="88" rx="8" />
+      <text class="box-label" x="660" y="390" text-anchor="middle">карта онлайн</text>
+      <text class="box-sub" x="660" y="406" text-anchor="middle">pay.tbank.ru</text>
+      <text class="box-sub" x="660" y="422" text-anchor="middle">TG: + Проверить</text>
+      <text class="box-sub" x="660" y="438" text-anchor="middle">✅</text>
 
-      <rect class="box-done" x="220" y="480" width="280" height="56" rx="8" />
-      <text class="box-label" x="360" y="502" text-anchor="middle">Staff подтверждает</text>
-      <text class="box-sub" x="360" y="520" text-anchor="middle">staff_pay / staff_batch_confirm ✅</text>
-      <text class="box-sub" x="360" y="534" text-anchor="middle">(онлайн — без staff)</text>
+      <line class="arrow" x1="100" y1="440" x2="100" y2="500" />
+      <line class="arrow" x1="280" y1="440" x2="280" y2="500" />
+      <line class="arrow" x1="480" y1="456" x2="480" y2="476" />
+      <line class="arrow" x1="660" y1="456" x2="660" y2="476" />
+      <line class="arrow" x1="480" y1="476" x2="380" y2="476" />
+      <line class="arrow" x1="660" y1="476" x2="380" y2="476" />
+      <line class="arrow" x1="100" y1="500" x2="380" y2="500" />
+      <line class="arrow" x1="280" y1="500" x2="380" y2="500" />
 
-      <line class="arrow" x1="360" y1="536" x2="360" y2="564" />
+      <rect class="box-done" x="220" y="500" width="320" height="64" rx="8" />
+      <text class="box-label" x="380" y="522" text-anchor="middle">Staff confirm / webhook</text>
+      <text class="box-sub" x="380" y="540" text-anchor="middle">ручные → staff_pay ✅</text>
+      <text class="box-sub" x="380" y="556" text-anchor="middle">онлайн → webhook Т-Банк ✅</text>
 
-      <rect class="box-done" x="240" y="564" width="240" height="48" rx="8" />
-      <text class="box-label" x="360" y="586" text-anchor="middle">PAID → печать</text>
-      <text class="box-sub" x="360" y="602" text-anchor="middle">агент Windows ✅</text>
+      <line class="arrow" x1="380" y1="564" x2="380" y2="592" />
 
-      <line class="arrow" x1="360" y1="612" x2="360" y2="640" />
+      <rect class="box-done" x="240" y="592" width="240" height="48" rx="8" />
+      <text class="box-label" x="360" y="614" text-anchor="middle">PAID → печать</text>
+      <text class="box-sub" x="360" y="630" text-anchor="middle">агент Windows ✅</text>
 
-      <!-- Print outcomes -->
-      <line class="arrow" x1="300" y1="640" x2="200" y2="680" />
-      <line class="arrow" x1="420" y1="640" x2="520" y2="680" />
+      <line class="arrow" x1="380" y1="640" x2="380" y2="668" />
+      <line class="arrow" x1="320" y1="668" x2="220" y2="708" />
+      <line class="arrow" x1="440" y1="668" x2="540" y2="708" />
 
-      <rect class="box-partial" x="120" y="680" width="160" height="56" rx="8" />
-      <text class="box-label" x="200" y="702" text-anchor="middle">✅ Готово!</text>
-      <text class="box-sub" x="200" y="720" text-anchor="middle">UX-10 🟡</text>
+      <rect class="box-partial" x="140" y="708" width="160" height="56" rx="8" />
+      <text class="box-label" x="220" y="730" text-anchor="middle">✅ Готово!</text>
+      <text class="box-sub" x="220" y="748" text-anchor="middle">UX-10 🟡</text>
 
-      <rect class="box-done" x="440" y="680" width="160" height="56" rx="8" />
-      <text class="box-label" x="520" y="702" text-anchor="middle">Ошибка печати</text>
-      <text class="box-sub" x="520" y="720" text-anchor="middle">🔄 retry ✅</text>
+      <rect class="box-done" x="460" y="708" width="160" height="56" rx="8" />
+      <text class="box-label" x="540" y="730" text-anchor="middle">Ошибка печати</text>
+      <text class="box-sub" x="540" y="748" text-anchor="middle">🔄 retry ✅</text>
 
-      <!-- Planned -->
-      <line class="arrow" x1="360" y1="72" x2="560" y2="72" stroke-dasharray="4 3" />
-      <rect class="box-todo" x="560" y="48" width="140" height="48" rx="8" />
-      <text class="box-label" x="630" y="70" text-anchor="middle" font-size="11">offline блок</text>
-      <text class="box-sub" x="630" y="86" text-anchor="middle">MON-02 ⬜</text>
+      <line class="arrow" x1="380" y1="72" x2="600" y2="72" stroke-dasharray="4 3" />
+      <rect class="box-todo" x="600" y="48" width="140" height="48" rx="8" />
+      <text class="box-label" x="670" y="70" text-anchor="middle" font-size="11">offline блок</text>
+      <text class="box-sub" x="670" y="86" text-anchor="middle">MON-02 ⬜</text>
     </svg>
 
     <div class="mermaid-wrap">
       <pre class="mermaid">
 flowchart TB
-  START["/start ✅"] --> BATCH["Сбор пачки\nPDF · Word · 🗑"]
+  START["/start ✅"] --> BATCH["Сбор файлов\nдо 5 · Отменить всё"]
   BATCH --> PAY_BTN["«Оплатить» ✅"]
-  BATCH --> CANCEL["Отмена ✅"]
+  BATCH --> CANCEL["Сброшено ✅"]
   PAY_BTN --> METHODS{"Способ оплаты"}
   METHODS -->|перевод| TR["СБП + Я оплатил ✅"]
   METHODS -->|на месте| OS["Стойка ✅"]
-  METHODS -->|онлайн| TB["Т-Банк 🟡"]
+  METHODS -->|СБП| TB1["Т-Банк СБП ✅"]
+  METHODS -->|карта| TB2["pay.tbank.ru ✅"]
   TR --> STAFF["Staff confirm ✅"]
   OS --> STAFF
-  TB --> PAID["PAID ✅"]
+  TB1 --> PAID["PAID webhook ✅"]
+  TB2 --> PAID
   STAFF --> PAID
   PAID --> PRINT["Печать ✅"]
   PRINT --> DONE["Готово! 🟡"]
@@ -298,15 +302,17 @@ stateDiagram-v2
     FileReady --> FileRemoved: удалить ✅
   }
   Collecting --> AwaitingPayment: Оплатить ✅
-  Collecting --> Cancelled: Отменить ✅
+  Collecting --> Cancelled: Отменить всё ✅
   state AwaitingPayment {
     [*] --> ChooseMethod
     ChooseMethod --> Transfer: перевод ✅
     ChooseMethod --> OnSite: на месте ✅
-    ChooseMethod --> Online: Т-Банк 🟡
+    ChooseMethod --> OnlineSbp: СБП ✅
+    ChooseMethod --> OnlineCard: карта ✅
     Transfer --> StaffConfirm: Я оплатил ✅
     OnSite --> StaffConfirm: staff ✅
-    Online --> Paid: webhook 🟡
+    OnlineSbp --> Paid: webhook ✅
+    OnlineCard --> Paid: webhook ✅
   }
   StaffConfirm --> Paid: staff confirm ✅
   Paid --> Printing: print ✅
@@ -341,32 +347,67 @@ flowchart TD
   K -->|ok| I
   K -->|fail| L["❌ + 🗑"]
   I --> M{keyboardMode}
-  M -->|ready| N["Оплатить + Отменить"]
-  M -->|calculating| O["Только Отменить"]
+  M -->|ready| N["Оплатить + Отменить всё"]
+  M -->|calculating| O["Только Отменить всё"]
       </pre>
     </div>
   </section>
 
   <section id="payment">
-    <h2>Оплата</h2>
-    <p class="desc">Три ветки после finalizeBatch. Фильтр методов — payment-config.ts.</p>
+    <h2>Оплата (все способы)</h2>
+    <p class="desc">Четыре ветки после finalize. Онлайн — детали TG vs MAX на вкладке «Онлайн TG/MAX».</p>
     <div class="mermaid-wrap">
       <pre class="mermaid">
 flowchart TD
-  F1[Сводка пачки] --> F2[Выбор способа]
-  F2 --> M1[Перевод ✅]
-  F2 --> M2[На месте ✅]
-  F2 --> M3[Онлайн 🟡]
+  F1[N файлов к оплате] --> F2[Выбор способа]
+  F2 --> M1[перевод ✅]
+  F2 --> M2[на месте ✅]
+  F2 --> M3[СБП ✅]
+  F2 --> M4[карта ✅]
   M1 --> T1[Реквизиты + Я оплатил]
   M2 --> T2[Инструкция стойка]
-  M3 --> T3[QR + Проверить]
+  M3 --> O3[TG: open + Проверить / MAX: url]
+  M4 --> O4[pay.tbank.ru]
   T1 --> ST1[Staff: банк]
   T2 --> ST2[Staff: стойка]
-  T3 --> PAID[PAID webhook]
+  O3 --> WH[webhook PAID]
+  O4 --> WH
   ST1 --> CONF[staff confirm]
   ST2 --> CONF
-  CONF --> PAID
+  CONF --> PAID[PAID]
+  WH --> PAID
   PAID --> PRINT[Агент печатает]
+      </pre>
+    </div>
+  </section>
+
+  <section id="online">
+    <h2>Онлайн-оплата: Telegram vs MAX</h2>
+    <p class="desc">Полная спека: <code>online-payment-bot-flow.md</code></p>
+    <div class="mermaid-wrap">
+      <pre class="mermaid">
+sequenceDiagram
+  participant C as Клиент
+  participant TG as Telegram
+  participant B as Бот
+  participant T as Т-Банк
+
+  Note over C,T: Telegram СБП/карта
+  C->>B: тап СБП или карта callback
+  B->>B: selectPaymentMethod + initPayment
+  B->>TG: answerCallbackQuery url=pay.tbank.ru
+  TG->>T: открывает банк
+  B->>C: Подтвердите + Проверить
+  T->>B: webhook CONFIRMED
+  B->>C: Оплата получена
+
+  Note over C,T: MAX СБП/карта
+  C->>B: Оплатить
+  B->>B: prepareMaxOnlinePaymentUrls
+  B->>C: кнопки СБП/карта = прямые url
+  C->>T: тап ссылки
+  T->>B: webhook CONFIRMED
+  B->>C: Оплата получена
       </pre>
     </div>
   </section>
@@ -391,9 +432,10 @@ sequenceDiagram
   B->>ST: клиент на стойке
   ST->>B: подтвердить
   B->>A: print
-  Note over C,A: Т-Банк 🟡
-  C->>B: онлайн СБП
-  B->>B: webhook
+  Note over C,A: Т-Банк СБП + карта ✅
+  C->>B: СБП или карта
+  B->>B: Init + open TG / url MAX
+  T->>B: webhook CONFIRMED
   B->>A: print без staff
       </pre>
     </div>

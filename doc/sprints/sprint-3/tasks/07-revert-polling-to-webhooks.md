@@ -2,11 +2,17 @@
 
 | | |
 |---|---|
-| **Статус** | 🟡 workaround активен (webhook не доходят) |
-| **Цель** | Зафиксировать временный обход и чеклист отката, когда HTTP-нотификации заработают |
+| **Статус** | ✅ закрыт — prod webhook работает, фоновый polling удалён |
+| **Закрыто** | 05.07.2026 |
 | **Связано** | [04-webhook.md](./04-webhook.md), [05-bot-e2e.md](./05-bot-e2e.md), [06-tbank-webhook-logging.md](./06-tbank-webhook-logging.md) |
 
-## Контекст
+## Итог
+
+**Prod (боевой терминал):** webhook `POST /api/payments/webhook/tbank` доходит → автопечать без staff. ✅
+
+**Откат workaround:** файлы `tbank-payment-watcher.ts`, `/api/payments/tbank/watch` **удалены из кода**. `GetState` остаётся только в `reconcileTbankPayment()` — вызывается по кнопке «Проверить оплату» в боте.
+
+## Исторический контекст (sandbox DEMO)
 
 После оплаты (СБП / карта) основной путь — **webhook** `POST /api/payments/webhook/tbank` → `handleTbankNotification` → `confirmBatchPayment` → печать.
 
