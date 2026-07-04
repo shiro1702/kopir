@@ -12,7 +12,7 @@
 | [multi-city-and-deeplinks.md](./multi-city-and-deeplinks.md) | Планирование | Мультигород, QR `?start=point_X`, один бот |
 | [point-pricing-and-services.md](./point-pricing-and-services.md) | MVP+ | Цены А4 по точке, прайс доп. услуг |
 | [bot-user-flow.md](./bot-user-flow.md) | **Sprint 0–3** | Диаграммы, callbacks, статус реализации бота |
-| [bot-point-selection.md](./bot-point-selection.md) | Sprint 4–5 | Выбор точки, автовыбор последней, гибридный флоу |
+| [bot-point-selection.md](./bot-point-selection.md) | Sprint 4–5 | QR в админке (S4), выбор точки в боте (S5) |
 | [point-availability.md](./point-availability.md) | Sprint 1–5 | Статусы точки, блокировка offline, автопереключение |
 | [bot-support-flow.md](./bot-support-flow.md) | Sprint 5+ | Поддержка, автовозврат, TG-группа админов |
 | [staff-refund-in-chat.md](./staff-refund-in-chat.md) | 💡 backlog | Возврат Т-Банк из staff-чата (TG/MAX) |

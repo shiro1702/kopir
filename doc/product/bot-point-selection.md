@@ -152,8 +152,10 @@
 | Фича | Feature ID | Спринт |
 |------|------------|--------|
 | Deep link `point_*` | UX-05 | ✅ 0 |
-| Код точки текстом | UX-06 | 4–5 |
-| `last_point_id` + автовыбор | — | 4 |
-| Плоский список по городу | — | 4 |
-| Геолокация | UX-07 | 5 |
-| Карта Mini App | WEB-10 | 4 |
+| QR + ссылки в админке «Ссылка точки» | ONB-05 | Sprint 4 P1 → [06](../../sprints/sprint-4/tasks/06-point-client-links.md) |
+| PDF-плакат A4 | ONB-05 | Sprint 4 P2 |
+| Код точки текстом | UX-06 | Sprint 5 P0 → [02](../../sprints/sprint-5/tasks/02-point-selection-bot.md) |
+| `last_point_id` + автовыбор | UX-05b | Sprint 5 P0 |
+| Плоский список по городу | UX-05b | Sprint 5 P0 |
+| Геолокация | UX-07 | Sprint 5 P1 |
+| Карта Mini App | WEB-10 | Sprint 5 P1 → [03](../../sprints/sprint-5/tasks/03-point-map-miniapp.md) |

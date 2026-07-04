@@ -1,7 +1,7 @@
 # Bot UX — статус реализации (живой чеклист)
 
 > Короткий снимок для быстрого обновления. Полные диаграммы: [bot-user-flow.md](./bot-user-flow.md) · [bot-user-flow-diagram.html](./bot-user-flow-diagram.html)  
-> **Последнее обновление:** 05.07.2026 · **Спринт:** 4 (Онбординг)
+> **Последнее обновление:** 05.07.2026 · **Спринт:** 4 (ЛК партнёра)
 
 ## Клиент
 
@@ -23,7 +23,15 @@
 | 14 | MAX: прямые URL `pay.tbank.ru` в кнопках | ✅ | prod |
 | 15 | `🔄 Попробовать снова` (печать) | ✅ | частично |
 | 16 | «✅ Готово!» после печати | 🟡 | нет |
-| 17 | Блок заказа на offline-точку | ⬜ | — |
+| 17 | Блок заказа на offline-точку | ⬜ | Sprint 4 → [07](../sprints/sprint-4/tasks/07-ready-offline-guard.md) |
+| 18 | Выбор точки без QR (список / код) | ⬜ | Sprint 5 → [02](../sprints/sprint-5/tasks/02-point-selection-bot.md) |
+
+## Админ / партнёр
+
+| # | Элемент | Статус | Спринт |
+|---|---------|--------|--------|
+| 1 | «Ссылка точки»: QR + deep links TG/MAX | ⬜ | Sprint 4 → [06](../sprints/sprint-4/tasks/06-point-client-links.md) |
+| 2 | PDF-плакат A4 | ⬜ | Sprint 4 P2 |
 
 ## Staff
 
@@ -47,10 +55,12 @@
 
 ## Следующие шаги
 
-1. **Sprint 4:** partner-бот ЛК (статус, настройки) + баланс (PAY-06) + лендинг `/partners`
-2. **Sprint 5:** реестр выплат, ручной СБП (PAY-07), web ЛК
-3. **Polish:** UX-10 «Готово!», MON-02 offline
-4. **PAY-04:** ATOL Online — дождаться проверки
+1. **Sprint 4 P1:** «Ссылка точки» — QR + deep links в `/admin/points` → [06](../sprints/sprint-4/tasks/06-point-client-links.md)
+2. **Sprint 4 P0:** Partner LK + баланс (PAY-06) + лендинг `/partners`
+3. **Sprint 4 P1:** UX-10 «Готово!», MON-02 → [07](../sprints/sprint-4/tasks/07-ready-offline-guard.md)
+4. **Sprint 5 P0:** Выбор точки в боте без QR (UX-06) → [02](../sprints/sprint-5/tasks/02-point-selection-bot.md)
+5. **Sprint 5:** реестр выплат PAY-07, web ЛК, VK + WEB-09
+6. **PAY-04:** ATOL Online — дождаться проверки
 
 ---
 

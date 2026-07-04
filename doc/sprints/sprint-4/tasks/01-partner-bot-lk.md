@@ -23,12 +23,14 @@
    - **Заказы** — сегодня / неделя / месяц (стр., ₽)
    - **Настройки** — цена за стр., `paymentMethodsEnabled`, телефон СБП
    - **Баланс** — см. [02-balance-accrual.md](./02-balance-accrual.md)
+   - **QR и ссылки** — reuse [06-point-client-links.md](./06-point-client-links.md) (P2)
 
 ### Не в scope
 
 - Web-регистрация, Telegram Login на сайте
 - Mini App upload
 - Автоопределение принтера (ONB-04) → Sprint 5
+- Админ-панель «Ссылка точки» (задача 06) — отдельная задача; в ЛК партнёра только read-only блок после 06
 
 ## DoD
 

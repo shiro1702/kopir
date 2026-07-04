@@ -21,9 +21,10 @@
 ```
 P0: partner bind → меню ЛК → статус точки/агента → настройки точки
 P0: начисление комиссии при онлайн-оплате + баланс в боте (PAY-06)
+P1: «Ссылка точки» — QR + deep links TG/MAX в админке (первая неделя)
 P1: лендинг /partners (B2B)
 P1: UX-10 «Готово!», MON-02 offline
-P2: оферта на сайте (ONB-06)
+P2: PDF-плакат A4, QR в Partner ЛК; оферта на сайте (ONB-06)
 ```
 
 ## Задачи
@@ -35,8 +36,8 @@ P2: оферта на сайте (ONB-06)
 | 03 | Настройки точки в боте (цена, способы оплаты) | ⬜ | WEB-12 | [tasks/01-partner-bot-lk.md](./tasks/01-partner-bot-lk.md) |
 | 04 | Начисление комиссии + баланс партнёра | ⬜ | PAY-06 | [tasks/02-balance-accrual.md](./tasks/02-balance-accrual.md) |
 | 05 | Лендинг `/partners` → CTA в бот | ⬜ | MKT | [tasks/03-partner-landing.md](./tasks/03-partner-landing.md) |
-| — | «Готово!» после печати | ⬜ | UX-10 | хвост Sprint 1 |
-| — | Блокировка offline-точки | ⬜ | MON-02 | хвост Sprint 1 |
+| 06 | «Ссылка точки»: QR + deep links в админке | ⬜ | UX-05, ONB-05 | [tasks/06-point-client-links.md](./tasks/06-point-client-links.md) |
+| 07 | «Готово!» + блок offline-точки | ⬜ | UX-10, MON-02 | [tasks/07-ready-offline-guard.md](./tasks/07-ready-offline-guard.md) |
 
 > **PAY-07 (выплаты):** фаза 1 (баланс) — задача 04; фаза 2 (реестр, переводы) → [Sprint 5](../SPRINTS.md#sprint-5--к-1-сентября). См. [partner-payouts.md](../../business/partner-payouts.md).
 
@@ -46,7 +47,8 @@ P2: оферта на сайте (ONB-06)
 - [ ] В боте: 🟢/🔴 агент, заказы за день/неделю, изменение цены
 - [ ] После онлайн-оплаты — начисление на баланс партнёра (видно в боте)
 - [ ] Лендинг `/partners` опубликован с CTA «Стать партнёром» → бот
+- [ ] В админке: «Ссылка точки» с QR TG/MAX для каждой точки
 
 ## После спринта
 
-→ [Sprint 5 — К 1 сентября](../SPRINTS.md#sprint-5--к-1-сентября): реестр выплат (PAY-07), web ЛК v1, 5+ точек
+→ [Sprint 5](../sprint-5/README.md): выбор точки в боте, web ЛК, реестр выплат (PAY-07), 5+ точек
