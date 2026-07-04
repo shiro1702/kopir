@@ -31,7 +31,7 @@ import type {
   MessengerAdapter,
   MessengerReplyTarget,
 } from './types'
-import { buildMaxOnlinePaymentUrls } from '../payments/open-link'
+import { prepareMaxOnlinePaymentUrls } from '../payments/max-payment-urls'
 
 function mapPayMethod(method: PayMethodCallback): PaymentMethod {
   if (method === 'sbp_transfer') return PaymentMethod.SBP_TRANSFER
@@ -60,14 +60,14 @@ async function sendWithInlineKeyboard(
   await adapter.sendText(target, text, { inlineKeyboard })
 }
 
-function paymentMethodKeyboardForTarget(
+async function paymentMethodKeyboardForTarget(
   target: MessengerReplyTarget,
   entityId: string,
   methods: PaymentMethod[],
   userExternalId: string,
 ) {
   const onlineUrls = target.platform === 'max'
-    ? buildMaxOnlinePaymentUrls(entityId, userExternalId, methods)
+    ? await prepareMaxOnlinePaymentUrls(entityId, userExternalId, methods)
     : undefined
   return paymentMethodKeyboard(entityId, methods, onlineUrls ? { onlineUrls } : undefined)
 }
@@ -103,7 +103,7 @@ export async function sendPaymentMethodChoiceForBatch(
     target,
     adapter,
     `${summary}\n\n${choice}`,
-    paymentMethodKeyboardForTarget(target, batch.id, methods, userExternalId),
+    await paymentMethodKeyboardForTarget(target, batch.id, methods, userExternalId),
   )
 }
 
@@ -132,7 +132,7 @@ export async function sendPaymentMethodChoiceForOrder(
     target,
     adapter,
     `${quote}\n\n${choice}`,
-    paymentMethodKeyboardForTarget(target, order.id, methods, userExternalId),
+    await paymentMethodKeyboardForTarget(target, order.id, methods, userExternalId),
   )
 }
 
@@ -328,7 +328,7 @@ export async function sendPaymentMethodChoiceToUser(
     try {
       const { sendTelegramStatusMessage } = await import('../telegram/client')
       const keyboard = methods.length > 0
-        ? paymentMethodKeyboardForTarget(
+        ? await paymentMethodKeyboardForTarget(
           { platform: 'telegram', chatId: String(user.telegramId) },
           order.id,
           methods,
@@ -346,7 +346,7 @@ export async function sendPaymentMethodChoiceToUser(
       const { getMaxClient } = await import('../max/client')
       const client = getMaxClient()
       const keyboard = methods.length > 0
-        ? paymentMethodKeyboardForTarget(
+        ? await paymentMethodKeyboardForTarget(
           { platform: 'max', chatId: String(user.maxUserId) },
           order.id,
           methods,

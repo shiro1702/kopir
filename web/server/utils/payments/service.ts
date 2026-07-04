@@ -218,6 +218,43 @@ export async function selectPaymentMethod(
   return result
 }
 
+/** Sets payment method on entity without user auth — used when T-Bank webhook confirms a pre-inited payment. */
+export async function syncPaymentMethodOnEntity(entityId: string, method: PaymentMethod) {
+  const resolved = await resolvePaymentEntity(entityId)
+  const now = new Date()
+
+  if (resolved.kind === 'batch') {
+    await prisma.$transaction([
+      prisma.orderBatch.update({
+        where: { id: resolved.batch.id },
+        data: {
+          paymentMethod: method,
+          paymentMethodAt: now,
+          paymentClaimedAt: null,
+        },
+      }),
+      prisma.order.updateMany({
+        where: { batchId: resolved.batch.id },
+        data: {
+          paymentMethod: method,
+          paymentMethodAt: now,
+          paymentClaimedAt: null,
+        },
+      }),
+    ])
+    return
+  }
+
+  await prisma.order.update({
+    where: { id: resolved.order.id },
+    data: {
+      paymentMethod: method,
+      paymentMethodAt: now,
+      paymentClaimedAt: null,
+    },
+  })
+}
+
 export async function claimPayment(entityId: string, userExternalId: string) {
   const resolved = await resolvePaymentEntity(entityId)
   const now = new Date()

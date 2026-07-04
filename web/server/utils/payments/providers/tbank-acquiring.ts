@@ -35,10 +35,21 @@ export const tbankAcquiringProvider = {
   staffNotifyTrigger: 'on_method_selected' as const,
 }
 
-function createMerchantOrderId(): string {
+function createMerchantOrderId(channel: TbankPayChannel): string {
+  const prefix = channel === 'card' ? 'kpc' : 'kps'
   const ts = Date.now().toString(36)
   const rand = Math.random().toString(36).slice(2, 10)
-  return `kp_${ts}_${rand}`.slice(0, 36)
+  return `${prefix}_${ts}_${rand}`.slice(0, 36)
+}
+
+export function tbankChannelFromMerchantOrderId(merchantOrderId: string): TbankPayChannel | null {
+  if (merchantOrderId.startsWith('kpc_')) return 'card'
+  if (merchantOrderId.startsWith('kps_')) return 'sbp'
+  return null
+}
+
+function tbankPaymentMethodFromChannel(channel: TbankPayChannel): PaymentMethod {
+  return channel === 'card' ? PaymentMethod.TBANK_ONLINE : PaymentMethod.TBANK_SBP
 }
 
 function buildReceiptItemName(ctx: PaymentContext): string {
@@ -68,10 +79,13 @@ async function cancelPendingPaymentsForEntity(ctx: PaymentContext) {
 export async function initPayment(
   ctx: PaymentContext,
   channel: TbankPayChannel = 'sbp',
+  options?: { preservePending?: boolean },
 ): Promise<TbankInitResult> {
-  await cancelPendingPaymentsForEntity(ctx)
+  if (!options?.preservePending) {
+    await cancelPendingPaymentsForEntity(ctx)
+  }
 
-  const merchantOrderId = createMerchantOrderId()
+  const merchantOrderId = createMerchantOrderId(channel)
   console.log('[tbank] initPayment', {
     kind: ctx.kind,
     entityId: ctx.entityId,
@@ -300,20 +314,46 @@ async function processConfirmedPayment(payment: {
   orderId: string | null
   status: PaymentStatus
   externalId: string | null
+  merchantOrderId: string
+  qrPayload: string | null
 }, externalPaymentId?: string | number | null, webhookPayload?: Record<string, unknown>) {
   if (payment.status === PaymentStatus.CONFIRMED) {
     const entityId = resolveEntityIdFromPayment(payment)
     return { ok: true, alreadyConfirmed: true, entityId }
   }
 
-  await markPaymentConfirmed(payment.id, externalPaymentId ?? payment.externalId)
   const entityId = resolveEntityIdFromPayment(payment)
+  const channel = tbankChannelFromMerchantOrderId(payment.merchantOrderId)
+    ?? inferTbankChannelFromPayUrl(payment.qrPayload)
+  if (channel) {
+    const { syncPaymentMethodOnEntity } = await import('../service')
+    await syncPaymentMethodOnEntity(entityId, tbankPaymentMethodFromChannel(channel))
+  }
+
+  await markPaymentConfirmed(payment.id, externalPaymentId ?? payment.externalId)
+
+  await prisma.payment.updateMany({
+    where: {
+      status: PaymentStatus.PENDING,
+      id: { not: payment.id },
+      ...(payment.batchId ? { batchId: payment.batchId } : { orderId: payment.orderId }),
+    },
+    data: { status: PaymentStatus.CANCELLED },
+  })
+
   const result = await confirmTbankPayment(entityId)
 
   const { scheduleTbankReceiptNotify } = await import('../tbank-payment-receipt-notify')
   scheduleTbankReceiptNotify(payment.id, webhookPayload)
 
   return { ok: true, result, entityId }
+}
+
+function inferTbankChannelFromPayUrl(payUrl: string | null | undefined): TbankPayChannel | null {
+  const url = payUrl?.trim()
+  if (!url) return null
+  if (url.includes('pay.tbank.ru')) return 'card'
+  return 'sbp'
 }
 
 export type TbankWebhookProcessResult =
