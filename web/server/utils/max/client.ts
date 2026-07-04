@@ -1,6 +1,7 @@
-const MAX_API_BASE = 'https://platform-api.max.ru'
+const MAX_API_BASE = 'https://platform-api2.max.ru'
 
 import type { BatchKeyboardMode, InlineKeyboardButton, SentMessage, StatusMessageOptions } from '../bot/types'
+import { trustedCaFetch } from '../trusted-ca-fetch'
 import { maxBatchActionButtons } from '../bot/keyboards'
 
 const MAX_UPDATE_TYPES = [
@@ -33,7 +34,7 @@ export class MaxClient {
       }
     }
 
-    const response = await fetch(url, {
+    const response = await trustedCaFetch(url, {
       method,
       headers: {
         Authorization: this.token,
@@ -125,7 +126,7 @@ export class MaxClient {
   }
 
   async downloadFile(url: string): Promise<Buffer> {
-    const response = await fetch(url)
+    const response = await trustedCaFetch(url)
     if (!response.ok) {
       throw new Error(`Failed to download MAX file: ${response.status}`)
     }
@@ -154,7 +155,7 @@ export class MaxClient {
     const form = new FormData()
     form.append('data', new Blob([buffer]), fileName)
 
-    const uploadResponse = await fetch(meta.url, { method: 'POST', body: form })
+    const uploadResponse = await trustedCaFetch(meta.url, { method: 'POST', body: form })
     if (!uploadResponse.ok) {
       const body = await uploadResponse.text()
       throw new Error(`MAX file upload failed: ${uploadResponse.status} ${body}`)

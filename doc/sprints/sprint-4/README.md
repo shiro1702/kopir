@@ -39,7 +39,7 @@ P2: PDF-плакат A4, QR в Partner ЛК; оферта на сайте (ONB-0
 | 05 | Лендинг `/partners` → CTA в бот | ⬜ | MKT | [tasks/03-partner-landing.md](./tasks/03-partner-landing.md) |
 | 06 | «Ссылка точки»: QR + deep links в админке | ⬜ | UX-05, ONB-05 | [tasks/06-point-client-links.md](./tasks/06-point-client-links.md) |
 | 07 | «Готово!» + блок offline-точки | ⬜ | UX-10, MON-02 | [tasks/07-ready-offline-guard.md](./tasks/07-ready-offline-guard.md) |
-| 08 | **MAX API → platform-api2 + TLS Минцифры** | ⬜ | WEB-15 | [tasks/08-max-api-migration.md](./tasks/08-max-api-migration.md) |
+| 08 | **MAX API → platform-api2 + TLS Минцифры** | ✅ | WEB-15 | [tasks/08-max-api-migration.md](./tasks/08-max-api-migration.md) |
 
 > **⚠️ Задача 08 — дедлайн 19.07.2026** (уведомление MAX). Сертификат в `web/certs/` уже есть для T-Bank; нужно переключить URL и подключить тот же fetch в MAX-клиент.
 

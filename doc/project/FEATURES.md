@@ -40,7 +40,7 @@
 | ⬜ todo | WEB-07 | Telegram Mini App (SPA) | 2 | WebApp SDK |
 | ✅ done | WEB-08 | Telegram Bot: /start, приём PDF | 1 | grammY; см. WEB-14 |
 | ✅ done | WEB-14 | Ядро мультиканальных ботов (`bot/core`) | 1 | общая логика заказов |
-| ✅ done | WEB-15 | MAX Bot: /start, приём PDF | 1 | platform-api.max.ru |
+| ✅ done | WEB-15 | MAX Bot: /start, приём PDF | 1 | platform-api2.max.ru |
 | ⬜ todo | WEB-16 | VK Bot (адаптер на общее ядро) | 3–4 | Callback API; см. BOT_MESSENGERS.md |
 | ⬜ todo | WEB-17 | Viber Bot | 4 | после VK |
 | ⬜ todo | WEB-09 | Мультиссылка QR (TG / MAX / VK / Viber) | 3 | редиректор `/go?point=` |
