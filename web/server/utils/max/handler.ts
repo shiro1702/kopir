@@ -273,7 +273,7 @@ export async function handleMaxUpdate(update: MaxUpdate): Promise<void> {
         }
 
         try {
-          const toast = await routeClientCallback(
+          const result = await routeClientCallback(
             callback.payload,
             target,
             user,
@@ -281,7 +281,7 @@ export async function handleMaxUpdate(update: MaxUpdate): Promise<void> {
             callbackCtx,
             message,
           )
-          await client.answerCallback(callback.callback_id, toast)
+          await client.answerCallback(callback.callback_id, result.toast ?? '')
         } catch (error) {
           let text = 'Ошибка'
           if (error && typeof error === 'object' && 'data' in error) {

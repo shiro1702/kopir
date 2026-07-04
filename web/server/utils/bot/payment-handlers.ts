@@ -18,16 +18,20 @@ import {
 } from '../payments/providers/tbank-acquiring'
 import { prisma } from '../prisma'
 import {
-  BTN_PAY_ONLINE_CARD,
-  BTN_PAY_ONLINE_SBP,
   onSitePaymentKeyboard,
-  onlinePaymentKeyboard,
+  onlinePaymentCheckKeyboard,
+  onlinePaymentLinkKeyboard,
   paymentMethodKeyboard,
   transferClaimedKeyboard,
   type PayMethodCallback,
 } from './keyboards'
 import * as messages from './messages'
-import type { BotUser, MessengerAdapter, MessengerReplyTarget } from './types'
+import type {
+  BotUser,
+  ClientCallbackResult,
+  MessengerAdapter,
+  MessengerReplyTarget,
+} from './types'
 
 function mapPayMethod(method: PayMethodCallback): PaymentMethod {
   if (method === 'sbp_transfer') return PaymentMethod.SBP_TRANSFER
@@ -125,17 +129,30 @@ async function sendTbankPaymentUi(
   shortId: string,
   amountKopeks: number,
   init: Awaited<ReturnType<typeof initPayment>>,
-): Promise<void> {
+): Promise<ClientCallbackResult> {
   const isCard = init.channel === 'card'
+  const autoOpenLink = target.platform === 'telegram'
   const text = isCard
-    ? messages.formatOnlineCardInstructions(amountKopeks, shortId)
-    : messages.formatOnlineSbpInstructions(amountKopeks, shortId)
-  const payButtonText = isCard ? BTN_PAY_ONLINE_CARD : BTN_PAY_ONLINE_SBP
-  await adapter.sendText(
-    target,
-    text,
-    { inlineKeyboard: onlinePaymentKeyboard(entityId, init.payUrl, init.paymentId, payButtonText) },
-  )
+    ? (autoOpenLink
+      ? messages.formatOnlineCardAfterOpen(amountKopeks, shortId)
+      : messages.formatOnlineCardWithLink(amountKopeks, shortId))
+    : (autoOpenLink
+      ? messages.formatOnlineSbpAfterOpen(amountKopeks, shortId)
+      : messages.formatOnlineSbpWithLink(amountKopeks, shortId))
+  const keyboard = autoOpenLink
+    ? onlinePaymentCheckKeyboard(entityId, init.paymentId)
+    : onlinePaymentLinkKeyboard(entityId, init.payUrl, init.paymentId)
+
+  await adapter.sendText(target, text, { inlineKeyboard: keyboard })
+
+  if (autoOpenLink) {
+    return {
+      toast: isCard ? 'Открываем оплату картой' : 'Открываем СБП',
+      callbackAnswer: { url: init.payUrl },
+    }
+  }
+
+  return { toast: 'Ожидаем оплату' }
 }
 
 export async function handlePaymentMethodChoice(
@@ -144,7 +161,7 @@ export async function handlePaymentMethodChoice(
   method: PayMethodCallback,
   entityId: string,
   adapter: MessengerAdapter,
-): Promise<string> {
+): Promise<ClientCallbackResult> {
   const result = await selectPaymentMethod(entityId, mapPayMethod(method), user.externalId)
   const shortId = entityId.slice(-6)
 
@@ -175,8 +192,7 @@ export async function handlePaymentMethodChoice(
       order: result.kind === 'order' ? result.order : undefined,
     }, tbankChannelFromMethod(method))
 
-    await sendTbankPaymentUi(target, adapter, entityId, shortId, amountKopeks, init)
-    return 'Ожидаем оплату'
+    return sendTbankPaymentUi(target, adapter, entityId, shortId, amountKopeks, init)
   }
 
   if (result.kind === 'batch') {
@@ -197,12 +213,12 @@ export async function handlePaymentMethodChoice(
         getTransferBankLabel(point),
       )
       await sendWithInlineKeyboard(target, adapter, text, transferClaimedKeyboard(batch.id))
-      return 'Способ выбран'
+      return { toast: 'Способ выбран' }
     }
 
     const text = messages.formatOnSiteInstructions(batch.totalAmountKopeks, shortId)
     await sendWithInlineKeyboard(target, adapter, text, onSitePaymentKeyboard(batch.id))
-    return 'Способ выбран'
+    return { toast: 'Способ выбран' }
   }
 
   const order = result.order
@@ -221,12 +237,12 @@ export async function handlePaymentMethodChoice(
       getTransferBankLabel(order.point),
     )
     await sendWithInlineKeyboard(target, adapter, text, transferClaimedKeyboard(order.id))
-    return 'Способ выбран'
+    return { toast: 'Способ выбран' }
   }
 
   const text = messages.formatOnSiteInstructions(order.amountKopeks, shortId)
   await sendWithInlineKeyboard(target, adapter, text, onSitePaymentKeyboard(order.id))
-  return 'Способ выбран'
+  return { toast: 'Способ выбран' }
 }
 
 export async function handlePaymentCheckStatus(

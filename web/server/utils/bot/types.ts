@@ -70,6 +70,14 @@ export interface CallbackContext {
 
 export interface CallbackAnswerOptions {
   showAlert?: boolean
+  text?: string
+  /** Telegram: open payment URL in client when answering callback */
+  url?: string
+}
+
+export interface ClientCallbackResult {
+  toast?: string
+  callbackAnswer?: CallbackAnswerOptions & { text?: string }
 }
 
 export interface MessengerAdapterWithCallbacks extends MessengerAdapter {

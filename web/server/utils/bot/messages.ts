@@ -442,22 +442,50 @@ export function formatAwaitingStaffConfirm(shortId: string): string {
   )
 }
 
-export function formatOnlineSbpInstructions(amountKopeks: number, shortId: string): string {
+export function formatOnlineSbpAfterOpen(amountKopeks: number, shortId: string): string {
   const amountRub = (amountKopeks / 100).toFixed(2)
   return (
     `💳 ${amountRub} ₽ · #${shortId}\n\n`
-    + 'Нажмите «СБП» и подтвердите в банке.\n'
-    + 'Печать запустится автоматически.'
+    + 'Подтвердите оплату в банке.\n'
+    + 'Когда оплатите — нажмите «Проверить».'
   )
 }
 
-export function formatOnlineCardInstructions(amountKopeks: number, shortId: string): string {
+export function formatOnlineCardAfterOpen(amountKopeks: number, shortId: string): string {
   const amountRub = (amountKopeks / 100).toFixed(2)
   return (
     `💳 ${amountRub} ₽ · #${shortId}\n\n`
-    + 'Нажмите «карта» и оплатите на странице банка.\n'
-    + 'Печать запустится автоматически.'
+    + 'Завершите оплату на странице банка.\n'
+    + 'Когда оплатите — нажмите «Проверить».'
   )
+}
+
+export function formatOnlineSbpWithLink(amountKopeks: number, shortId: string): string {
+  const amountRub = (amountKopeks / 100).toFixed(2)
+  return (
+    `💳 ${amountRub} ₽ · #${shortId}\n\n`
+    + 'Нажмите «Открыть оплату» и подтвердите в банке.\n'
+    + 'Когда оплатите — нажмите «Проверить».'
+  )
+}
+
+export function formatOnlineCardWithLink(amountKopeks: number, shortId: string): string {
+  const amountRub = (amountKopeks / 100).toFixed(2)
+  return (
+    `💳 ${amountRub} ₽ · #${shortId}\n\n`
+    + 'Нажмите «Открыть оплату» и завершите оплату на странице банка.\n'
+    + 'Когда оплатите — нажмите «Проверить».'
+  )
+}
+
+/** @deprecated use formatOnlineSbpAfterOpen or formatOnlineSbpWithLink */
+export function formatOnlineSbpInstructions(amountKopeks: number, shortId: string): string {
+  return formatOnlineSbpWithLink(amountKopeks, shortId)
+}
+
+/** @deprecated use formatOnlineCardAfterOpen or formatOnlineCardWithLink */
+export function formatOnlineCardInstructions(amountKopeks: number, shortId: string): string {
+  return formatOnlineCardWithLink(amountKopeks, shortId)
 }
 
 /** @deprecated use formatOnlineSbpInstructions */

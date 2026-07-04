@@ -12,6 +12,7 @@ import {
 import type {
   BotUser,
   CallbackContext,
+  ClientCallbackResult,
   MessengerAdapter,
   MessengerReplyTarget,
   SentMessage,
@@ -24,24 +25,24 @@ export async function routeClientCallback(
   adapter: MessengerAdapter,
   callbackCtx: CallbackContext,
   message?: SentMessage,
-): Promise<string> {
+): Promise<ClientCallbackResult> {
   const orderIdFromRemove = parseBatchRemoveOrderId(data)
   if (orderIdFromRemove) {
     const { handleBatchRemoveRequest } = await import('./core')
-    return handleBatchRemoveRequest(target, user, orderIdFromRemove, adapter, callbackCtx, message)
+    return { toast: await handleBatchRemoveRequest(target, user, orderIdFromRemove, adapter, callbackCtx, message) }
   }
 
   const orderIdFromConfirm = parseBatchRemoveConfirmOrderId(data)
   if (orderIdFromConfirm) {
     const { handleBatchRemoveConfirm } = await import('./core')
-    return handleBatchRemoveConfirm(target, user, orderIdFromConfirm, adapter, callbackCtx, message)
+    return { toast: await handleBatchRemoveConfirm(target, user, orderIdFromConfirm, adapter, callbackCtx, message) }
   }
 
   if (data === BATCH_REMOVE_CANCEL_PREFIX || data.startsWith(BATCH_REMOVE_CANCEL_PREFIX)) {
     const orderId = parseBatchRemoveCancelOrderId(data)
     if (orderId) {
       const { handleBatchRemoveCancel } = await import('./core')
-      return handleBatchRemoveCancel(target, user, orderId, adapter, callbackCtx, message)
+      return { toast: await handleBatchRemoveCancel(target, user, orderId, adapter, callbackCtx, message) }
     }
   }
 
@@ -54,25 +55,25 @@ export async function routeClientCallback(
   const claimedId = parsePayClaimedPayload(data)
   if (claimedId) {
     const { handlePaymentClaimed } = await import('./payment-handlers')
-    return handlePaymentClaimed(target, user, claimedId, adapter)
+    return { toast: await handlePaymentClaimed(target, user, claimedId, adapter) }
   }
 
   const changeId = parsePayChangeMethodPayload(data)
   if (changeId) {
     const { handlePaymentChangeMethod } = await import('./payment-handlers')
-    return handlePaymentChangeMethod(target, user, changeId, adapter)
+    return { toast: await handlePaymentChangeMethod(target, user, changeId, adapter) }
   }
 
   const checkPaymentId = parsePayCheckStatusPayload(data)
   if (checkPaymentId) {
     const { handlePaymentCheckStatus } = await import('./payment-handlers')
-    return handlePaymentCheckStatus(target, user, checkPaymentId, adapter)
+    return { toast: await handlePaymentCheckStatus(target, user, checkPaymentId, adapter) }
   }
 
   const retryOrderId = parseOrderRetryPayload(data)
   if (retryOrderId) {
     const { handleClientOrderRetry } = await import('./core')
-    return handleClientOrderRetry(user, retryOrderId)
+    return { toast: await handleClientOrderRetry(user, retryOrderId) }
   }
 
   throw new Error('Неизвестное действие')

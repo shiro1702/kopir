@@ -114,6 +114,7 @@ export const BTN_PAY_SBP = 'перевод'
 export const BTN_PAY_ON_SITE = 'на месте'
 export const BTN_PAY_ONLINE_SBP = 'СБП'
 export const BTN_PAY_ONLINE_CARD = 'карта'
+export const BTN_PAY_OPEN_LINK = 'Открыть оплату'
 export const BTN_PAY_CLAIMED = 'Я оплатил'
 export const BTN_PAY_CHECK_STATUS = 'Проверить'
 export const BTN_PAY_CHANGE_METHOD = '← Назад'
@@ -180,14 +181,24 @@ export function onSitePaymentKeyboard(entityId: string): InlineKeyboardButton[][
   return [[{ text: BTN_PAY_CHANGE_METHOD, callbackData: payChangeMethodPayload(entityId) }]]
 }
 
-export function onlinePaymentKeyboard(
+export function onlinePaymentCheckKeyboard(
+  entityId: string,
+  paymentId: string,
+): InlineKeyboardButton[][] {
+  return [[
+    { text: BTN_PAY_CHECK_STATUS, callbackData: payCheckStatusPayload(paymentId) },
+    { text: BTN_PAY_CHANGE_METHOD, callbackData: payChangeMethodPayload(entityId) },
+  ]]
+}
+
+/** MAX and other messengers without callback URL open — link button + check */
+export function onlinePaymentLinkKeyboard(
   entityId: string,
   payUrl: string,
   paymentId: string,
-  payButtonText: string,
 ): InlineKeyboardButton[][] {
   return [
-    [{ text: payButtonText, url: payUrl }],
+    [{ text: BTN_PAY_OPEN_LINK, url: payUrl }],
     [
       { text: BTN_PAY_CHECK_STATUS, callbackData: payCheckStatusPayload(paymentId) },
       { text: BTN_PAY_CHANGE_METHOD, callbackData: payChangeMethodPayload(entityId) },

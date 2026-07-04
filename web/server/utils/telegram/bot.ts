@@ -2,6 +2,7 @@ import { Bot, InlineKeyboard, Keyboard } from 'grammy'
 import type {
   BatchKeyboardMode,
   CallbackContext,
+  ClientCallbackResult,
   MessengerAdapterWithCallbacks,
   MessengerReplyTarget,
   SentMessage,
@@ -59,8 +60,9 @@ function createTelegramAdapter(): MessengerAdapterWithCallbacks {
     async answerCallback(ctx: CallbackContext, text?: string, options?) {
       const bot = getBot()
       await bot.api.answerCallbackQuery(ctx.callbackId, {
-        text: text ?? '',
+        text: text ?? options?.text ?? '',
         show_alert: options?.showAlert ?? false,
+        url: options?.url,
       })
     },
   }
@@ -98,7 +100,7 @@ async function handleClientCallback(
   adapter: MessengerAdapterWithCallbacks,
   callbackCtx: CallbackContext,
   message?: SentMessage,
-): Promise<string> {
+): Promise<ClientCallbackResult> {
   return routeClientCallback(data, target, user, adapter, callbackCtx, message)
 }
 
@@ -246,12 +248,14 @@ function createBot(): Bot {
       const isStaffCallback = !isBatchClientCallbackPayload(data)
         && !isPaymentClientCallbackPayload(data)
         && !isPrintRetryClientCallbackPayload(data)
-      const toast = isStaffCallback
-        ? await handleStaffCallback(data, chatId)
+      const result = isStaffCallback
+        ? { toast: await handleStaffCallback(data, chatId) }
         : await handleClientCallback(data, target, user, adapter, callbackCtx, message)
       const { isStaffPaymentConfirmPayload } = await import('../staff-actions')
-      await adapter.answerCallback?.(callbackCtx, toast, {
+      await adapter.answerCallback?.(callbackCtx, result.toast, {
         showAlert: isStaffCallback && isStaffPaymentConfirmPayload(data),
+        url: result.callbackAnswer?.url,
+        ...result.callbackAnswer,
       })
     } catch (error) {
       let text = 'Ошибка'
