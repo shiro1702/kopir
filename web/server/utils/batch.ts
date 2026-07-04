@@ -76,7 +76,7 @@ export async function removeOrderFromBatch(
   if (order.batch.status !== OrderBatchStatus.COLLECTING) {
     throw createError({
       statusCode: 400,
-      data: { error: 'Пачка уже завершена', code: 'INVALID_BATCH_STATUS' },
+      data: { error: 'Файлы уже отправлены на оплату', code: 'INVALID_BATCH_STATUS' },
     })
   }
 
@@ -231,7 +231,7 @@ export async function expireStaleCollectingBatches(): Promise<void> {
 
   for (const batch of staleBatches) {
     batchLog(batch.id, 'auto-cancel due to timeout')
-    await cancelBatch(batch.id, 'Пачка отменена: время сбора истекло')
+    await cancelBatch(batch.id, 'Сбор отменён: время истекло')
   }
 }
 

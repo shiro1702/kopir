@@ -20,7 +20,6 @@ import { prisma } from '../prisma'
 import {
   onSitePaymentKeyboard,
   onlinePaymentCheckKeyboard,
-  onlinePaymentLinkKeyboard,
   paymentMethodKeyboard,
   transferClaimedKeyboard,
   type PayMethodCallback,
@@ -32,6 +31,7 @@ import type {
   MessengerAdapter,
   MessengerReplyTarget,
 } from './types'
+import { buildMaxOnlinePaymentUrls } from '../payments/open-link'
 
 function mapPayMethod(method: PayMethodCallback): PaymentMethod {
   if (method === 'sbp_transfer') return PaymentMethod.SBP_TRANSFER
@@ -60,6 +60,18 @@ async function sendWithInlineKeyboard(
   await adapter.sendText(target, text, { inlineKeyboard })
 }
 
+function paymentMethodKeyboardForTarget(
+  target: MessengerReplyTarget,
+  entityId: string,
+  methods: PaymentMethod[],
+  userExternalId: string,
+) {
+  const onlineUrls = target.platform === 'max'
+    ? buildMaxOnlinePaymentUrls(entityId, userExternalId, methods)
+    : undefined
+  return paymentMethodKeyboard(entityId, methods, onlineUrls ? { onlineUrls } : undefined)
+}
+
 export async function sendPaymentMethodChoiceForBatch(
   target: MessengerReplyTarget,
   adapter: MessengerAdapter,
@@ -67,6 +79,7 @@ export async function sendPaymentMethodChoiceForBatch(
     orders: Array<Pick<Order, 'fileName'>>
     point?: { transferPhone: string | null, transferBankLabel: string | null }
   },
+  userExternalId: string,
 ): Promise<void> {
   const point = batch.point ?? await prisma.point.findUniqueOrThrow({ where: { id: batch.pointId } })
   const methods = getEnabledPaymentMethods(point)
@@ -90,7 +103,7 @@ export async function sendPaymentMethodChoiceForBatch(
     target,
     adapter,
     `${summary}\n\n${choice}`,
-    paymentMethodKeyboard(batch.id, methods),
+    paymentMethodKeyboardForTarget(target, batch.id, methods, userExternalId),
   )
 }
 
@@ -100,6 +113,7 @@ export async function sendPaymentMethodChoiceForOrder(
   order: Order & {
     point: { transferPhone: string | null, transferBankLabel: string | null }
   },
+  userExternalId: string,
 ): Promise<void> {
   const methods = getEnabledPaymentMethods(order.point)
   const shortId = order.id.slice(-6)
@@ -118,7 +132,7 @@ export async function sendPaymentMethodChoiceForOrder(
     target,
     adapter,
     `${quote}\n\n${choice}`,
-    paymentMethodKeyboard(order.id, methods),
+    paymentMethodKeyboardForTarget(target, order.id, methods, userExternalId),
   )
 }
 
@@ -131,28 +145,18 @@ async function sendTbankPaymentUi(
   init: Awaited<ReturnType<typeof initPayment>>,
 ): Promise<ClientCallbackResult> {
   const isCard = init.channel === 'card'
-  const autoOpenLink = target.platform === 'telegram'
   const text = isCard
-    ? (autoOpenLink
-      ? messages.formatOnlineCardAfterOpen(amountKopeks, shortId)
-      : messages.formatOnlineCardWithLink(amountKopeks, shortId))
-    : (autoOpenLink
-      ? messages.formatOnlineSbpAfterOpen(amountKopeks, shortId)
-      : messages.formatOnlineSbpWithLink(amountKopeks, shortId))
-  const keyboard = autoOpenLink
-    ? onlinePaymentCheckKeyboard(entityId, init.paymentId)
-    : onlinePaymentLinkKeyboard(entityId, init.payUrl, init.paymentId)
+    ? messages.formatOnlineCardAfterOpen(amountKopeks, shortId)
+    : messages.formatOnlineSbpAfterOpen(amountKopeks, shortId)
 
-  await adapter.sendText(target, text, { inlineKeyboard: keyboard })
+  await adapter.sendText(target, text, {
+    inlineKeyboard: onlinePaymentCheckKeyboard(entityId, init.paymentId),
+  })
 
-  if (autoOpenLink) {
-    return {
-      toast: isCard ? 'Открываем оплату картой' : 'Открываем СБП',
-      callbackAnswer: { url: init.payUrl },
-    }
+  return {
+    toast: isCard ? 'Открываем оплату картой' : 'Открываем СБП',
+    callbackAnswer: { url: init.payUrl },
   }
-
-  return { toast: 'Ожидаем оплату' }
 }
 
 export async function handlePaymentMethodChoice(
@@ -162,6 +166,10 @@ export async function handlePaymentMethodChoice(
   entityId: string,
   adapter: MessengerAdapter,
 ): Promise<ClientCallbackResult> {
+  if (isTbankPayMethod(method) && target.platform === 'max') {
+    return { toast: 'Нажмите «СБП» или «карта» в сообщении выше' }
+  }
+
   const result = await selectPaymentMethod(entityId, mapPayMethod(method), user.externalId)
   const shortId = entityId.slice(-6)
 
@@ -287,16 +295,16 @@ export async function handlePaymentChangeMethod(
   user: BotUser,
   entityId: string,
   adapter: MessengerAdapter,
-): Promise<string> {
+): Promise<ClientCallbackResult> {
   const result = await resetPaymentMethod(entityId, user.externalId)
 
   if (result.kind === 'batch') {
-    await sendPaymentMethodChoiceForBatch(target, adapter, result.batch)
-    return 'Выберите способ оплаты'
+    await sendPaymentMethodChoiceForBatch(target, adapter, result.batch, user.externalId)
+    return { toast: 'Выберите способ оплаты' }
   }
 
-  await sendPaymentMethodChoiceForOrder(target, adapter, result.order)
-  return 'Выберите способ оплаты'
+  await sendPaymentMethodChoiceForOrder(target, adapter, result.order, user.externalId)
+  return { toast: 'Выберите способ оплаты' }
 }
 
 
@@ -313,13 +321,20 @@ export async function sendPaymentMethodChoiceToUser(
   const text = methods.length === 0
     ? `${quote}\n\nОплата временно недоступна. Обратитесь к сотруднику копицентра.`
     : `${quote}\n\n${choice}`
-  const keyboard = methods.length > 0 ? paymentMethodKeyboard(order.id, methods) : undefined
 
   const errors: Error[] = []
 
   if (user.telegramId) {
     try {
       const { sendTelegramStatusMessage } = await import('../telegram/client')
+      const keyboard = methods.length > 0
+        ? paymentMethodKeyboardForTarget(
+          { platform: 'telegram', chatId: String(user.telegramId) },
+          order.id,
+          methods,
+          String(user.telegramId),
+        )
+        : undefined
       await sendTelegramStatusMessage(Number(user.telegramId), text, keyboard ? { inlineKeyboard: keyboard } : undefined)
     } catch (error) {
       errors.push(error instanceof Error ? error : new Error(String(error)))
@@ -330,6 +345,14 @@ export async function sendPaymentMethodChoiceToUser(
     try {
       const { getMaxClient } = await import('../max/client')
       const client = getMaxClient()
+      const keyboard = methods.length > 0
+        ? paymentMethodKeyboardForTarget(
+          { platform: 'max', chatId: String(user.maxUserId) },
+          order.id,
+          methods,
+          String(user.maxUserId),
+        )
+        : undefined
       const attachments = keyboard
         ? [{
             type: 'inline_keyboard',

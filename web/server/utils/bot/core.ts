@@ -551,7 +551,7 @@ export async function handleBatchAction(
   })
 
   if (!batch) {
-    await adapter.sendText(target, 'Нет активной пачки. Отправьте файл для начала.')
+    await adapter.sendText(target, 'Нет активных файлов. Отправьте документ для начала.')
     return
   }
 
@@ -568,9 +568,9 @@ export async function handleBatchAction(
     const { batch: finalized } = await finalizeBatch(batch.id)
     clearLastBatchKeyboardMode(platform, target.chatId)
     const { sendPaymentMethodChoiceForBatch } = await import('./payment-handlers')
-    await sendPaymentMethodChoiceForBatch(target, adapter, finalized)
+    await sendPaymentMethodChoiceForBatch(target, adapter, finalized, user.externalId)
   } catch (error) {
-    let text = 'Не удалось завершить пачку.'
+    let text = 'Не удалось подготовить к оплате.'
     let keyboardMode: BatchKeyboardMode = 'ready'
     if (error && typeof error === 'object' && 'data' in error) {
       const data = (error as { data?: { error?: string, code?: string } }).data
@@ -630,7 +630,7 @@ export async function handleBatchRemoveRequest(
     return messages.MSG_BATCH_BATCH_CANCELLED_ACTION
   }
   if (order.batch?.status !== OrderBatchStatus.COLLECTING) {
-    return 'Пачка уже завершена'
+    return 'Уже отправлено на оплату'
   }
   if (!isActiveBatchOrder(order)) {
     return messages.MSG_BATCH_FILE_ALREADY_REMOVED

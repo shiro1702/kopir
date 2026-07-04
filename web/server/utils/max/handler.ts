@@ -16,7 +16,7 @@ import type {
 } from '../bot/types'
 import { editMaxStatusMessage, getMaxClient, maxAttachmentsFromOptions, sendMaxStatusMessage } from './client'
 
-import { BTN_CANCEL_BATCH, BTN_FINALIZE_BATCH, MSG_BATCH_CONTROLS } from '../bot/messages'
+import { BTN_CANCEL_BATCH, BTN_FINALIZE_BATCH, MSG_BATCH_BATCH_CANCELLED_ACTION, MSG_BATCH_CONTROLS, MSG_BATCH_FINALIZING } from '../bot/messages'
 import { downloadMaxFileAttachment, resolveFileAttachment } from './files'
 import { getStaffMaxUserId } from '../payment-mode'
 import { assertStaffForPayload } from '../staff-auth'
@@ -229,12 +229,12 @@ export async function handleMaxUpdate(update: MaxUpdate): Promise<void> {
         const action = callback.payload === 'batch_finalize' ? 'finalize' : 'cancel'
         try {
           if (action === 'finalize') {
-            await client.answerCallback(callback.callback_id, 'Собираем пачку…')
+            await client.answerCallback(callback.callback_id, MSG_BATCH_FINALIZING)
           }
           const { handleBatchAction } = await import('../bot/core')
           await handleBatchAction('max', target, user, action, adapter)
           if (action === 'cancel') {
-            await client.answerCallback(callback.callback_id, 'Пачка отменена')
+            await client.answerCallback(callback.callback_id, MSG_BATCH_BATCH_CANCELLED_ACTION)
           }
         } catch (error) {
           const text = error instanceof Error ? error.message : 'Ошибка'

@@ -114,7 +114,6 @@ export const BTN_PAY_SBP = 'перевод'
 export const BTN_PAY_ON_SITE = 'на месте'
 export const BTN_PAY_ONLINE_SBP = 'СБП'
 export const BTN_PAY_ONLINE_CARD = 'карта'
-export const BTN_PAY_OPEN_LINK = 'Открыть оплату'
 export const BTN_PAY_CLAIMED = 'Я оплатил'
 export const BTN_PAY_CHECK_STATUS = 'Проверить'
 export const BTN_PAY_CHANGE_METHOD = '← Назад'
@@ -145,6 +144,9 @@ export function payChangeMethodPayload(entityId: string): string {
 export function paymentMethodKeyboard(
   entityId: string,
   methods: Array<'SBP_TRANSFER' | 'ON_SITE' | 'TBANK_SBP' | 'TBANK_ONLINE'>,
+  options?: {
+    onlineUrls?: Partial<Record<'TBANK_SBP' | 'TBANK_ONLINE', string>>
+  },
 ): InlineKeyboardButton[][] {
   const rows: InlineKeyboardButton[][] = []
   const manualRow: InlineKeyboardButton[] = []
@@ -159,10 +161,16 @@ export function paymentMethodKeyboard(
   }
   const onlineRow: InlineKeyboardButton[] = []
   if (methods.includes('TBANK_SBP')) {
-    onlineRow.push({ text: BTN_PAY_ONLINE_SBP, callbackData: payMethodPayload('tbank_sbp', entityId) })
+    const sbpUrl = options?.onlineUrls?.TBANK_SBP
+    onlineRow.push(sbpUrl
+      ? { text: BTN_PAY_ONLINE_SBP, url: sbpUrl }
+      : { text: BTN_PAY_ONLINE_SBP, callbackData: payMethodPayload('tbank_sbp', entityId) })
   }
   if (methods.includes('TBANK_ONLINE')) {
-    onlineRow.push({ text: BTN_PAY_ONLINE_CARD, callbackData: payMethodPayload('tbank_card', entityId) })
+    const cardUrl = options?.onlineUrls?.TBANK_ONLINE
+    onlineRow.push(cardUrl
+      ? { text: BTN_PAY_ONLINE_CARD, url: cardUrl }
+      : { text: BTN_PAY_ONLINE_CARD, callbackData: payMethodPayload('tbank_card', entityId) })
   }
   if (onlineRow.length) {
     rows.push(onlineRow)
@@ -189,21 +197,6 @@ export function onlinePaymentCheckKeyboard(
     { text: BTN_PAY_CHECK_STATUS, callbackData: payCheckStatusPayload(paymentId) },
     { text: BTN_PAY_CHANGE_METHOD, callbackData: payChangeMethodPayload(entityId) },
   ]]
-}
-
-/** MAX and other messengers without callback URL open — link button + check */
-export function onlinePaymentLinkKeyboard(
-  entityId: string,
-  payUrl: string,
-  paymentId: string,
-): InlineKeyboardButton[][] {
-  return [
-    [{ text: BTN_PAY_OPEN_LINK, url: payUrl }],
-    [
-      { text: BTN_PAY_CHECK_STATUS, callbackData: payCheckStatusPayload(paymentId) },
-      { text: BTN_PAY_CHANGE_METHOD, callbackData: payChangeMethodPayload(entityId) },
-    ],
-  ]
 }
 
 export function isPaymentClientCallbackPayload(payload: string): boolean {

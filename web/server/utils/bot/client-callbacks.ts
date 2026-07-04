@@ -61,7 +61,7 @@ export async function routeClientCallback(
   const changeId = parsePayChangeMethodPayload(data)
   if (changeId) {
     const { handlePaymentChangeMethod } = await import('./payment-handlers')
-    return { toast: await handlePaymentChangeMethod(target, user, changeId, adapter) }
+    return handlePaymentChangeMethod(target, user, changeId, adapter)
   }
 
   const checkPaymentId = parsePayCheckStatusPayload(data)

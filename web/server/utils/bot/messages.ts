@@ -1,27 +1,27 @@
 import { isTerminalPaymentMode } from '../payment-mode'
 
 export const BTN_FINALIZE_BATCH = '✅ Оплатить'
-export const BTN_CANCEL_BATCH = '❌ Отменить пачку'
+export const BTN_CANCEL_BATCH = '❌ Отменить всё'
 export const BTN_REMOVE_FILE = '🗑 Удалить этот файл'
 export const BTN_REMOVE_CONFIRM = 'Да, удалить'
 export const BTN_REMOVE_CANCEL = 'Нет'
 export const BTN_RETRY_PRINT = '🔄 Попробовать снова'
 
 export const MSG_FILE_RECEIVING = '📥 Принимаю'
-export const MSG_BATCH_FINALIZING = '⏳ Собираем пачку…'
-export const MSG_BATCH_FILE_ALREADY_REMOVED = 'Этот файл уже удалён из пачки.'
-export const MSG_BATCH_BATCH_CANCELLED_ACTION = 'Пачка отменена.'
+export const MSG_BATCH_FINALIZING = '⏳ Готовим к оплате…'
+export const MSG_BATCH_FILE_ALREADY_REMOVED = 'Этот файл уже удалён.'
+export const MSG_BATCH_BATCH_CANCELLED_ACTION = 'Сброшено.'
 export const MSG_BATCH_EMPTY_AFTER_REMOVE =
-  'В пачке не осталось файлов. Отправьте документ, когда будете готовы.'
+  'Файлов не осталось. Отправьте документ, когда будете готовы.'
 export const MSG_BATCH_CANNOT_REMOVE_CALCULATING =
   'Этот файл ещё считается на принтере. Подождите несколько секунд.'
-export const MSG_BATCH_CONTROLS = 'Управление пачкой'
+export const MSG_BATCH_CONTROLS = 'Ваши файлы'
 
 export const MSG_START =
   'Привет! Отправляйте файлы по одному (PDF или Word).\n\n'
   + 'Word-файлы сначала считаются на принтере — это может занять до 20 секунд.\n'
-  + 'Когда все файлы готовы, появится кнопка «Оплатить».\n'
-  + 'Можно добавить до 5 файлов в одну пачку.'
+  + 'Можно отправить до 5 документов за раз — оплата одна.\n'
+  + 'Когда всё готово, появится кнопка «Оплатить».'
 
 export const MSG_UNSUPPORTED_FILE =
   'Пока принимаем только PDF и Word (.doc, .docx). Отправьте файл в одном из этих форматов.'
@@ -41,8 +41,8 @@ export const MSG_AGENT_OFFLINE_AFTER_PAYMENT =
   + 'Если прошло несколько минут — обратитесь к сотруднику.'
 
 export const MSG_BATCH_LIMIT =
-  'Достигнут лимит файлов в пачке. '
-  + 'Дождитесь подсчёта страниц или нажмите «Отменить пачку».'
+  'Достигнут лимит — не больше 5 файлов за раз. '
+  + 'Дождитесь подсчёта страниц или нажмите «Отменить всё».'
 
 export const MSG_BATCH_STILL_CALCULATING =
   'Подождите: идёт подсчёт страниц. '
@@ -53,7 +53,7 @@ export const MSG_BATCH_CALCULATION_FAILED =
   + 'Нажмите «Удалить этот файл» под проблемным документом и отправьте его снова.'
 
 export const MSG_BATCH_CANCELLED =
-  'Пачка отменена. Отправьте файлы заново, когда будете готовы.'
+  'Сброшено. Отправьте файлы заново, когда будете готовы.'
 
 function clientPaymentHint(): string {
   if (isTerminalPaymentMode()) {
@@ -73,7 +73,7 @@ export function formatFileCalculating(fileName: string, fileIndex: number, maxFi
   return (
     `⏳ Считаем страницы «${fileName}»…\n`
     + 'Это может занять до 20 секунд.\n\n'
-    + `В пачке: ${fileIndex} из ${maxFiles}.`
+    + `Файлов: ${fileIndex} из ${maxFiles}.`
   )
 }
 
@@ -85,8 +85,8 @@ export function formatBatchFileCalculating(
   return (
     `${MSG_CALCULATING}\n\n`
     + `Файл: ${fileName}\n\n`
-    + `В пачке: ${fileIndex} из ${maxFiles}.\n`
-    + 'Можно добавить ещё файлы в пачку.'
+    + `Файлов: ${fileIndex} из ${maxFiles}.\n`
+    + 'Можно отправить ещё файлы.'
   )
 }
 
@@ -99,12 +99,12 @@ export function formatBatchFileReady(
 ): string {
   const footer = canFinalize
     ? 'Нажмите «Оплатить», когда будете готовы.'
-    : 'Можно добавить ещё файлы в пачку.'
+    : 'Можно отправить ещё файлы.'
 
   return (
     `📎 Файл готов: ${fileName}\n`
     + `Страниц: ${pageCount}\n\n`
-    + `В пачке: ${fileIndex} из ${maxFiles}.\n`
+    + `Файлов: ${fileIndex} из ${maxFiles}.\n`
     + footer
   )
 }
@@ -123,15 +123,15 @@ export function formatBatchFileAdded(
 }
 
 export function formatBatchRemoveConfirm(fileName: string): string {
-  return `Удалить «${fileName}» из пачки? Остальные файлы сохранятся.`
+  return `Удалить «${fileName}»? Остальные файлы сохранятся.`
 }
 
 export function formatFileRemovedInline(fileName: string): string {
-  return `🗑 «${fileName}» удалён из пачки.`
+  return `🗑 «${fileName}» удалён.`
 }
 
 export function formatBatchFileRemovedToast(remainingCount: number, maxFiles: number): string {
-  return `Удалено. В пачке: ${remainingCount} из ${maxFiles}.`
+  return `Удалено. Файлов: ${remainingCount} из ${maxFiles}.`
 }
 
 export function formatBatchCalculationFailedForFile(
@@ -154,11 +154,19 @@ export function formatBatchSummary(
   const amountRub = Math.round(totalAmountKopeks / 100)
   const filesList = fileNames.map((name, i) => `${i + 1}. ${name}`).join('\n')
   return (
-    `📦 Пачка собрана (${fileNames.length} файлов)\n\n`
+    `📄 ${fileNames.length} ${pluralFiles(fileNames.length)} к оплате\n\n`
     + `${filesList}\n\n`
     + `Страниц: ${totalPages}\n`
     + `Итого: ${amountRub} ₽`
   )
+}
+
+function pluralFiles(count: number): string {
+  const mod10 = count % 10
+  const mod100 = count % 100
+  if (mod10 === 1 && mod100 !== 11) return 'файл'
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return 'файла'
+  return 'файлов'
 }
 
 export function formatBatchPaymentConfirmed(
@@ -172,7 +180,7 @@ export function formatBatchPaymentConfirmed(
     : 'Сотрудник запустит печать.'
   const base = (
     `✅ Оплата принята!\n`
-    + `Пачка #${batchShortId} (${fileCount} файлов)\n`
+    + `#${batchShortId} · ${fileCount} ${pluralFiles(fileCount)}\n`
     + afterPay
   )
   return agentOffline ? `${base}\n\n${MSG_AGENT_OFFLINE_AFTER_PAYMENT}` : base
@@ -180,7 +188,7 @@ export function formatBatchPaymentConfirmed(
 
 export function formatBatchPrintStarted(batchShortId: string, current: number, total: number): string {
   return (
-    `🖨 Печать пачки #${batchShortId} началась (${current}/${total}).\n`
+    `🖨 Печать #${batchShortId} началась (${current}/${total}).\n`
     + 'Заберите документы у принтера, когда будут готовы.'
   )
 }
@@ -188,7 +196,7 @@ export function formatBatchPrintStarted(batchShortId: string, current: number, t
 export function formatBatchPrintComplete(batchShortId: string, fileCount: number): string {
   return (
     `✅ Готово!\n`
-    + `Пачка #${batchShortId} (${fileCount} файлов)\n`
+    + `#${batchShortId} · ${fileCount} ${pluralFiles(fileCount)}\n`
     + 'Заберите документы у принтера.'
   )
 }
@@ -203,7 +211,7 @@ export function formatBatchPrintPartialFailure(
     ? 'Нажмите «Попробовать снова» — печать запустится автоматически.'
     : 'Нажмите «Попробовать снова» под нужным файлом.'
   return (
-    `⚠️ Пачка #${batchShortId}: печать завершена с ошибками.\n\n`
+    `⚠️ #${batchShortId}: печать завершена с ошибками.\n\n`
     + `Не удалось напечатать:\n${failedList}\n\n`
     + `Успешно: ${totalFiles - failedFiles.length} из ${totalFiles}.\n`
     + `${retryHint} Если не поможет — обратитесь к сотруднику копицентра.`
@@ -294,14 +302,14 @@ export function formatPrintRetryStarted(fileName: string): string {
 
 export function formatBatchPrintAutoRetry(batchShortId: string, fileName: string): string {
   return (
-    `🔄 Пачка #${batchShortId}: не удалось напечатать «${fileName}».\n`
+    `🔄 #${batchShortId}: не удалось напечатать «${fileName}».\n`
     + 'Пробуем ещё раз автоматически…'
   )
 }
 
 export function formatBatchPrintRetryStarted(batchShortId: string, fileName: string): string {
   return (
-    `🔄 Пачка #${batchShortId}: повторная печать «${fileName}» запущена.\n`
+    `🔄 #${batchShortId}: повторная печать «${fileName}» запущена.\n`
     + 'Заберите документ у принтера, когда будет готово.'
   )
 }
