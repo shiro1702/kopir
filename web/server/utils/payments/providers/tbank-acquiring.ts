@@ -300,7 +300,7 @@ async function processConfirmedPayment(payment: {
   orderId: string | null
   status: PaymentStatus
   externalId: string | null
-}, externalPaymentId?: string | number | null) {
+}, externalPaymentId?: string | number | null, webhookPayload?: Record<string, unknown>) {
   if (payment.status === PaymentStatus.CONFIRMED) {
     const entityId = resolveEntityIdFromPayment(payment)
     return { ok: true, alreadyConfirmed: true, entityId }
@@ -309,6 +309,10 @@ async function processConfirmedPayment(payment: {
   await markPaymentConfirmed(payment.id, externalPaymentId ?? payment.externalId)
   const entityId = resolveEntityIdFromPayment(payment)
   const result = await confirmTbankPayment(entityId)
+
+  const { scheduleTbankReceiptNotify } = await import('../tbank-payment-receipt-notify')
+  scheduleTbankReceiptNotify(payment.id, webhookPayload)
+
   return { ok: true, result, entityId }
 }
 
@@ -362,7 +366,11 @@ export async function processTbankWebhookNotification(
   }
 
   try {
-    const processed = await processConfirmedPayment(payment, payload.PaymentId as string | number | null)
+    const processed = await processConfirmedPayment(
+      payment,
+      payload.PaymentId as string | number | null,
+      payload,
+    )
     logTbankWebhookProcessed('confirmed', {
       merchantOrderId,
       entityId: processed.entityId,

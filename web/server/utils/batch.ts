@@ -455,6 +455,7 @@ export async function confirmBatchPayment(batchId: string) {
 
   try {
     const { notifyBatchPaymentConfirmed } = await import('./bot/core')
+    const { isTbankPaymentMethod } = await import('./payments/methods')
     const freshPoint = await prisma.point.findUnique({ where: { id: batch.pointId } })
     const agentOffline = freshPoint ? !isPointAgentOnline(freshPoint) : true
     await notifyBatchPaymentConfirmed(
@@ -462,7 +463,7 @@ export async function confirmBatchPayment(batchId: string) {
       batchId,
       batch.orders.length,
       agentOffline,
-      batch.paymentMethod === PaymentMethod.TBANK_ONLINE,
+      isTbankPaymentMethod(batch.paymentMethod),
     )
   } catch (error) {
     console.error('[batch] payment notify failed:', batchId, error)

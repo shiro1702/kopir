@@ -477,6 +477,10 @@ export function formatOnlinePaymentConfirmed(shortId: string): string {
   return `✅ #${shortId} — оплата получена. Запускаем печать.`
 }
 
+export function formatPaymentReceiptLink(shortId: string, receiptUrl: string): string {
+  return `🧾 Электронный чек по оплате #${shortId}:\n${receiptUrl}`
+}
+
 function staffUserLabel(user: { username?: string | null, firstName?: string | null }): string {
   return user.username ? `@${user.username}` : user.firstName ?? 'клиент'
 }

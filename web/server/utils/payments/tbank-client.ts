@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto'
 import {
   getTbankApiUrl,
+  getTbankCashboxApiUrl,
   getTbankNotificationUrl,
   getTbankPassword,
   getTbankTerminalKey,
@@ -33,6 +34,8 @@ export interface TbankApiResponse {
   Amount?: number
   PaymentURL?: string
   Data?: string
+  Url?: string
+  ReceiptUrl?: string
 }
 
 function tbankError(message: string, code: string, statusCode = 502) {
@@ -90,7 +93,8 @@ export function verifyTbankNotificationToken(
   return buildTbankToken(params, password) === token
 }
 
-async function postTbank<T extends TbankApiResponse>(
+async function postTbankToBase<T extends TbankApiResponse>(
+  apiBaseUrl: string,
   method: string,
   params: TbankRequestParams,
 ): Promise<T> {
@@ -106,8 +110,7 @@ async function postTbank<T extends TbankApiResponse>(
   }
   body.Token = buildTbankToken(body, password)
 
-  const apiUrl = getTbankApiUrl()
-  const url = `${apiUrl.replace(/\/$/, '')}/${method}`
+  const url = `${apiBaseUrl.replace(/\/$/, '')}/${method}`
 
   logTbankConfigHint(terminalKey, Boolean(password))
   logTbankRequest(method, body, { url })
@@ -151,6 +154,13 @@ async function postTbank<T extends TbankApiResponse>(
 
   logTbankSuccess(method, data)
   return data
+}
+
+async function postTbank<T extends TbankApiResponse>(
+  method: string,
+  params: TbankRequestParams,
+): Promise<T> {
+  return postTbankToBase(getTbankApiUrl(), method, params)
 }
 
 export interface TbankInitParams {
@@ -207,6 +217,13 @@ export async function tbankGetQr(
 
 export async function tbankGetState(paymentId: string | number): Promise<TbankApiResponse> {
   return postTbank<TbankApiResponse>('GetState', {
+    PaymentId: paymentId,
+  })
+}
+
+/** Cashbox API: fiscal receipt status + OFD link (T-Checks). */
+export async function tbankGetReceiptState(paymentId: string | number): Promise<TbankApiResponse> {
+  return postTbankToBase(getTbankCashboxApiUrl(), 'GetReceiptState', {
     PaymentId: paymentId,
   })
 }

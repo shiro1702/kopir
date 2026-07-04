@@ -820,6 +820,14 @@ export async function notifyBatchPaymentConfirmed(
   )
 }
 
+export async function sendTbankReceiptLinkToUser(
+  user: Pick<User, 'telegramId' | 'maxUserId'>,
+  shortId: string,
+  receiptUrl: string,
+): Promise<void> {
+  await sendToUser(user, messages.formatPaymentReceiptLink(shortId, receiptUrl))
+}
+
 export async function notifyBatchPrintStarted(
   user: Pick<User, 'telegramId' | 'maxUserId'>,
   batchId: string,
