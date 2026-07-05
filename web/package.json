@@ -3,7 +3,7 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "build": "nuxt build && node scripts/copy-prisma-engine.mjs",
+    "build": "nuxt build && node scripts/copy-prisma-engine.mjs && node scripts/copy-certs-to-vercel.mjs",
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",

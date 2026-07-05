@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import tls from 'node:tls'
 import { Agent, fetch as undiciFetch, type RequestInit } from 'undici'
@@ -11,10 +11,13 @@ let agentResolved = false
 
 function bundlePathCandidates(): string[] {
   const rel = join('certs', BUNDLE_FILE)
-  const fromModule = fileURLToPath(new URL(`../../certs/${BUNDLE_FILE}`, import.meta.url))
+  const moduleDir = dirname(fileURLToPath(import.meta.url))
+  const fromModule = join(moduleDir, '../../certs', BUNDLE_FILE)
+  const fromSourceTree = fileURLToPath(new URL(`../../certs/${BUNDLE_FILE}`, import.meta.url))
   return [
     process.env.NODE_EXTRA_CA_CERTS?.trim(),
     fromModule,
+    fromSourceTree,
     join(process.cwd(), rel),
     join(process.cwd(), 'web', rel),
     `/var/task/${rel}`,

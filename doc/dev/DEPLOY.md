@@ -189,10 +189,24 @@ DATABASE_URL="postgresql://..." npm run db:seed   # только при перв
 
 ### 4.2 Webhook ботов
 
+Секрет подхватывается из `web/.env`, если не передан в командной строке:
+
 ```bash
 cd web
-ADMIN_SECRET=ваш_секрет ./scripts/set-bot-webhooks.sh https://kopir-xxxxx.vercel.app
+./scripts/set-bot-webhooks.sh https://kopir-seven.vercel.app
 ```
+
+Или явно:
+
+```bash
+ADMIN_SECRET=ваш_реальный_секрет ./scripts/set-bot-webhooks.sh https://kopir-seven.vercel.app
+```
+
+> Не подставляйте буквально `...` — нужен полный `ADMIN_SECRET` из `.env` или Vercel → Settings → Environment Variables.
+
+На Vercel задайте `NUXT_PUBLIC_SITE_URL=https://kopir-seven.vercel.app` — иначе webhook Telegram/MAX привяжется к случайному URL деплоя (`*.vercel.app`).
+
+После миграции MAX API (Sprint 4, задача 08) сертификат Минцифры копируется в serverless-бандл при `npm run build` (`scripts/copy-certs-to-vercel.mjs`). Без redeploy MAX webhook вернёт `"error": "fetch failed"`.
 
 Или вручную:
 
