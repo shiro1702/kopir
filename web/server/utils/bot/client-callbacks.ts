@@ -9,6 +9,8 @@ import {
   parsePayClaimedPayload,
   parsePayMethodPayload,
   parseOrderRetryPayload,
+  parsePointListPagePayload,
+  parsePointSelectPayload,
 } from './keyboards'
 import type {
   BotUser,
@@ -81,6 +83,33 @@ export async function routeClientCallback(
   if (retryOrderId) {
     const { handleClientOrderRetry } = await import('./core')
     return { toast: await handleClientOrderRetry(user, retryOrderId) }
+  }
+
+  const pointSlug = parsePointSelectPayload(data)
+  if (pointSlug) {
+    const { handlePointSelect } = await import('./point-selection')
+    return { toast: await handlePointSelect(target, user, pointSlug, adapter) }
+  }
+
+  if (data === 'point_list') {
+    const { handlePointList } = await import('./point-selection')
+    return { toast: await handlePointList(target, user, adapter) }
+  }
+
+  const listPage = parsePointListPagePayload(data)
+  if (listPage !== null) {
+    const { handlePointList } = await import('./point-selection')
+    return { toast: await handlePointList(target, user, adapter, listPage) }
+  }
+
+  if (data === 'point_change') {
+    const { handlePointChangeMenu } = await import('./point-selection')
+    return { toast: await handlePointChangeMenu(target, adapter) }
+  }
+
+  if (data === 'point_back') {
+    const { handlePointBack } = await import('./point-selection')
+    return { toast: await handlePointBack(target, user, adapter) }
   }
 
   throw new Error('Неизвестное действие')

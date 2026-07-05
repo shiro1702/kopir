@@ -4,6 +4,7 @@ import { detectDocumentKind, mimeTypeForKind } from '../file-types'
 import {
   isBatchClientCallbackPayload,
   isPaymentClientCallbackPayload,
+  isPointClientCallbackPayload,
   isPrintRetryClientCallbackPayload,
 } from '../bot/keyboards'
 import { routeClientCallback } from '../bot/client-callbacks'
@@ -102,8 +103,15 @@ export async function handleMaxUpdate(update: MaxUpdate): Promise<void> {
         platform: 'max',
         chatId: String(update.chat_id),
       }
+      const user = update.user
+        ? {
+            externalId: String(update.user.user_id),
+            username: update.user.username ?? null,
+            firstName: update.user.first_name ?? update.user.name ?? null,
+          }
+        : undefined
       const { handleStart } = await import('../bot/core')
-      await handleStart('max', target, update.payload, adapter)
+      await handleStart('max', target, update.payload, adapter, user)
       return
     }
 
@@ -128,7 +136,7 @@ export async function handleMaxUpdate(update: MaxUpdate): Promise<void> {
       const startPayload = parseStartPayload(message.body?.text)
       if (startPayload !== undefined || message.body?.text?.trim() === '/start') {
         const { handleStart } = await import('../bot/core')
-        await handleStart('max', target, startPayload, adapter)
+        await handleStart('max', target, startPayload, adapter, user)
         return
       }
 
@@ -157,6 +165,15 @@ export async function handleMaxUpdate(update: MaxUpdate): Promise<void> {
         const { handleBatchAction } = await import('../bot/core')
         await handleBatchAction('max', target, user, textAction, adapter)
         return
+      }
+
+      const plainText = message.body?.text?.trim()
+      if (plainText && /^\d{2,4}$/.test(plainText)) {
+        const { handleDisplayCodeMessage } = await import('../bot/point-selection')
+        const handled = await handleDisplayCodeMessage(target, user, plainText, adapter)
+        if (handled) {
+          return
+        }
       }
 
       const fileAttachment = resolveFileAttachment(message)
@@ -205,6 +222,7 @@ export async function handleMaxUpdate(update: MaxUpdate): Promise<void> {
       const isStaffCallback = !isBatchClientCallbackPayload(callback.payload)
         && !isPaymentClientCallbackPayload(callback.payload)
         && !isPrintRetryClientCallbackPayload(callback.payload)
+        && !isPointClientCallbackPayload(callback.payload)
         && !callback.payload.startsWith('batch_')
 
       if (callback.payload === 'batch_finalize' || callback.payload === 'batch_cancel') {
@@ -247,6 +265,7 @@ export async function handleMaxUpdate(update: MaxUpdate): Promise<void> {
         isBatchClientCallbackPayload(callback.payload)
         || isPaymentClientCallbackPayload(callback.payload)
         || isPrintRetryClientCallbackPayload(callback.payload)
+        || isPointClientCallbackPayload(callback.payload)
       )) {
         const chatId = update.message?.recipient?.chat_id ?? update.chat_id
         if (!chatId) {

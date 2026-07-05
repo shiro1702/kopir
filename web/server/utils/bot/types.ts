@@ -20,7 +20,7 @@ export interface IncomingDocument {
 /** @deprecated Use IncomingDocument */
 export type IncomingPdf = IncomingDocument
 
-export type BatchKeyboardMode = 'calculating' | 'ready'
+export type BatchKeyboardMode = 'calculating' | 'ready' | 'needs_point'
 
 export type TypingAction = 'typing' | 'upload_document'
 

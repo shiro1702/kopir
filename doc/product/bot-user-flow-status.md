@@ -25,7 +25,8 @@
 | 16 | `🔄 Попробовать снова` (печать) | ✅ | частично |
 | 17 | «✅ Готово!» после печати | 🟡 | нет |
 | 18 | Блок заказа на offline-точку | ⬜ | Sprint 4 → [07](../sprints/sprint-4/tasks/07-ready-offline-guard.md) |
-| 19 | Выбор точки без QR (список / код) | ⬜ | Sprint 5 → [02](../sprints/sprint-5/tasks/02-point-selection-bot.md) |
+| 19 | Выбор точки без QR (список / код) | 🟡 | код в админке; E2E pending |
+| 20 | `displayCode` в `/admin/points` | 🟡 | поле в форме |
 
 ## Админ / партнёр
 

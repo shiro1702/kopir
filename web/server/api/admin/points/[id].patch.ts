@@ -59,6 +59,7 @@ export default defineEventHandler(async (event) => {
     paymentMethodsEnabled?: PaymentMethod[]
     transferPhone?: string | null
     transferBankLabel?: string | null
+    displayCode?: string | null
   } = {}
 
   if (body?.name !== undefined) {
@@ -112,6 +113,22 @@ export default defineEventHandler(async (event) => {
 
   if (body?.transferBankLabel !== undefined) {
     data.transferBankLabel = body.transferBankLabel ? String(body.transferBankLabel).trim() : null
+  }
+
+  if (body?.displayCode !== undefined) {
+    const displayCode = body.displayCode ? String(body.displayCode).trim() : null
+    if (displayCode) {
+      const codeConflict = await prisma.point.findFirst({
+        where: { displayCode, NOT: { id } },
+      })
+      if (codeConflict) {
+        throw createError({
+          statusCode: 409,
+          data: { error: `Point with code "${displayCode}" already exists`, code: 'DISPLAY_CODE_EXISTS' },
+        })
+      }
+    }
+    data.displayCode = displayCode
   }
 
   const isActive = data.isActive ?? existing.isActive

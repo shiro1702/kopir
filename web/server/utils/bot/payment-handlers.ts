@@ -19,6 +19,7 @@ import {
   initPayment,
   type TbankPayChannel,
 } from '../payments/providers/tbank-acquiring'
+import { formatPointLabel } from '../points'
 import { prisma } from '../prisma'
 import {
   onSitePaymentKeyboard,
@@ -84,17 +85,24 @@ export async function sendPaymentMethodChoiceForBatch(
   adapter: MessengerAdapter,
   batch: OrderBatch & {
     orders: Array<Pick<Order, 'fileName'>>
-    point?: { transferPhone: string | null, transferBankLabel: string | null }
+    point?: { transferPhone: string | null, transferBankLabel: string | null, name: string, displayCode?: string | null } | null
   },
   userExternalId: string,
 ): Promise<void> {
-  const point = batch.point ?? await prisma.point.findUniqueOrThrow({ where: { id: batch.pointId } })
+  const point = batch.point ?? (batch.pointId
+    ? await prisma.point.findUniqueOrThrow({ where: { id: batch.pointId } })
+    : null)
+  if (!point) {
+    await adapter.sendText(target, 'Сначала выберите точку печати.')
+    return
+  }
   const methods = getEnabledPaymentMethods(point)
   const shortId = batch.id.slice(-6)
   const summary = messages.formatBatchSummary(
     batch.orders.map((o) => o.fileName),
     batch.totalPages,
     batch.totalAmountKopeks,
+    formatPointLabel(point),
   )
   const choice = messages.formatPaymentMethodChoice(batch.totalAmountKopeks, shortId, {
     hasOnlineMethods: methodsIncludeOnline(methods),

@@ -44,3 +44,40 @@ export async function resolvePointBySlug(slug: string) {
   }
   return point
 }
+
+export async function resolvePointByDisplayCode(code: string) {
+  const normalized = code.trim()
+  const point = await prisma.point.findFirst({
+    where: { displayCode: normalized, isActive: true },
+  })
+  if (!point) {
+    throw createError({
+      statusCode: 404,
+      data: { error: 'Точка не найдена', code: 'POINT_NOT_FOUND' },
+    })
+  }
+  return point
+}
+
+export async function listActivePoints() {
+  return prisma.point.findMany({
+    where: { isActive: true },
+    orderBy: { name: 'asc' },
+    select: {
+      id: true,
+      slug: true,
+      name: true,
+      displayCode: true,
+      pricePerPageKopeks: true,
+      isActive: true,
+      lastSeenAt: true,
+    },
+  })
+}
+
+export function formatPointLabel(point: { name: string, displayCode?: string | null }): string {
+  if (point.displayCode) {
+    return `${point.name} (код ${point.displayCode})`
+  }
+  return point.name
+}

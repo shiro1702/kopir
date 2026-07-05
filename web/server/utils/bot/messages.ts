@@ -6,6 +6,13 @@ export const BTN_REMOVE_FILE = '🗑 Удалить этот файл'
 export const BTN_REMOVE_CONFIRM = 'Да, удалить'
 export const BTN_REMOVE_CANCEL = 'Нет'
 export const BTN_RETRY_PRINT = '🔄 Попробовать снова'
+export const BTN_SELECT_POINT = '📋 Выбрать точку'
+export const BTN_CHANGE_POINT = '📍 Изменить точку'
+export const BTN_POINT_LIST = '📋 Выбрать из списка'
+export const BTN_POINT_BACK = '⬅️ Назад'
+
+export const MSG_POINT_NOT_FOUND = 'Точка не найдена. Проверьте код или выберите из списка.'
+export const MSG_POINT_SELECTED = (label: string) => `📍 Выбрана точка: ${label}`
 
 export const MSG_FILE_RECEIVING = '📥 Принимаю'
 export const MSG_BATCH_FINALIZING = '⏳ Готовим к оплате…'
@@ -90,23 +97,43 @@ export function formatBatchFileCalculating(
   )
 }
 
+export interface BatchFileReadyOptions {
+  pointLabel?: string | null
+  totalAmountKopeks?: number
+}
+
 export function formatBatchFileReady(
   fileName: string,
   fileIndex: number,
   maxFiles: number,
   pageCount: number,
   canFinalize: boolean,
+  options?: BatchFileReadyOptions,
 ): string {
-  const footer = canFinalize
-    ? 'Нажмите «Оплатить», когда будете готовы.'
-    : 'Можно отправить ещё файлы.'
+  const hasPoint = Boolean(options?.pointLabel)
+  const lines = [
+    `📎 Файл готов: ${fileName}`,
+    `Страниц: ${pageCount}`,
+    '',
+    `Файлов: ${fileIndex} из ${maxFiles}.`,
+  ]
 
-  return (
-    `📎 Файл готов: ${fileName}\n`
-    + `Страниц: ${pageCount}\n\n`
-    + `Файлов: ${fileIndex} из ${maxFiles}.\n`
-    + footer
-  )
+  if (hasPoint) {
+    lines.push('', `📍 Точка: ${options!.pointLabel}`)
+    if (options?.totalAmountKopeks !== undefined && options.totalAmountKopeks > 0) {
+      lines.push(`💰 Стоимость: ${Math.round(options.totalAmountKopeks / 100)} ₽`)
+    }
+    lines.push('', canFinalize
+      ? 'Нажмите «Оплатить», когда будете готовы.'
+      : 'Можно отправить ещё файлы.')
+  } else {
+    lines.push(
+      '',
+      '⚠️ Чтобы рассчитать стоимость и отправить на печать, выберите точку:',
+    )
+  }
+
+  return lines.join('\n')
 }
 
 /** @deprecated Use formatBatchFileCalculating or formatBatchFileReady */
@@ -150,14 +177,36 @@ export function formatBatchSummary(
   fileNames: string[],
   totalPages: number,
   totalAmountKopeks: number,
+  pointLabel?: string | null,
 ): string {
   const amountRub = Math.round(totalAmountKopeks / 100)
   const filesList = fileNames.map((name, i) => `${i + 1}. ${name}`).join('\n')
+  const pointLine = pointLabel ? `📍 Точка: ${pointLabel}\n\n` : ''
   return (
     `📄 ${fileNames.length} ${pluralFiles(fileNames.length)} к оплате\n\n`
     + `${filesList}\n\n`
+    + pointLine
     + `Страниц: ${totalPages}\n`
     + `Итого: ${amountRub} ₽`
+  )
+}
+
+export function formatPointListHeader(page: number, totalPages: number): string {
+  if (totalPages <= 1) {
+    return '📋 Выберите точку печати:'
+  }
+  return `📋 Выберите точку печати (стр. ${page + 1}/${totalPages}):`
+}
+
+export function formatPointChangeMenu(): string {
+  return '📍 Изменить точку печати:\n\nИли отправьте номер точки, если вы уже у принтера.'
+}
+
+export function formatStartWithPoint(pointLabel: string): string {
+  return (
+    `${MSG_POINT_SELECTED(pointLabel)}\n\n`
+    + 'Отправляйте файлы по одному (PDF или Word).\n'
+    + 'Можно отправить до 5 документов за раз — оплата одна.'
   )
 }
 

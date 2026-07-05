@@ -1,12 +1,19 @@
 import {
   BTN_CANCEL_BATCH,
   BTN_FINALIZE_BATCH,
+  BTN_POINT_BACK,
+  BTN_POINT_LIST,
   BTN_REMOVE_CANCEL,
   BTN_REMOVE_CONFIRM,
   BTN_REMOVE_FILE,
   BTN_RETRY_PRINT,
+  BTN_SELECT_POINT,
+  BTN_CHANGE_POINT,
 } from './messages'
 import type { InlineKeyboardButton } from './types'
+import type { BatchKeyboardMode } from './types'
+
+export const POINTS_PER_PAGE = 6
 
 export function batchRemovePayload(orderId: string): string {
   return `batch_remove:${orderId}`
@@ -33,15 +40,16 @@ export function removeConfirmKeyboard(orderId: string): InlineKeyboardButton[][]
   ]]
 }
 
-export function maxBatchActionButtons(mode: 'calculating' | 'ready') {
-  return mode === 'ready'
-    ? [
-        { type: 'callback' as const, text: BTN_FINALIZE_BATCH, payload: 'batch_finalize', intent: 'default' as const },
-        { type: 'callback' as const, text: BTN_CANCEL_BATCH, payload: 'batch_cancel', intent: 'default' as const },
-      ]
-    : [
-        { type: 'callback' as const, text: BTN_CANCEL_BATCH, payload: 'batch_cancel', intent: 'default' as const },
-      ]
+export function maxBatchActionButtons(mode: BatchKeyboardMode) {
+  if (mode === 'ready') {
+    return [
+      { type: 'callback' as const, text: BTN_FINALIZE_BATCH, payload: 'batch_finalize', intent: 'default' as const },
+      { type: 'callback' as const, text: BTN_CANCEL_BATCH, payload: 'batch_cancel', intent: 'default' as const },
+    ]
+  }
+  return [
+    { type: 'callback' as const, text: BTN_CANCEL_BATCH, payload: 'batch_cancel', intent: 'default' as const },
+  ]
 }
 
 export function maxRemoveFileAttachment(orderId: string) {
@@ -82,6 +90,93 @@ export function isBatchClientCallbackPayload(payload: string): boolean {
     || payload.startsWith('batch_remove:')
     || payload.startsWith('batch_remove_confirm:')
     || payload.startsWith('batch_remove_cancel:')
+}
+
+export const POINT_SELECT_PREFIX = 'point_select:'
+export const POINT_LIST_PAGE_PREFIX = 'point_list_page:'
+
+export function pointSelectPayload(slug: string): string {
+  return `${POINT_SELECT_PREFIX}${slug}`
+}
+
+export function pointListPagePayload(page: number): string {
+  return `${POINT_LIST_PAGE_PREFIX}${page}`
+}
+
+export function parsePointSelectPayload(payload: string): string | null {
+  if (!payload.startsWith(POINT_SELECT_PREFIX)) return null
+  return payload.slice(POINT_SELECT_PREFIX.length) || null
+}
+
+export function parsePointListPagePayload(payload: string): number | null {
+  if (!payload.startsWith(POINT_LIST_PAGE_PREFIX)) return null
+  const page = Number.parseInt(payload.slice(POINT_LIST_PAGE_PREFIX.length), 10)
+  return Number.isFinite(page) && page >= 0 ? page : null
+}
+
+export function isPointClientCallbackPayload(payload: string): boolean {
+  return payload.startsWith(POINT_SELECT_PREFIX)
+    || payload === 'point_change'
+    || payload === 'point_list'
+    || payload.startsWith(POINT_LIST_PAGE_PREFIX)
+    || payload === 'point_back'
+}
+
+export interface PointListItem {
+  slug: string
+  name: string
+  displayCode?: string | null
+}
+
+export function pointSelectKeyboard(
+  points: PointListItem[],
+  page = 0,
+): InlineKeyboardButton[][] {
+  const start = page * POINTS_PER_PAGE
+  const slice = points.slice(start, start + POINTS_PER_PAGE)
+  const rows: InlineKeyboardButton[][] = slice.map((point) => [{
+    text: point.displayCode ? `${point.name} (${point.displayCode})` : point.name,
+    callbackData: pointSelectPayload(point.slug),
+  }])
+
+  const nav: InlineKeyboardButton[] = []
+  if (page > 0) {
+    nav.push({ text: '◀️', callbackData: pointListPagePayload(page - 1) })
+  }
+  if (start + POINTS_PER_PAGE < points.length) {
+    nav.push({ text: '▶️', callbackData: pointListPagePayload(page + 1) })
+  }
+  if (nav.length) {
+    rows.push(nav)
+  }
+  rows.push([{ text: BTN_POINT_BACK, callbackData: 'point_back' }])
+  return rows
+}
+
+export function pointChangeMenuKeyboard(): InlineKeyboardButton[][] {
+  return [[
+    { text: BTN_POINT_LIST, callbackData: 'point_list' },
+    { text: BTN_POINT_BACK, callbackData: 'point_back' },
+  ]]
+}
+
+export function fileStatusKeyboard(
+  orderId: string,
+  options: {
+    withRemove: boolean
+    keyboardMode: BatchKeyboardMode
+  },
+): InlineKeyboardButton[][] {
+  const rows: InlineKeyboardButton[][] = []
+  if (options.keyboardMode === 'needs_point') {
+    rows.push([{ text: BTN_SELECT_POINT, callbackData: 'point_list' }])
+  } else if (options.keyboardMode === 'ready') {
+    rows.push([{ text: BTN_CHANGE_POINT, callbackData: 'point_change' }])
+  }
+  if (options.withRemove) {
+    rows.push([{ text: BTN_REMOVE_FILE, callbackData: batchRemovePayload(orderId) }])
+  }
+  return rows
 }
 
 export function parseBatchRemoveCancelOrderId(payload: string): string | null {

@@ -2,7 +2,7 @@
 
 > **Назначение:** единая карта взаимодействия пользователя с ботом (Telegram / MAX): команды, кнопки, условия показа, переходы.  
 > **Код:** `web/server/utils/bot/`, адаптеры `telegram/`, `max/`.  
-> **Обновлено:** 05.07.2026
+> **Обновлено:** 06.07.2026
 
 ### Визуальные схемы
 
@@ -41,7 +41,8 @@
 
 | Блок | Статус | Спринт | Примечание |
 |------|--------|--------|------------|
-| `/start`, deep link `point_*` | ✅ | 0 | Привязка точки через `preferences` |
+| `/start`, deep link `point_*` | ✅ | 0 | Preference в БД (`User.preferredPointSlug`) |
+| Выбор точки без QR (список / код) | 🟡 | 5 P0 | `point_*` callbacks; DaData/гео — позже |
 | `/bind` (staff) | ✅ | 2 | Токен из админки `/admin/points` |
 | Сбор нескольких файлов (batch) | ✅ | 0.2 | До 5 файлов; в UI: «Файлов: N из 5», «Отменить всё» |
 | PDF + Word (.doc/.docx) | ✅ | 0.1 | Word → `CALCULATING` на агенте |
@@ -123,6 +124,11 @@ MAX: те же действия через **inline** `batch_finalize` / `batch_
 | `batch_remove:{orderId}` | Сообщение файла | batch `COLLECTING`; order не `CALCULATING` | ✅ |
 | `batch_remove_confirm:{orderId}` | Подтверждение удаления | После «Удалить» | ✅ |
 | `batch_remove_cancel:{orderId}` | Отмена удаления | На экране confirm | ✅ |
+| `point_list` | Нет точки в batch | batch `COLLECTING`, mode `needs_point` | 🟡 |
+| `point_select:{slug}` | Список точек | Точка active | 🟡 |
+| `point_list_page:{n}` | Пагинация списка | — | 🟡 |
+| `point_change` | Точка выбрана | batch `COLLECTING` | 🟡 |
+| `point_back` | Меню точки / список | — | 🟡 |
 | `pay_method:sbp_transfer:{id}` | После finalize | Метод в `paymentMethodsEnabled` + есть телефон | ✅ |
 | `pay_method:on_site:{id}` | После finalize | Метод включён на точке | ✅ |
 | `pay_method:tbank_sbp:{id}` | После finalize | Метод + Т-Банк; TG: callback→open; MAX: url в кнопке | ✅ |

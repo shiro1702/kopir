@@ -13,6 +13,7 @@ import { BTN_CANCEL_BATCH, BTN_FINALIZE_BATCH } from '../bot/messages'
 import {
   isBatchClientCallbackPayload,
   isPaymentClientCallbackPayload,
+  isPointClientCallbackPayload,
   isPrintRetryClientCallbackPayload,
 } from '../bot/keyboards'
 import { routeClientCallback } from '../bot/client-callbacks'
@@ -127,8 +128,14 @@ function createBot(): Bot {
       chatId: String(chatId),
     }
 
+    const user = {
+      externalId: String(telegramUser.id),
+      username: telegramUser.username ?? null,
+      firstName: telegramUser.first_name ?? null,
+    }
+
     const { handleStart } = await import('../bot/core')
-    await handleStart('telegram', target, ctx.match?.trim(), adapter)
+    await handleStart('telegram', target, ctx.match?.trim(), adapter, user)
   })
 
   bot.command('bind', async (ctx) => {
@@ -190,29 +197,32 @@ function createBot(): Bot {
 
   bot.on('message:text', async (ctx) => {
     const text = ctx.message.text
-    const action = isBatchActionText(text)
-    if (!action) {
-      return
-    }
-
     const telegramUser = ctx.from!
     const target: MessengerReplyTarget = {
       platform: 'telegram',
       chatId: String(telegramUser.id),
     }
+    const user = {
+      externalId: String(telegramUser.id),
+      username: telegramUser.username ?? null,
+      firstName: telegramUser.first_name ?? null,
+    }
 
-    const { handleBatchAction } = await import('../bot/core')
-    await handleBatchAction(
-      'telegram',
-      target,
-      {
-        externalId: String(telegramUser.id),
-        username: telegramUser.username ?? null,
-        firstName: telegramUser.first_name ?? null,
-      },
-      action,
-      adapter,
-    )
+    const action = isBatchActionText(text)
+    if (action) {
+      const { handleBatchAction } = await import('../bot/core')
+      await handleBatchAction('telegram', target, user, action, adapter)
+      return
+    }
+
+    const trimmed = text.trim()
+    if (/^\d{2,4}$/.test(trimmed)) {
+      const { handleDisplayCodeMessage } = await import('../bot/point-selection')
+      const handled = await handleDisplayCodeMessage(target, user, trimmed, adapter)
+      if (handled) {
+        return
+      }
+    }
   })
 
   bot.on('callback_query:data', async (ctx) => {
@@ -248,6 +258,7 @@ function createBot(): Bot {
       const isStaffCallback = !isBatchClientCallbackPayload(data)
         && !isPaymentClientCallbackPayload(data)
         && !isPrintRetryClientCallbackPayload(data)
+        && !isPointClientCallbackPayload(data)
       const result = isStaffCallback
         ? { toast: await handleStaffCallback(data, chatId) }
         : await handleClientCallback(data, target, user, adapter, callbackCtx, message)

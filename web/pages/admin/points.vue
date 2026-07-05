@@ -22,6 +22,7 @@ const adminConfig = ref(null)
 const form = ref({
   name: '',
   slug: '',
+  displayCode: '',
   pricePerPageKopeks: 1000,
   transferPhone: '',
   transferBankLabel: '',
@@ -67,6 +68,7 @@ function resetForm() {
   form.value = {
     name: '',
     slug: '',
+    displayCode: '',
     pricePerPageKopeks: 1000,
     transferPhone: '',
     transferBankLabel: '',
@@ -86,6 +88,7 @@ function openEdit(point) {
   form.value = {
     name: point.name,
     slug: point.slug,
+    displayCode: point.displayCode ?? '',
     pricePerPageKopeks: point.pricePerPageKopeks,
     transferPhone: point.transferPhone ?? '',
     transferBankLabel: point.transferBankLabel ?? '',
@@ -134,6 +137,7 @@ async function savePoint() {
     const payload = {
       name: form.value.name.trim(),
       slug: form.value.slug.trim(),
+      displayCode: form.value.displayCode.trim() || null,
       pricePerPageKopeks: Number(form.value.pricePerPageKopeks),
       transferPhone: form.value.transferPhone.trim() || null,
       transferBankLabel: form.value.transferBankLabel.trim() || null,
@@ -502,6 +506,17 @@ function telegramBotLabel() {
               class="w-full rounded border px-3 py-2 text-sm font-mono"
               placeholder="point_bgu_1"
             >
+          </div>
+          <div>
+            <label class="mb-1 block text-sm text-gray-700">Код точки (для бота)</label>
+            <input
+              v-model="form.displayCode"
+              class="w-full rounded border px-3 py-2 text-sm font-mono"
+              placeholder="102"
+            >
+            <p class="mt-1 text-xs text-gray-500">
+              Клиент может ввести код в чате или /start 102
+            </p>
           </div>
           <div>
             <label class="mb-1 block text-sm text-gray-700">Цена за страницу (коп.)</label>

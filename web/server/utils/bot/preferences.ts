@@ -1,25 +1,32 @@
+import { prisma } from '../prisma'
 import type { BatchKeyboardMode, MessengerPlatform } from './types'
 
-const userPointPreference = new Map<string, string>()
 const lastBatchKeyboardMode = new Map<string, BatchKeyboardMode>()
 
 export function preferenceKey(platform: MessengerPlatform, chatId: string | number): string {
   return `${platform}:${chatId}`
 }
 
-export function setPointPreference(
-  platform: MessengerPlatform,
-  chatId: string | number,
-  slug: string,
-): void {
-  userPointPreference.set(preferenceKey(platform, chatId), slug)
+export async function getPointPreference(userId: string): Promise<string | undefined> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { preferredPointSlug: true },
+  })
+  return user?.preferredPointSlug ?? undefined
 }
 
-export function getPointPreference(
-  platform: MessengerPlatform,
-  chatId: string | number,
-): string | undefined {
-  return userPointPreference.get(preferenceKey(platform, chatId))
+export async function setPointPreference(userId: string, slug: string): Promise<void> {
+  await prisma.user.update({
+    where: { id: userId },
+    data: { preferredPointSlug: slug },
+  })
+}
+
+export async function clearPointPreference(userId: string): Promise<void> {
+  await prisma.user.update({
+    where: { id: userId },
+    data: { preferredPointSlug: null },
+  })
 }
 
 export function getLastBatchKeyboardMode(

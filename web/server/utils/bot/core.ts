@@ -6,6 +6,7 @@ import {
   expireStaleCollectingBatches,
   finalizeBatch,
   getActiveBatchOrders,
+  getActiveCollectingBatch,
   getBatchKeyboardMode,
   getBatchMaxFiles,
   getNextBatchIndex,
@@ -23,10 +24,10 @@ import {
   sniffDocumentKind,
 } from '../file-types'
 import { prisma } from '../prisma'
-import { resolvePointBySlug } from '../points'
+import { resolvePointByDisplayCode, resolvePointBySlug, formatPointLabel } from '../points'
 import { DEFAULT_POINT_SLUG } from './constants'
 import * as messages from './messages'
-import { removeConfirmKeyboard, removeFileKeyboard } from './keyboards'
+import { fileStatusKeyboard, removeConfirmKeyboard } from './keyboards'
 import {
   editOrderClientMessage,
   editOrderClientMessageViaAdapter,
@@ -47,7 +48,6 @@ import type {
 import {
   clearLastBatchKeyboardMode,
   getLastBatchKeyboardMode,
-  getPointPreference,
   setLastBatchKeyboardMode,
   setPointPreference,
 } from './preferences'
@@ -92,9 +92,10 @@ function resolveOrderClientPlatform(
 }
 
 function orderMessageText(
-  order: Pick<Order, 'fileName' | 'batchIndex' | 'pageCount' | 'status' | 'errorMessage'>,
+  order: Pick<Order, 'fileName' | 'batchIndex' | 'pageCount' | 'status' | 'errorMessage' | 'id'>,
   maxFiles: number,
   keyboardMode: BatchKeyboardMode,
+  batchContext?: { pointLabel?: string | null, totalAmountKopeks?: number },
 ): string {
   if (order.status === OrderStatus.CALCULATION_FAILED) {
     return messages.formatBatchCalculationFailedForFile(order.fileName, order.errorMessage)
@@ -105,6 +106,10 @@ function orderMessageText(
     maxFiles,
     order.pageCount,
     keyboardMode === 'ready',
+    {
+      pointLabel: batchContext?.pointLabel,
+      totalAmountKopeks: batchContext?.totalAmountKopeks,
+    },
   )
 }
 
@@ -113,9 +118,14 @@ async function refreshMaxBatchFileKeyboards(
   keyboardMode: BatchKeyboardMode,
   excludeOrderId?: string,
 ): Promise<void> {
+  const batch = await prisma.orderBatch.findUnique({
+    where: { id: batchId },
+    include: { point: { select: { name: true, displayCode: true } } },
+  })
   const orders = await getActiveBatchOrders(batchId)
   const maxFiles = getBatchMaxFiles()
   const { editMaxStatusMessage } = await import('../max/client')
+  const pointLabel = batch?.point ? formatPointLabel(batch.point) : null
 
   for (const order of orders) {
     if (order.id === excludeOrderId || !order.clientMessageId || !order.clientMessageChatId) {
@@ -125,7 +135,10 @@ async function refreshMaxBatchFileKeyboards(
       continue
     }
 
-    const text = orderMessageText(order, maxFiles, keyboardMode)
+    const text = orderMessageText(order, maxFiles, keyboardMode, {
+      pointLabel,
+      totalAmountKopeks: batch?.totalAmountKopeks,
+    })
     await editMaxStatusMessage(
       { messageId: order.clientMessageId, chatId: order.clientMessageChatId },
       text,
@@ -134,7 +147,7 @@ async function refreshMaxBatchFileKeyboards(
   }
 }
 
-async function syncBatchReplyKeyboard(
+export async function syncBatchReplyKeyboard(
   platform: MessengerPlatform,
   target: MessengerReplyTarget,
   _adapter: MessengerAdapter,
@@ -162,8 +175,19 @@ function orderStatusOptions(
   keyboardMode?: BatchKeyboardMode,
 ): StatusMessageOptions {
   const opts: StatusMessageOptions = {}
-  if (withRemoveButton) {
-    opts.inlineKeyboard = removeFileKeyboard(orderId)
+  if (keyboardMode) {
+    const inline = fileStatusKeyboard(orderId, {
+      withRemove: withRemoveButton,
+      keyboardMode,
+    })
+    if (inline.length > 0) {
+      opts.inlineKeyboard = inline
+    }
+  } else if (withRemoveButton) {
+    opts.inlineKeyboard = fileStatusKeyboard(orderId, {
+      withRemove: true,
+      keyboardMode: 'ready',
+    })
   }
   if (platform === 'max' && keyboardMode) {
     opts.batchKeyboard = keyboardMode
@@ -183,6 +207,15 @@ async function upsertBotUser(platform: MessengerPlatform, user: BotUser) {
       where: { telegramId: messengerUserId },
       update: profile,
       create: { telegramId: messengerUserId, ...profile },
+      select: {
+        id: true,
+        telegramId: true,
+        maxUserId: true,
+        username: true,
+        firstName: true,
+        preferredPointSlug: true,
+        lastPointId: true,
+      },
     })
   }
 
@@ -190,6 +223,15 @@ async function upsertBotUser(platform: MessengerPlatform, user: BotUser) {
     where: { maxUserId: messengerUserId },
     update: profile,
     create: { maxUserId: messengerUserId, ...profile },
+    select: {
+      id: true,
+      telegramId: true,
+      maxUserId: true,
+      username: true,
+      firstName: true,
+      preferredPointSlug: true,
+      lastPointId: true,
+    },
   })
 }
 
@@ -301,21 +343,76 @@ export async function handleStart(
   target: MessengerReplyTarget,
   payload: string | undefined,
   adapter: MessengerAdapter,
+  user?: BotUser,
 ): Promise<void> {
   const trimmed = payload?.trim()
 
   if (trimmed?.startsWith('bind_')) {
-    await handleBind(platform, target, trimmed, adapter)
+    await handleBind(platform, target, trimmed, adapter, user)
     return
   }
 
+  let dbUser = user
+    ? await upsertBotUser(platform, user)
+    : null
+
+  if (trimmed && /^\d{2,4}$/.test(trimmed)) {
+    if (!dbUser && user) {
+      dbUser = await upsertBotUser(platform, user)
+    }
+    if (dbUser && user) {
+      const { handleDisplayCodeMessage } = await import('./point-selection')
+      const handled = await handleDisplayCodeMessage(target, user, trimmed, adapter)
+      if (handled) {
+        return
+      }
+    }
+  }
+
   const slug = trimmed || DEFAULT_POINT_SLUG
+  let pointName: string | null = null
 
   try {
-    await resolvePointBySlug(slug)
-    setPointPreference(platform, target.chatId, slug)
+    const point = await resolvePointBySlug(slug)
+    pointName = formatPointLabel(point)
+    if (!dbUser && user) {
+      dbUser = await upsertBotUser(platform, user)
+    }
+    if (dbUser) {
+      await setPointPreference(dbUser.id, slug)
+      await prisma.user.update({
+        where: { id: dbUser.id },
+        data: { lastPointId: point.id },
+      })
+    }
   } catch {
-    setPointPreference(platform, target.chatId, DEFAULT_POINT_SLUG)
+    if (trimmed) {
+      try {
+        const point = await resolvePointByDisplayCode(trimmed)
+        pointName = formatPointLabel(point)
+        if (!dbUser && user) {
+          dbUser = await upsertBotUser(platform, user)
+        }
+        if (dbUser) {
+          await setPointPreference(dbUser.id, point.slug)
+          await prisma.user.update({
+            where: { id: dbUser.id },
+            data: { lastPointId: point.id },
+          })
+        }
+      } catch {
+        if (dbUser) {
+          await setPointPreference(dbUser.id, DEFAULT_POINT_SLUG)
+        }
+      }
+    } else if (dbUser) {
+      await setPointPreference(dbUser.id, DEFAULT_POINT_SLUG)
+    }
+  }
+
+  if (pointName) {
+    await adapter.sendText(target, messages.formatStartWithPoint(pointName))
+    return
   }
 
   await adapter.sendText(target, messages.MSG_START)
@@ -413,14 +510,22 @@ export async function handleDocument(
 
   fileName = ensureFileExtension(fileName, kind)
 
-  const pointSlug = getPointPreference(platform, target.chatId) ?? DEFAULT_POINT_SLUG
-  const point = await resolvePointBySlug(pointSlug)
   const dbUser = await upsertBotUser(platform, user)
+  const { resolveAutoBindPointId } = await import('./point-selection')
+  const autoPointId = await resolveAutoBindPointId(
+    dbUser.id,
+    dbUser.preferredPointSlug,
+    dbUser.lastPointId,
+  )
+
+  const batch = await getOrCreateCollectingBatch(dbUser.id, autoPointId)
+  const boundPoint = batch.pointId
+    ? batch.point ?? await prisma.point.findUnique({ where: { id: batch.pointId } })
+    : null
   const mimeType = document.mimeType || mimeTypeForKind(kind, fileName)
   const isWord = kind === 'word'
   const maxFiles = getBatchMaxFiles()
 
-  const batch = await getOrCreateCollectingBatch(dbUser.id, point.id)
   const activeCount = await countActiveBatchOrders(batch.id)
   if (activeCount >= maxFiles) {
     const keyboardMode = await getBatchKeyboardMode(batch.id)
@@ -429,9 +534,9 @@ export async function handleDocument(
   }
 
   const batchIndex = await getNextBatchIndex(batch.id)
-  const pricePerPage = getPricePerPageKopeks(point)
+  const pricePerPage = boundPoint ? getPricePerPageKopeks(boundPoint) : 0
   const pageCount = 1
-  const amountKopeks = isWord ? 0 : pageCount * pricePerPage
+  const amountKopeks = isWord || !boundPoint ? 0 : pageCount * pricePerPage
 
   const order = await prisma.order.create({
     data: {
@@ -442,7 +547,7 @@ export async function handleDocument(
       pageCount,
       amountKopeks,
       userId: dbUser.id,
-      pointId: point.id,
+      pointId: batch.pointId,
       batchId: batch.id,
       batchIndex,
     },
@@ -477,6 +582,12 @@ export async function handleDocument(
       return
     }
 
+    const freshBatch = await prisma.orderBatch.findUnique({
+      where: { id: batch.id },
+      include: { point: { select: { name: true, displayCode: true } } },
+    })
+    const pointLabel = freshBatch?.point ? formatPointLabel(freshBatch.point) : null
+
     const statusText = isWord
       ? messages.formatFileCalculating(fileName, batchIndex, maxFiles)
       : messages.formatBatchFileReady(
@@ -485,6 +596,10 @@ export async function handleDocument(
           maxFiles,
           pageCount,
           keyboardMode === 'ready',
+          {
+            pointLabel,
+            totalAmountKopeks: freshBatch?.totalAmountKopeks,
+          },
         )
 
     const edited = await editOrderClientMessageViaAdapter(
@@ -536,19 +651,9 @@ export async function handleBatchAction(
 ): Promise<void> {
   await expireStaleCollectingBatches()
 
-  const pointSlug = getPointPreference(platform, target.chatId) ?? DEFAULT_POINT_SLUG
-  const point = await resolvePointBySlug(pointSlug)
   const dbUser = await upsertBotUser(platform, user)
 
-  const batch = await prisma.orderBatch.findFirst({
-    where: {
-      userId: dbUser.id,
-      pointId: point.id,
-      status: OrderBatchStatus.COLLECTING,
-    },
-    include: { orders: { orderBy: { batchIndex: 'asc' } } },
-    orderBy: { createdAt: 'desc' },
-  })
+  const batch = await getActiveCollectingBatch(dbUser.id)
 
   if (!batch) {
     await adapter.sendText(target, 'Нет активных файлов. Отправьте документ для начала.')
@@ -729,12 +834,22 @@ export async function handleBatchRemoveCancel(
     ? await getBatchKeyboardMode(order.batchId)
     : 'ready'
   const canFinalize = keyboardMode === 'ready'
+  const batch = order.batchId
+    ? await prisma.orderBatch.findUnique({
+        where: { id: order.batchId },
+        include: { point: { select: { name: true, displayCode: true } } },
+      })
+    : null
   const readyText = messages.formatBatchFileReady(
     order.fileName,
     order.batchIndex ?? 1,
     maxFiles,
     order.pageCount,
     canFinalize,
+    {
+      pointLabel: batch?.point ? formatPointLabel(batch.point) : null,
+      totalAmountKopeks: batch?.totalAmountKopeks,
+    },
   )
 
   const msgRef = message ?? order
@@ -872,14 +987,26 @@ export async function notifyBatchFileCalculated(
   if (!order.batchId) {
     return
   }
+  const batch = await prisma.orderBatch.findUnique({
+    where: { id: order.batchId },
+    include: { point: { select: { name: true, displayCode: true } } },
+  })
+  if (batch?.status !== OrderBatchStatus.COLLECTING) {
+    return
+  }
   const keyboardMode = await getBatchKeyboardMode(order.batchId)
   const maxFiles = getBatchMaxFiles()
+  const pointLabel = batch.point ? formatPointLabel(batch.point) : null
   const text = messages.formatBatchFileReady(
     order.fileName,
     order.batchIndex ?? 1,
     maxFiles,
     order.pageCount,
     keyboardMode === 'ready',
+    {
+      pointLabel,
+      totalAmountKopeks: batch.totalAmountKopeks,
+    },
   )
   const platform = resolveOrderClientPlatform(user, order)
   const edited = await editOrderClientMessage(

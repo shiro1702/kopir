@@ -166,6 +166,7 @@ export function serializePointForAdmin(point: {
   id: string
   slug: string
   name: string
+  displayCode?: string | null
   isActive: boolean
   pricePerPageKopeks: number
   paymentMethodsEnabled: PaymentMethod[]
@@ -177,8 +178,7 @@ export function serializePointForAdmin(point: {
   const status = pointAgentStatusPayload(point)
   return {
     id: point.id,
-    slug: point.slug,
-    name: point.name,
+    displayCode: point.displayCode ?? null,
     isActive: point.isActive,
     pricePerPageKopeks: point.pricePerPageKopeks,
     paymentMethodsEnabled: point.paymentMethodsEnabled,

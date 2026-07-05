@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Спринт** | 5 |
-| **Статус** | ⬜ |
+| **Статус** | 🟡 P0 бот |
 | **Приоритет** | P0 |
 | **Feature** | UX-06, UX-05b (новый), MON-02 расширение |
 | **Спека** | [bot-point-selection.md](../../../product/bot-point-selection.md) · [multi-city-and-deeplinks.md](../../../product/multi-city-and-deeplinks.md) |
@@ -37,9 +37,9 @@ QR на стойке закрывает ~95% ([multi-city-and-deeplinks.md](../.
 
 ### Prisma
 
-- [ ] **2.1** `User.lastPointId` — последняя точка печати
-- [ ] **2.2** `User.preferredPointSlug` — persist вместо in-memory Map (Sprint 1 / 07.4)
-- [ ] **2.3** `Point.displayCode` (опц., напр. `102`) для UX-06
+- [x] **2.1** `User.lastPointId` — последняя точка печати
+- [x] **2.2** `User.preferredPointSlug` — persist вместо in-memory Map (Sprint 1 / 07.4)
+- [x] **2.3** `Point.displayCode` (опц., напр. `102`) для UX-06
 - [ ] **2.4** `City` + `Point.cityId`; геоданные точки (см. Admin):
   - `address` — строка для UI (из DaData, напр. `ул. Смолина, 24а`)
   - `lat`, `lng` — WGS-84 (`Float`), **обязательны вместе с адресом**; источник — DaData при выборе подсказки
@@ -49,12 +49,8 @@ QR на стойке закрывает ~95% ([multi-city-and-deeplinks.md](../.
 
 Поле адреса нужно для списка точек в боте, QR-плаката, карты (задача 03) и расчёта расстояния (UX-07). Сейчас в форме точки есть только `name`, `slug`, цена и оплата — **адреса и координат нет**.
 
-- [ ] **2.4a** Поле **«Адрес»** — autocomplete через **[DaData](https://dadata.ru/api/suggest/address/)** (подсказки адресов РФ); ручной ввод без выбора из списка **не сохраняет** координаты
-- [ ] **2.4b** При выборе подсказки: сохранить `address` + `lat`/`lng` из ответа DaData (`data.geo_lat`, `data.geo_lon`); `cityId` — из города подсказки или отдельного поля
-- [ ] **2.4c** `GET /api/admin/dadata/address-suggest?q=` — серверный proxy (ключ `DADATA_API_KEY` только на бэкенде)
-- [ ] **2.4d** `POST` / `PATCH /api/admin/points` — принимать `address`, `lat`, `lng`; валидация: если `address` задан — `lat` и `lng` обязательны
-- [ ] **2.4e** В таблице точек — адрес под названием; индикатор «📍» если координаты есть
-- [ ] **2.4f** Адрес в inline-списке бота и карточке заказа: `📍 {name} — {address}`
+- [ ] **2.4a**–**f** DaData адрес в админке — backlog
+- [x] **displayCode** в `/admin/points` (минимальная админка для кодов)
 
 ### Гео и расстояние
 
@@ -66,22 +62,22 @@ QR на стойке закрывает ~95% ([multi-city-and-deeplinks.md](../.
 
 ### Batch / core
 
-- [ ] **2.5** `OrderBatch.pointId` nullable в `COLLECTING`; при выборе точки — bind + `recalculateBatchTotals`
-- [ ] **2.6** `finalizeBatch` запрещён без точки
-- [ ] **2.7** Автовыбор `lastPointId` при загрузке файла (если точка `active`)
-- [ ] **2.8** Карточка заказа: «⚠️ Выберите точку» / «📍 Точка: …» + кнопка «Изменить точку»
+- [x] **2.5** `OrderBatch.pointId` nullable в `COLLECTING`; при выборе точки — bind + `recalculateBatchTotals`
+- [x] **2.6** `finalizeBatch` запрещён без точки
+- [x] **2.7** Автовыбор `lastPointId` при загрузке файла (если точка `active`)
+- [x] **2.8** Карточка заказа: «⚠️ Выберите точку» / «📍 Точка: …» + кнопка «Изменить точку»
 
 ### Bot UX
 
-- [ ] **2.9** Inline «📋 Выбрать из списка» — плоский список активных точек города
-- [ ] **2.10** Текстовый код: `102` или `/start 102` → UX-06
-- [ ] **2.11** Callbacks: `point_select:{slug}`, `point_change`, `point_list_page:{n}`
-- [ ] **2.12** Смена точки в `COLLECTING` → пересчёт цены; после finalize — нельзя
-- [ ] **2.13** MAX-паритет (inline callbacks)
+- [x] **2.9** Inline «📋 Выбрать из списка» — плоский список активных точек города
+- [x] **2.10** Текстовый код: `102` или `/start 102` → UX-06
+- [x] **2.11** Callbacks: `point_select:{slug}`, `point_change`, `point_list_page:{n}`
+- [x] **2.12** Смена точки в `COLLECTING` → пересчёт цены; после finalize — нельзя
+- [x] **2.13** MAX-паритет (inline callbacks)
 
 ### API
 
-- [ ] **2.14** `GET /api/points?city=&active=true` — публичный список для бота
+- [x] **2.14** `GET /api/points?city=&active=true` — публичный список для бота
 
 ## Scope — фаза B (P1, задача 03)
 
@@ -102,12 +98,12 @@ QR на стойке закрывает ~95% ([multi-city-and-deeplinks.md](../.
 
 ## DoD
 
-- [ ] В админке адрес выбирается из подсказок DaData; в БД сохраняются `address` + `lat`/`lng`
-- [ ] Точки с координатами участвуют в расчёте расстояния (утилита haversine готова)
-- [ ] Новый пользователь: файл → «Выберите точку» → список → цена → оплата
-- [ ] Повторный: файл → last point автоматически, кнопка «Изменить точку»
-- [ ] Смена точки пересчитывает сумму batch
-- [ ] Preference переживает redeploy Vercel
+- [x] В админке можно задать `displayCode` точки
+- [ ] В админке адрес через DaData (отложено)
+- [x] Новый пользователь: файл → «Выберите точку» → список → цена → оплата (код)
+- [x] Повторный: файл → last point автоматически, кнопка «Изменить точку»
+- [x] Смена точки пересчитывает сумму batch
+- [x] Preference переживает redeploy Vercel
 - [ ] E2E TG + MAX
 
 ## Доки после merge

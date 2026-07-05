@@ -154,9 +154,16 @@ function batchLog(batchId: string, message: string, extra?: unknown) {
 }
 
 export async function getBatchKeyboardMode(batchId: string): Promise<BatchKeyboardMode> {
+  const batch = await prisma.orderBatch.findUnique({ where: { id: batchId } })
   const active = await getActiveBatchOrders(batchId)
   const calculating = active.filter((o) => o.status === OrderStatus.CALCULATING)
-  return calculating.length > 0 ? 'calculating' : 'ready'
+  if (calculating.length > 0) {
+    return 'calculating'
+  }
+  if (!batch?.pointId && active.length > 0) {
+    return 'needs_point'
+  }
+  return 'ready'
 }
 
 export async function recalculateBatchTotals(batchId: string): Promise<OrderBatch> {
@@ -173,40 +180,133 @@ export async function recalculateBatchTotals(batchId: string): Promise<OrderBatc
 
 export async function getActiveCollectingBatch(
   userId: string,
-  pointId: string,
-): Promise<(OrderBatch & { orders: Order[] }) | null> {
-  return prisma.orderBatch.findFirst({
+): Promise<(OrderBatch & { orders: Order[], point: { id: string, slug: string, name: string, displayCode: string | null } | null }) | null> {
+  const batches = await prisma.orderBatch.findMany({
     where: {
       userId,
-      pointId,
       status: OrderBatchStatus.COLLECTING,
     },
     include: {
       orders: { orderBy: { batchIndex: 'asc' } },
+      point: { select: { id: true, slug: true, name: true, displayCode: true, pricePerPageKopeks: true } },
     },
     orderBy: { createdAt: 'desc' },
   })
+
+  if (batches.length === 0) {
+    return null
+  }
+
+  const [latest, ...stale] = batches
+  for (const old of stale) {
+    batchLog(old.id, 'cancel stale duplicate collecting batch')
+    await cancelBatch(old.id, { internalReason: 'superseded collecting batch', notifyUser: false })
+  }
+
+  return latest!
 }
 
 export async function getOrCreateCollectingBatch(
   userId: string,
-  pointId: string,
-): Promise<OrderBatch & { orders: Order[] }> {
-  const existing = await getActiveCollectingBatch(userId, pointId)
+  pointId?: string | null,
+): Promise<OrderBatch & { orders: Order[], point: { id: string, slug: string, name: string, displayCode: string | null } | null }> {
+  const existing = await getActiveCollectingBatch(userId)
   if (existing) {
+    if (pointId && !existing.pointId) {
+      await bindBatchToPoint(existing.id, pointId, userId)
+      const rebound = await getActiveCollectingBatch(userId)
+      if (rebound) {
+        return rebound
+      }
+    }
     return existing
   }
 
   const batch = await prisma.orderBatch.create({
     data: {
       userId,
-      pointId,
+      pointId: pointId ?? null,
       status: OrderBatchStatus.COLLECTING,
     },
-    include: { orders: true },
+    include: {
+      orders: true,
+      point: { select: { id: true, slug: true, name: true, displayCode: true, pricePerPageKopeks: true } },
+    },
   })
-  batchLog(batch.id, 'created collecting batch')
+  batchLog(batch.id, 'created collecting batch', { pointId: pointId ?? null })
   return batch
+}
+
+export async function bindBatchToPoint(
+  batchId: string,
+  pointId: string,
+  userId: string,
+): Promise<OrderBatch> {
+  const batch = await prisma.orderBatch.findUnique({
+    where: { id: batchId },
+    include: { orders: { orderBy: { batchIndex: 'asc' } } },
+  })
+
+  if (!batch) {
+    throw createError({
+      statusCode: 404,
+      data: { error: 'Batch not found', code: 'BATCH_NOT_FOUND' },
+    })
+  }
+
+  if (batch.userId !== userId) {
+    throw createError({
+      statusCode: 403,
+      data: { error: 'Forbidden', code: 'FORBIDDEN' },
+    })
+  }
+
+  if (batch.status !== OrderBatchStatus.COLLECTING) {
+    throw createError({
+      statusCode: 400,
+      data: { error: 'Точку можно сменить только до оплаты', code: 'INVALID_BATCH_STATUS' },
+    })
+  }
+
+  const point = await prisma.point.findUnique({ where: { id: pointId } })
+  if (!point || !point.isActive) {
+    throw createError({
+      statusCode: 404,
+      data: { error: 'Точка не найдена', code: 'POINT_NOT_FOUND' },
+    })
+  }
+
+  const pricePerPage = getPricePerPageKopeks(point)
+  const activeOrders = batch.orders.filter(isActiveBatchOrder)
+
+  await prisma.$transaction(async (tx) => {
+    for (const order of activeOrders) {
+      const amountKopeks = order.status === OrderStatus.CALCULATING
+        ? 0
+        : order.pageCount * pricePerPage
+      await tx.order.update({
+        where: { id: order.id },
+        data: { pointId, amountKopeks },
+      })
+    }
+
+    await tx.orderBatch.update({
+      where: { id: batchId },
+      data: { pointId },
+    })
+
+    await tx.user.update({
+      where: { id: userId },
+      data: {
+        lastPointId: pointId,
+        preferredPointSlug: point.slug,
+      },
+    })
+  })
+
+  const updated = await recalculateBatchTotals(batchId)
+  batchLog(batchId, 'bound to point', { pointId, slug: point.slug })
+  return updated
 }
 
 export async function getNextBatchIndex(batchId: string): Promise<number> {
@@ -335,6 +435,13 @@ export async function finalizeBatch(batchId: string): Promise<FinalizeBatchResul
     })
   }
 
+  if (!batch.pointId || !batch.point) {
+    throw createError({
+      statusCode: 400,
+      data: { error: 'Сначала выберите точку печати', code: 'POINT_NOT_SELECTED' },
+    })
+  }
+
   const calculating = activeOrders.filter((o) => o.status === OrderStatus.CALCULATING)
   if (calculating.length > 0) {
     throw createError({
@@ -456,7 +563,9 @@ export async function confirmBatchPayment(batchId: string) {
   try {
     const { notifyBatchPaymentConfirmed } = await import('./bot/core')
     const { isTbankPaymentMethod } = await import('./payments/methods')
-    const freshPoint = await prisma.point.findUnique({ where: { id: batch.pointId } })
+  const freshPoint = batch.pointId
+    ? await prisma.point.findUnique({ where: { id: batch.pointId } })
+    : null
     const agentOffline = freshPoint ? !isPointAgentOnline(freshPoint) : true
     await notifyBatchPaymentConfirmed(
       batch.user,

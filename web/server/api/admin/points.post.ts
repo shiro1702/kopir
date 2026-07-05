@@ -49,6 +49,7 @@ export default defineEventHandler(async (event) => {
   const paymentMethodsEnabled = parsePaymentMethods(body?.paymentMethodsEnabled)
   const transferPhone = body?.transferPhone ? String(body.transferPhone).trim() : null
   const transferBankLabel = body?.transferBankLabel ? String(body.transferBankLabel).trim() : null
+  const displayCode = body?.displayCode ? String(body.displayCode).trim() : null
 
   if (!name) {
     throw createError({
@@ -65,10 +66,21 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  if (displayCode) {
+    const codeConflict = await prisma.point.findUnique({ where: { displayCode } })
+    if (codeConflict) {
+      throw createError({
+        statusCode: 409,
+        data: { error: `Point with code "${displayCode}" already exists`, code: 'DISPLAY_CODE_EXISTS' },
+      })
+    }
+  }
+
   const point = await prisma.point.create({
     data: {
       name,
       slug,
+      displayCode,
       pricePerPageKopeks,
       paymentMethodsEnabled,
       transferPhone: transferPhone || null,
