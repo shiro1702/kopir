@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Статус** | ✅ done (код) · E2E после деплоя |
+| **Статус** | ✅ done |
 | **Приоритет** | **P0 — срочно** |
 | **Дедлайн** | **19 июля 2026** (уведомление MAX) |
 | **Feature** | WEB-15 |
@@ -62,13 +62,13 @@ ADMIN_SECRET=xxx ./scripts/set-bot-webhooks.sh https://kopir-seven.vercel.app
 
 - [x] `npm run test` — 15/15 pass
 - [x] TLS smoke: `trustedCaFetch` → `platform-api2.max.ru/me` → 401 (TLS ok)
-- [ ] Деплой Vercel + `set-webhooks` + E2E в MAX
+- [x] Деплой Vercel + `set-webhooks` + E2E в MAX
 
-- [ ] `/start` — приветствие
-- [ ] Отправка PDF → batch / оплата
-- [ ] Inline-кнопки (оплата, «Проверить оплату»)
-- [ ] Staff-уведомление в MAX (`STAFF_MAX_USER_ID` или `/bind`)
-- [ ] Нет TLS-ошибок в логах Vercel
+- [x] `/start` — приветствие
+- [x] Отправка PDF → batch / оплата
+- [x] Inline-кнопки (оплата, «Проверить оплату»)
+- [x] Staff-уведомление в MAX (`STAFF_MAX_USER_ID` или `/bind`)
+- [x] Нет TLS-ошибок в логах Vercel
 
 **Диагностика TLS:**
 
@@ -82,7 +82,7 @@ curl -v --cacert web/certs/russian-trusted-ca-bundle.pem \
 
 - [x] `MAX_API_BASE` = `https://platform-api2.max.ru`
 - [x] Исходящие запросы MAX через Russian Trusted CA
-- [ ] Prod E2E в MAX после деплоя
+- [x] Prod E2E в MAX после деплоя
 - [x] Документация обновлена
 
 ## Ссылки
