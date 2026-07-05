@@ -129,7 +129,8 @@ MAX: те же действия через **inline** `batch_finalize` / `batch_
 | `pay_method:tbank_card:{id}` | После finalize | То же для карты (`TBANK_ONLINE`) | ✅ |
 | `pay_claimed:{id}` | Инструкция перевода | Выбран `SBP_TRANSFER` | ✅ |
 | `pay_change_method:{id}` | Любой способ до confirm | `AWAITING_PAYMENT`, нет `paymentConfirmedAt` | ✅ |
-| `pay_check_status:{paymentId}` | После онлайн-оплаты | Только Telegram; polling GetState | ✅ |
+| `pay_check_status:{paymentId}` | После онлайн-оплаты (TG) | polling GetState | ✅ |
+| `pay_check_entity:{id}` | Экран выбора способа | если включён онлайн; polling GetState | ✅ |
 | `order_retry:{orderId}` | Ошибка печати | Order в failed-состоянии | ✅ |
 
 `{id}` = `orderId` или `batchId`.

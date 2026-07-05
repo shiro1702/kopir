@@ -4,6 +4,7 @@ import {
   parseBatchRemoveConfirmOrderId,
   parseBatchRemoveOrderId,
   parsePayChangeMethodPayload,
+  parsePayCheckEntityPayload,
   parsePayCheckStatusPayload,
   parsePayClaimedPayload,
   parsePayMethodPayload,
@@ -68,6 +69,12 @@ export async function routeClientCallback(
   if (checkPaymentId) {
     const { handlePaymentCheckStatus } = await import('./payment-handlers')
     return { toast: await handlePaymentCheckStatus(target, user, checkPaymentId, adapter) }
+  }
+
+  const checkEntityId = parsePayCheckEntityPayload(data)
+  if (checkEntityId) {
+    const { handlePaymentCheckStatusByEntity } = await import('./payment-handlers')
+    return { toast: await handlePaymentCheckStatusByEntity(target, user, checkEntityId, adapter) }
   }
 
   const retryOrderId = parseOrderRetryPayload(data)

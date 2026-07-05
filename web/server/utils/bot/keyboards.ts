@@ -129,6 +129,10 @@ export function payCheckStatusPayload(paymentId: string): string {
   return `pay_check_status:${paymentId}`
 }
 
+export function payCheckEntityPayload(entityId: string): string {
+  return `pay_check_entity:${entityId}`
+}
+
 export function payMethodPayload(method: PayMethodCallback, entityId: string): string {
   return `pay_method:${method}:${entityId}`
 }
@@ -175,6 +179,9 @@ export function paymentMethodKeyboard(
   if (onlineRow.length) {
     rows.push(onlineRow)
   }
+  if (methods.includes('TBANK_SBP') || methods.includes('TBANK_ONLINE')) {
+    rows.push([{ text: BTN_PAY_CHECK_STATUS, callbackData: payCheckEntityPayload(entityId) }])
+  }
   return rows
 }
 
@@ -204,6 +211,7 @@ export function isPaymentClientCallbackPayload(payload: string): boolean {
     || payload.startsWith('pay_claimed:')
     || payload.startsWith('pay_change_method:')
     || payload.startsWith('pay_check_status:')
+    || payload.startsWith('pay_check_entity:')
 }
 
 const PAY_METHOD_CALLBACKS = new Set<PayMethodCallback>([
@@ -239,6 +247,11 @@ export function parsePayChangeMethodPayload(payload: string): string | null {
 export function parsePayCheckStatusPayload(payload: string): string | null {
   if (!payload.startsWith('pay_check_status:')) return null
   return payload.slice('pay_check_status:'.length) || null
+}
+
+export function parsePayCheckEntityPayload(payload: string): string | null {
+  if (!payload.startsWith('pay_check_entity:')) return null
+  return payload.slice('pay_check_entity:'.length) || null
 }
 
 export function orderRetryPayload(orderId: string): string {

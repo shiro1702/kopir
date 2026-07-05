@@ -1,4 +1,4 @@
-import { PaymentMethod } from '@prisma/client'
+import { PaymentMethod, PaymentStatus } from '@prisma/client'
 import type { Order, OrderBatch } from '@prisma/client'
 import {
   getEnabledPaymentMethods,
@@ -7,10 +7,13 @@ import {
 } from '../payment-config'
 import { isTbankConfigured } from '../tbank-config'
 import {
+  assertUserOwnsPayment,
   claimPayment,
   resetPaymentMethod,
+  resolvePaymentEntity,
   selectPaymentMethod,
 } from '../payments/service'
+import { isTbankAcquiringEnabledMethod } from '../payments/methods'
 import {
   checkTbankPaymentStatus,
   initPayment,
@@ -51,6 +54,10 @@ function isTbankPayMethod(method: PayMethodCallback): boolean {
   return method === 'tbank_sbp' || method === 'tbank_card' || method === 'tbank_online'
 }
 
+function methodsIncludeOnline(methods: PaymentMethod[]): boolean {
+  return methods.some(isTbankAcquiringEnabledMethod)
+}
+
 async function sendWithInlineKeyboard(
   target: MessengerReplyTarget,
   adapter: MessengerAdapter,
@@ -89,7 +96,9 @@ export async function sendPaymentMethodChoiceForBatch(
     batch.totalPages,
     batch.totalAmountKopeks,
   )
-  const choice = messages.formatPaymentMethodChoice(batch.totalAmountKopeks, shortId)
+  const choice = messages.formatPaymentMethodChoice(batch.totalAmountKopeks, shortId, {
+    hasOnlineMethods: methodsIncludeOnline(methods),
+  })
 
   if (methods.length === 0) {
     await adapter.sendText(
@@ -118,7 +127,9 @@ export async function sendPaymentMethodChoiceForOrder(
   const methods = getEnabledPaymentMethods(order.point)
   const shortId = order.id.slice(-6)
   const quote = messages.formatQuote(order.fileName, order.pageCount, order.amountKopeks)
-  const choice = messages.formatPaymentMethodChoice(order.amountKopeks, shortId)
+  const choice = messages.formatPaymentMethodChoice(order.amountKopeks, shortId, {
+    hasOnlineMethods: methodsIncludeOnline(methods),
+  })
 
   if (methods.length === 0) {
     await adapter.sendText(
@@ -262,8 +273,67 @@ export async function handlePaymentCheckStatus(
   const payment = await prisma.payment.findUnique({ where: { id: paymentId } })
   const shortId = (payment?.batchId ?? payment?.orderId ?? paymentId).slice(-6)
 
-  const result = await checkTbankPaymentStatus(paymentId, user.externalId)
+  return applyPaymentCheckResult(
+    target,
+    adapter,
+    shortId,
+    await checkTbankPaymentStatus(paymentId, user.externalId),
+  )
+}
 
+export async function handlePaymentCheckStatusByEntity(
+  target: MessengerReplyTarget,
+  user: BotUser,
+  entityId: string,
+  adapter: MessengerAdapter,
+): Promise<string> {
+  const resolved = await resolvePaymentEntity(entityId)
+  const shortId = entityId.slice(-6)
+  const ownerUserId = resolved.kind === 'batch'
+    ? resolved.batch.userId
+    : resolved.order.userId
+  await assertUserOwnsPayment(user.externalId, ownerUserId)
+
+  const payments = await prisma.payment.findMany({
+    where: {
+      OR: [{ batchId: entityId }, { orderId: entityId }],
+      method: { in: [PaymentMethod.TBANK_SBP, PaymentMethod.TBANK_ONLINE] },
+      status: { in: [PaymentStatus.PENDING, PaymentStatus.CONFIRMED] },
+    },
+    orderBy: { createdAt: 'desc' },
+  })
+
+  if (payments.length === 0) {
+    await adapter.sendText(target, messages.formatOnlinePaymentNotStarted(shortId))
+    return 'Сначала оплатите'
+  }
+
+  const confirmed = payments.find((payment) => payment.status === PaymentStatus.CONFIRMED)
+  if (confirmed) {
+    await adapter.sendText(target, messages.formatOnlinePaymentConfirmed(shortId))
+    return 'Оплата подтверждена'
+  }
+
+  for (const payment of payments) {
+    if (payment.status !== PaymentStatus.PENDING) {
+      continue
+    }
+    const result = await checkTbankPaymentStatus(payment.id, user.externalId)
+    if (result.alreadyConfirmed || (!result.pending && result.ok)) {
+      return applyPaymentCheckResult(target, adapter, shortId, result)
+    }
+  }
+
+  await adapter.sendText(target, messages.formatOnlinePaymentPending(shortId))
+  return 'Оплата ещё не поступила'
+}
+
+async function applyPaymentCheckResult(
+  target: MessengerReplyTarget,
+  adapter: MessengerAdapter,
+  shortId: string,
+  result: Awaited<ReturnType<typeof checkTbankPaymentStatus>>,
+): Promise<string> {
   if (result.alreadyConfirmed) {
     await adapter.sendText(target, messages.formatOnlinePaymentConfirmed(shortId))
     return 'Оплата подтверждена'
@@ -317,7 +387,9 @@ export async function sendPaymentMethodChoiceToUser(
   const methods = getEnabledPaymentMethods(order.point)
   const shortId = order.id.slice(-6)
   const quote = messages.formatQuote(order.fileName, order.pageCount, order.amountKopeks)
-  const choice = messages.formatPaymentMethodChoice(order.amountKopeks, shortId)
+  const choice = messages.formatPaymentMethodChoice(order.amountKopeks, shortId, {
+    hasOnlineMethods: methodsIncludeOnline(methods),
+  })
   const text = methods.length === 0
     ? `${quote}\n\nОплата временно недоступна. Обратитесь к сотруднику копицентра.`
     : `${quote}\n\n${choice}`

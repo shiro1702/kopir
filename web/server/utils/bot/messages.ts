@@ -413,9 +413,17 @@ export function formatStaffBatchAwaitingPayment(batch: {
 
 
 
-export function formatPaymentMethodChoice(amountKopeks: number, shortId: string): string {
+export function formatPaymentMethodChoice(
+  amountKopeks: number,
+  shortId: string,
+  options?: { hasOnlineMethods?: boolean },
+): string {
   const amountRub = Math.round(amountKopeks / 100)
-  return `💳 ${amountRub} ₽ · #${shortId}\nВыберите способ:`
+  const base = `💳 ${amountRub} ₽ · #${shortId}\nВыберите способ:`
+  if (!options?.hasOnlineMethods) {
+    return base
+  }
+  return `${base}\n\nПосле оплаты придёт подтверждение. Не дождались — «Проверить».`
 }
 
 export function formatTransferInstructions(
@@ -503,6 +511,10 @@ export function formatOnlinePaymentInstructions(
   _qrUrl: string,
 ): string {
   return formatOnlineSbpInstructions(amountKopeks, shortId)
+}
+
+export function formatOnlinePaymentNotStarted(shortId: string): string {
+  return `⏳ #${shortId} — сначала оплатите через «СБП» или «карту», затем «Проверить».`
 }
 
 export function formatOnlinePaymentPending(shortId: string): string {
