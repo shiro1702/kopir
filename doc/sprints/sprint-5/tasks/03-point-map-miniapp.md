@@ -7,7 +7,7 @@
 | **Приоритет** | P1 |
 | **Feature** | WEB-10, WEB-07 partial |
 | **Спека** | [bot-point-selection.md](../../../product/bot-point-selection.md) · [website-structure.md](../../../product/website-structure.md) |
-| **Зависимости** | [02-point-selection-bot.md](./02-point-selection-bot.md) фаза A (`City`, координаты) |
+| **Зависимости** | [02-point-selection-bot.md](./02-point-selection-bot.md) фаза A (`City`, `address`, `lat`/`lng` из DaData) |
 | **Оценка** | 3–5 дней |
 
 ## Цель

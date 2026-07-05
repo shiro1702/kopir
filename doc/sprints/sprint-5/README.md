@@ -32,7 +32,7 @@ P2: WEB-09 мультиссылка QR, автопереключение offline
 | — | VK Bot, мультиссылка QR | ⬜ | WEB-16, WEB-09 | — |
 | — | Windows Service, алерты | ⬜ | AGT-06, MON-03–06 | — |
 
-> **Выбор точки:** QR и админ-панель — [Sprint 4 / 06](../sprint-4/tasks/06-point-client-links.md). Полный гибридный флоу «файлы → точка» — здесь.
+> **Выбор точки:** QR и админ-панель — [Sprint 4 / 06](../sprint-4/tasks/06-point-client-links.md). Полный гибридный флоу «файлы → точка» — здесь. В `/admin/points` — адрес через **DaData** + `lat`/`lng` (задача 02).
 
 ## Definition of Done
 
