@@ -1,6 +1,7 @@
 import type { PaymentMethod } from '@prisma/client'
 import { PartnerBalanceEntryType } from '@prisma/client'
 import { isTbankPaymentMethod } from './payments/methods'
+import { resolveEffectiveCommissionPercent } from './commission'
 import { prisma } from './prisma'
 
 export function calcPartnerCredit(amountKopeks: number, commissionPercent: number): number {
@@ -50,7 +51,7 @@ export async function creditPartnerBalanceForBatch(batch: {
 
   const point = await prisma.point.findUnique({
     where: { id: batch.pointId },
-    select: { partnerId: true, commissionPercent: true },
+    select: { partnerId: true },
   })
   if (!point?.partnerId) {
     return
@@ -63,7 +64,8 @@ export async function creditPartnerBalanceForBatch(batch: {
     return
   }
 
-  const amountKopeks = calcPartnerCredit(batch.totalAmountKopeks, point.commissionPercent)
+  const commissionPercent = await resolveEffectiveCommissionPercent(batch.pointId)
+  const amountKopeks = calcPartnerCredit(batch.totalAmountKopeks, commissionPercent)
   if (amountKopeks <= 0) {
     return
   }

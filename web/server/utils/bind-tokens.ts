@@ -181,6 +181,7 @@ export function serializePointForAdmin(point: {
   displayCode?: string | null
   isActive: boolean
   pricePerPageKopeks: number
+  commissionPercent: number
   paymentMethodsEnabled: PaymentMethod[]
   transferPhone: string | null
   transferBankLabel: string | null
@@ -193,6 +194,8 @@ export function serializePointForAdmin(point: {
     displayCode: point.displayCode ?? null,
     isActive: point.isActive,
     pricePerPageKopeks: point.pricePerPageKopeks,
+    commissionPercent: point.commissionPercent,
+    partnerSharePercent: 100 - point.commissionPercent,
     paymentMethodsEnabled: point.paymentMethodsEnabled,
     transferPhone: point.transferPhone,
     transferBankLabel: point.transferBankLabel,

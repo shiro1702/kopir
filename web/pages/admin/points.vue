@@ -24,6 +24,7 @@ const form = ref({
   slug: '',
   displayCode: '',
   pricePerPageKopeks: 1000,
+  commissionPercent: 30,
   transferPhone: '',
   transferBankLabel: '',
   paymentMethodsEnabled: ['SBP_TRANSFER', 'ON_SITE'],
@@ -70,6 +71,7 @@ function resetForm() {
     slug: '',
     displayCode: '',
     pricePerPageKopeks: 1000,
+    commissionPercent: 30,
     transferPhone: '',
     transferBankLabel: '',
     paymentMethodsEnabled: ['SBP_TRANSFER', 'ON_SITE'],
@@ -90,6 +92,7 @@ function openEdit(point) {
     slug: point.slug,
     displayCode: point.displayCode ?? '',
     pricePerPageKopeks: point.pricePerPageKopeks,
+    commissionPercent: point.commissionPercent ?? 30,
     transferPhone: point.transferPhone ?? '',
     transferBankLabel: point.transferBankLabel ?? '',
     paymentMethodsEnabled: [...point.paymentMethodsEnabled],
@@ -139,6 +142,7 @@ async function savePoint() {
       slug: form.value.slug.trim(),
       displayCode: form.value.displayCode.trim() || null,
       pricePerPageKopeks: Number(form.value.pricePerPageKopeks),
+      commissionPercent: Number(form.value.commissionPercent),
       transferPhone: form.value.transferPhone.trim() || null,
       transferBankLabel: form.value.transferBankLabel.trim() || null,
       paymentMethodsEnabled: form.value.paymentMethodsEnabled,
@@ -240,6 +244,11 @@ function formatDateTime(iso) {
 
 function formatPrice(kopeks) {
   return `${(kopeks / 100).toFixed(2)} ₽`
+}
+
+function formatCommissionSplit(platformPercent) {
+  const platform = Number(platformPercent ?? 30)
+  return `${platform}% / ${100 - platform}%`
 }
 
 function agentIndicator(point) {
@@ -635,6 +644,20 @@ function telegramBotLabel() {
             </p>
           </div>
           <div>
+            <label class="mb-1 block text-sm text-gray-700">Комиссия платформы (%)</label>
+            <input
+              v-model.number="form.commissionPercent"
+              type="number"
+              min="0"
+              max="99"
+              class="w-full rounded border px-3 py-2 text-sm"
+            >
+            <p class="mt-1 text-xs text-gray-500">
+              Платформа / партнёр: {{ formatCommissionSplit(form.commissionPercent) }}
+              (при онлайн-оплате TBANK)
+            </p>
+          </div>
+          <div>
             <label class="mb-1 block text-sm text-gray-700">Телефон для перевода</label>
             <input
               v-model="form.transferPhone"
@@ -720,6 +743,9 @@ function telegramBotLabel() {
                 Цена
               </th>
               <th class="px-4 py-3">
+                Комиссия
+              </th>
+              <th class="px-4 py-3">
                 Статус
               </th>
               <th class="px-4 py-3">
@@ -747,6 +773,12 @@ function telegramBotLabel() {
               </td>
               <td class="px-4 py-3">
                 {{ formatPrice(point.pricePerPageKopeks) }}
+              </td>
+              <td
+                class="px-4 py-3 text-xs"
+                :title="`Платформа ${point.commissionPercent ?? 30}%, партнёру ${100 - (point.commissionPercent ?? 30)}%`"
+              >
+                {{ formatCommissionSplit(point.commissionPercent) }}
               </td>
               <td class="px-4 py-3">
                 <span
@@ -797,7 +829,7 @@ function telegramBotLabel() {
             </tr>
             <tr v-if="!loading && !points.length">
               <td
-                colspan="6"
+                colspan="7"
                 class="px-4 py-8 text-center text-gray-500"
               >
                 Нет точек. Создайте первую.
@@ -805,7 +837,7 @@ function telegramBotLabel() {
             </tr>
             <tr v-if="loading">
               <td
-                colspan="6"
+                colspan="7"
                 class="px-4 py-8 text-center text-gray-500"
               >
                 Загрузка...

@@ -1,5 +1,6 @@
 import { PaymentMethod } from '@prisma/client'
 import { assertAdminAuth } from '../../../utils/admin-auth'
+import { parseCommissionPercent } from '../../../utils/commission'
 import { serializePointForAdmin, validatePointSlug } from '../../../utils/bind-tokens'
 import { prisma } from '../../../utils/prisma'
 
@@ -60,6 +61,7 @@ export default defineEventHandler(async (event) => {
     transferPhone?: string | null
     transferBankLabel?: string | null
     displayCode?: string | null
+    commissionPercent?: number
   } = {}
 
   if (body?.name !== undefined) {
@@ -100,6 +102,10 @@ export default defineEventHandler(async (event) => {
       })
     }
     data.pricePerPageKopeks = Math.round(value)
+  }
+
+  if (body?.commissionPercent !== undefined) {
+    data.commissionPercent = parseCommissionPercent(body.commissionPercent)
   }
 
   const methods = parsePaymentMethods(body?.paymentMethodsEnabled)
