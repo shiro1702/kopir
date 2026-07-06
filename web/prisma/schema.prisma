@@ -51,6 +51,12 @@ enum MessengerPlatform {
 enum BindTokenPurpose {
   staff
   agent
+  partner
+}
+
+enum PartnerBalanceEntryType {
+  CREDIT
+  PAYOUT
 }
 
 model User {
@@ -67,6 +73,17 @@ model User {
   batches            OrderBatch[]
 }
 
+model Partner {
+  id             String                @id @default(cuid())
+  telegramId     BigInt?               @unique
+  maxUserId      BigInt?               @unique
+  name           String?
+  requisites     Json?
+  createdAt      DateTime              @default(now())
+  points         Point[]
+  balanceEntries PartnerBalanceEntry[]
+}
+
 model Point {
   id                     String           @id @default(cuid())
   slug                   String           @unique
@@ -77,6 +94,9 @@ model Point {
   paymentMethodsEnabled  PaymentMethod[]
   transferPhone          String?
   transferBankLabel      String?
+  commissionPercent      Int              @default(30)
+  partnerId              String?
+  partner                Partner?         @relation(fields: [partnerId], references: [id], onDelete: SetNull)
   lastSeenAt             DateTime?
   createdAt              DateTime         @default(now())
   orders                 Order[]
@@ -84,6 +104,20 @@ model Point {
   staffChannels          StaffChannel[]
   bindTokens             BindToken[]
   lastPointUsers         User[]           @relation("UserLastPoint")
+
+  @@index([partnerId])
+}
+
+model PartnerBalanceEntry {
+  id           String                  @id @default(cuid())
+  partnerId    String
+  partner      Partner                 @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  amountKopeks Int
+  type         PartnerBalanceEntryType
+  batchId      String?                 @unique
+  createdAt    DateTime                @default(now())
+
+  @@index([partnerId, createdAt])
 }
 
 model StaffChannel {

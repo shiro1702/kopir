@@ -49,6 +49,18 @@ export type ConsumedBindToken = {
   token: string
 }
 
+export async function lookupBindTokenPurpose(rawToken: string): Promise<BindTokenPurpose | null> {
+  const token = rawToken.trim()
+  if (!token) {
+    return null
+  }
+  const record = await prisma.bindToken.findUnique({
+    where: { token },
+    select: { purpose: true },
+  })
+  return record?.purpose ?? null
+}
+
 export async function consumeBindToken(
   rawToken: string,
   expectedPurpose: BindTokenPurpose,

@@ -588,6 +588,18 @@ export async function confirmBatchPayment(batchId: string) {
     console.error('[staff] batch payment confirmed notify failed:', batchId, error)
   }
 
+  try {
+    const { creditPartnerBalanceForBatch } = await import('./partner-balance')
+    await creditPartnerBalanceForBatch({
+      id: batch.id,
+      pointId: batch.pointId,
+      totalAmountKopeks: batch.totalAmountKopeks,
+      paymentMethod: batch.paymentMethod,
+    })
+  } catch (error) {
+    console.error('[batch] partner balance credit failed:', batchId, error)
+  }
+
   return {
     id: batch.id,
     status: OrderBatchStatus.PAID,

@@ -7,7 +7,7 @@ import {
   isPointClientCallbackPayload,
   isPrintRetryClientCallbackPayload,
 } from '../bot/keyboards'
-import { routeClientCallback } from '../bot/client-callbacks'
+import { isPartnerCallbackPayload } from '../bot/partner-keyboards'
 import type {
   BatchKeyboardMode,
   CallbackContext,
@@ -160,6 +160,19 @@ export async function handleMaxUpdate(update: MaxUpdate): Promise<void> {
         return
       }
 
+      const partnerMatch = message.body?.text?.trim().match(/^\/partner(?:@\S+)?(?:\s+([\s\S]+))?$/)
+      if (partnerMatch) {
+        try {
+          const { handlePartnerCommand } = await import('../bot/core')
+          const arg = partnerMatch[1]?.trim() || undefined
+          await handlePartnerCommand('max', target, arg, adapter, user)
+        } catch (error) {
+          const text = error instanceof Error ? error.message : 'Ошибка'
+          await client.sendMessage({ chatId }, text)
+        }
+        return
+      }
+
       const textAction = message.body?.text ? isBatchActionText(message.body.text) : null
       if (textAction) {
         const { handleBatchAction } = await import('../bot/core')
@@ -219,7 +232,9 @@ export async function handleMaxUpdate(update: MaxUpdate): Promise<void> {
       const staffMaxUserId = getStaffMaxUserId()
       const isLegacyStaff = staffMaxUserId && callback.user.user_id === staffMaxUserId
 
-      const isStaffCallback = !isBatchClientCallbackPayload(callback.payload)
+      const isPartnerCallback = isPartnerCallbackPayload(callback.payload)
+      const isStaffCallback = !isPartnerCallback
+        && !isBatchClientCallbackPayload(callback.payload)
         && !isPaymentClientCallbackPayload(callback.payload)
         && !isPrintRetryClientCallbackPayload(callback.payload)
         && !isPointClientCallbackPayload(callback.payload)
@@ -311,6 +326,44 @@ export async function handleMaxUpdate(update: MaxUpdate): Promise<void> {
           } else if (error instanceof Error) {
             text = error.message
           }
+          await client.answerCallback(callback.callback_id, text)
+        }
+        return
+      }
+
+      if (isPartnerCallback) {
+        const chatId = update.message?.recipient?.chat_id ?? update.chat_id
+        if (!chatId) {
+          await client.answerCallback(callback.callback_id, 'Ошибка чата')
+          return
+        }
+        const target: MessengerReplyTarget = {
+          platform: 'max',
+          chatId: String(chatId),
+        }
+        const messageId = update.message?.body?.mid
+        const message: SentMessage | undefined = messageId
+          ? { messageId, chatId: String(chatId) }
+          : undefined
+
+        try {
+          const { assertPartnerForPayload, handlePartnerCallbackPayload } = await import('../partner-actions')
+          await assertPartnerForPayload('max', BigInt(callback.user.user_id), callback.payload)
+          const screen = await handlePartnerCallbackPayload(
+            'max',
+            BigInt(callback.user.user_id),
+            callback.payload,
+          )
+          if (message) {
+            await adapter.editStatus(target, message, screen.text, {
+              inlineKeyboard: screen.keyboard,
+            })
+          } else {
+            await adapter.sendText(target, screen.text, { inlineKeyboard: screen.keyboard })
+          }
+          await client.answerCallback(callback.callback_id, 'Готово')
+        } catch (error) {
+          const text = error instanceof Error ? error.message : 'Ошибка'
           await client.answerCallback(callback.callback_id, text)
         }
         return

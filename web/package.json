@@ -12,7 +12,7 @@
     "db:deploy": "prisma migrate deploy",
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio",
-    "test": "tsx --test server/utils/payments/tbank-client.test.ts server/utils/payments/tbank-acquiring.test.ts server/utils/payments/tbank-receipt.test.ts server/utils/payments/tbank-receipt-link.test.ts"
+    "test": "tsx --test server/utils/payments/tbank-client.test.ts server/utils/payments/tbank-acquiring.test.ts server/utils/payments/tbank-receipt.test.ts server/utils/payments/tbank-receipt-link.test.ts server/utils/partner-balance.test.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.9.0",

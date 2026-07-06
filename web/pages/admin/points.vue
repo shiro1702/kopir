@@ -181,6 +181,20 @@ function toggleMethod(methodId) {
   }
 }
 
+async function generatePartnerToken(point) {
+  tokenResult.value = null
+  error.value = ''
+  try {
+    const data = await $fetch(`/api/admin/points/${point.id}/partner-token`, {
+      method: 'POST',
+      headers: authHeaders(),
+    })
+    tokenResult.value = { type: 'partner', pointName: point.name, ...data }
+  } catch (e) {
+    error.value = e?.data?.error ?? 'Не удалось создать ссылку для партнёра'
+  }
+}
+
 async function generateBindToken(point) {
   tokenResult.value = null
   error.value = ''
@@ -431,6 +445,96 @@ function telegramBotLabel() {
       </div>
 
       <div
+        v-else-if="tokenResult?.type === 'partner'"
+        class="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950"
+      >
+        <p class="font-semibold">
+          Привязка партнёра — {{ tokenResult.pointName }}
+        </p>
+        <p class="mt-1 text-amber-800">
+          Ссылка действует до {{ formatDateTime(tokenResult.expiresAt) }} (одноразовая)
+        </p>
+
+        <div
+          v-if="staffTelegramLink(tokenResult)"
+          class="mt-4 rounded-md border border-amber-200 bg-white p-3"
+        >
+          <p class="font-medium">
+            Telegram — открыть бота
+          </p>
+          <p class="mt-1 text-xs text-gray-600">
+            Партнёр получит доступ к кабинету точки «{{ tokenResult.pointName }}»
+          </p>
+          <div class="mt-3 flex flex-wrap gap-2">
+            <a
+              :href="staffTelegramLink(tokenResult)"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="rounded bg-[#229ED9] px-4 py-2 text-sm font-medium text-white hover:bg-[#1a8bc4]"
+            >
+              Открыть в Telegram
+            </a>
+            <button
+              class="rounded border border-amber-300 bg-white px-3 py-2 text-xs hover:bg-amber-50"
+              @click="copyText(staffTelegramLink(tokenResult))"
+            >
+              Скопировать ссылку
+            </button>
+          </div>
+        </div>
+
+        <div class="mt-4 space-y-3 rounded-md border border-amber-200 bg-white p-3">
+          <p class="font-medium">
+            Команда для партнёра
+          </p>
+          <p
+            v-if="tokenResult.bindCommand"
+            class="rounded bg-gray-50 px-2 py-1.5 font-mono text-xs"
+          >
+            {{ tokenResult.bindCommand }}
+          </p>
+          <button
+            v-if="tokenResult.bindCommand"
+            class="rounded border border-amber-300 bg-white px-3 py-1 text-xs hover:bg-amber-50"
+            @click="copyText(tokenResult.bindCommand)"
+          >
+            Скопировать команду
+          </button>
+          <p class="text-xs text-gray-600">
+            Партнёр увидит статус агента, заказы, настройки и баланс в боте.
+          </p>
+        </div>
+
+        <div
+          v-if="adminConfig?.maxConfigured"
+          class="mt-4 rounded-md border border-amber-200 bg-white p-3"
+        >
+          <p class="font-medium">
+            MAX
+          </p>
+          <p class="mt-1 text-xs text-gray-600">
+            Откройте бота Kopir в MAX и отправьте:
+          </p>
+          <p class="mt-2 rounded bg-gray-50 px-2 py-1.5 font-mono text-xs">
+            {{ tokenResult.maxBindCommand || tokenResult.bindCommand }}
+          </p>
+          <button
+            class="mt-2 rounded border border-amber-300 bg-white px-3 py-1 text-xs hover:bg-amber-50"
+            @click="copyText(tokenResult.maxBindCommand || tokenResult.bindCommand)"
+          >
+            Скопировать для MAX
+          </button>
+        </div>
+
+        <button
+          class="mt-4 text-xs text-amber-700 underline hover:text-amber-900"
+          @click="tokenResult = null"
+        >
+          Закрыть
+        </button>
+      </div>
+
+      <div
         v-else-if="tokenResult?.type === 'agent'"
         class="mb-4 rounded-lg border border-violet-200 bg-violet-50 p-4 text-sm text-violet-950"
       >
@@ -666,6 +770,13 @@ function telegramBotLabel() {
                     @click="generateBindToken(point)"
                   >
                     Сотрудники
+                  </button>
+                  <button
+                    class="rounded bg-amber-50 px-2 py-1 text-xs text-amber-900 hover:bg-amber-100"
+                    title="Привязать владельца точки к кабинету партнёра"
+                    @click="generatePartnerToken(point)"
+                  >
+                    Партнёр
                   </button>
                   <button
                     class="rounded bg-violet-50 px-2 py-1 text-xs text-violet-800 hover:bg-violet-100"

@@ -16,7 +16,7 @@ import {
   isPointClientCallbackPayload,
   isPrintRetryClientCallbackPayload,
 } from '../bot/keyboards'
-import { routeClientCallback } from '../bot/client-callbacks'
+import { isPartnerCallbackPayload } from '../bot/partner-keyboards'
 import { assertStaffForPayload } from '../staff-auth'
 import {
   downloadTelegramFile,
@@ -138,6 +138,32 @@ function createBot(): Bot {
     await handleStart('telegram', target, ctx.match?.trim(), adapter, user)
   })
 
+  bot.command('partner', async (ctx) => {
+    const telegramUser = ctx.from!
+    const chatId = ctx.chat.id
+    const target: MessengerReplyTarget = {
+      platform: 'telegram',
+      chatId: String(chatId),
+    }
+    const user = {
+      externalId: String(telegramUser.id),
+      username: telegramUser.username ?? null,
+      firstName: telegramUser.first_name ?? null,
+    }
+    const arg = ctx.match?.trim() || undefined
+
+    try {
+      const { handlePartnerCommand } = await import('../bot/core')
+      await handlePartnerCommand('telegram', target, arg, adapter, user)
+    } catch (error) {
+      let text = 'Ошибка'
+      if (error instanceof Error) {
+        text = error.message
+      }
+      await ctx.reply(text)
+    }
+  })
+
   bot.command('bind', async (ctx) => {
     const chatId = ctx.chat.id
     const target: MessengerReplyTarget = {
@@ -255,13 +281,32 @@ function createBot(): Bot {
       : undefined
 
     try {
-      const isStaffCallback = !isBatchClientCallbackPayload(data)
+      const isPartnerCallback = isPartnerCallbackPayload(data)
+      const isStaffCallback = !isPartnerCallback
+        && !isBatchClientCallbackPayload(data)
         && !isPaymentClientCallbackPayload(data)
         && !isPrintRetryClientCallbackPayload(data)
         && !isPointClientCallbackPayload(data)
-      const result = isStaffCallback
-        ? { toast: await handleStaffCallback(data, chatId) }
-        : await handleClientCallback(data, target, user, adapter, callbackCtx, message)
+
+      let result: { toast?: string, callbackAnswer?: import('../bot/types').CallbackAnswerOptions }
+      if (isPartnerCallback) {
+        const { assertPartnerForPayload, handlePartnerCallbackPayload } = await import('../partner-actions')
+        await assertPartnerForPayload('telegram', chatId, data)
+        const screen = await handlePartnerCallbackPayload('telegram', BigInt(telegramUser.id), data)
+        if (message && callbackCtx.messageId) {
+          const { editTelegramStatusMessage } = await import('./client')
+          await editTelegramStatusMessage(chatId, message, screen.text, {
+            inlineKeyboard: screen.keyboard,
+          })
+        } else {
+          await adapter.sendText(target, screen.text, { inlineKeyboard: screen.keyboard })
+        }
+        result = { toast: 'Готово' }
+      } else if (isStaffCallback) {
+        result = { toast: await handleStaffCallback(data, chatId) }
+      } else {
+        result = await handleClientCallback(data, target, user, adapter, callbackCtx, message)
+      }
       const { isStaffPaymentConfirmPayload } = await import('../staff-actions')
       await adapter.answerCallback?.(callbackCtx, result.toast, {
         showAlert: isStaffCallback && isStaffPaymentConfirmPayload(data),

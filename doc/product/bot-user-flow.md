@@ -101,8 +101,12 @@ flowchart LR
 |---------|-----|---------|----------|--------|
 | `/start` | Клиент | всегда | Приветствие `MSG_START`, сохранить `point_slug` | ✅ |
 | `/start point_<slug>` | Клиент | deep link / QR | Точка печати | ✅ |
-| `/start bind_<token>` | Staff | токен из админки | Привязка `StaffChannel` к точке | ✅ |
-| `/bind <token>` | Staff | альтернатива deep link | То же, что `bind_*` в `/start` | ✅ |
+| `/start bind_<token>` | Staff / Partner | токен из админки | Staff: `StaffChannel`; Partner: `Point.partnerId` | ✅ |
+| `/start partner` | Partner | — | Меню ЛК или «не привязан» | ✅ |
+| `/bind <token>` | Staff | альтернатива deep link | Привязка staff (`purpose=staff`) | ✅ |
+| `/partner` | Partner | привязан к точке | Главное меню ЛК | ✅ |
+| `/partner bind_<token>` | Partner | токен из админки | Привязка `Partner` + `Point.partnerId` | ✅ |
+| `/partner phone <pointId> <номер>` | Partner | владелец точки | Обновить `transferPhone` | ✅ |
 | Текст `✅ Оплатить` | Клиент | TG only; есть пачка `COLLECTING`; режим `ready` | `finalizeBatch` → выбор оплаты | ✅ |
 | Текст `❌ Отменить всё` | Клиент | TG; есть batch `COLLECTING` | `cancelBatch` | ✅ |
 
@@ -151,7 +155,24 @@ MAX: те же действия через **inline** `batch_finalize` / `batch_
 | `staff_retry_print:{orderId}` | Сбой автопечати | ✅ |
 | `staff_manual_print:{orderId}` | Staff распечатал вручную | ✅ |
 
-Staff callback маршрутизируется только если payload **не** клиентский (`staff-auth.ts`).
+Staff callback маршрутизируется только если payload **не** клиентский и **не** `partner_*` (`staff-auth.ts`).
+
+### Inline-кнопки partner (callback)
+
+| Payload | Экран | Статус |
+|---------|-------|--------|
+| `partner_menu` | Главное меню / список точек | ✅ |
+| `partner_point:{pointId}` | Подменю точки | ✅ |
+| `partner_status:{pointId}` | Агент online/offline | ✅ |
+| `partner_orders:{pointId}:{day\|week\|month}` | Статистика заказов | ✅ |
+| `partner_settings:{pointId}` | Цена, способы оплаты, телефон | ✅ |
+| `partner_price:{pointId}:{kopeks}` | Пресет цены | ✅ |
+| `partner_price_adj:{pointId}:{delta}` | ±1 ₽ | ✅ |
+| `partner_toggle_pay:{pointId}:{method}` | Вкл/выкл способ оплаты | ✅ |
+| `partner_phone_hint:{pointId}` | Подсказка `/partner phone …` | ✅ |
+| `partner_balance` | Баланс + последние 10 операций | ✅ |
+
+Начисление на баланс: только `TBANK_SBP` / `TBANK_ONLINE`, split 70/30 (default `commissionPercent=30`), идемпотентно по `batchId`.
 
 ---
 

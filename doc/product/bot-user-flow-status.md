@@ -34,6 +34,21 @@
 |---|---------|--------|--------|
 | 1 | «Ссылка точки»: QR + deep links TG/MAX | ⬜ | Sprint 4 → [06](../sprints/sprint-4/tasks/06-point-client-links.md) |
 | 2 | PDF-плакат A4 | ⬜ | Sprint 4 P2 |
+| 3 | Кнопка «Партнёр» в `/admin/points` | ✅ | Sprint 4 |
+| 4 | `/partner bind_*` + меню ЛК | ✅ | Sprint 4 |
+| 5 | Настройки точки в боте (цена, оплата) | ✅ | Sprint 4 |
+| 6 | Баланс партнёра + начисление TBANK | ✅ | Sprint 4 |
+
+## Partner (бот)
+
+| # | Элемент | Статус | Проверено E2E |
+|---|---------|--------|---------------|
+| 1 | `/partner` + `/partner bind_*` | ✅ | нет |
+| 2 | Статус агента 🟢/🔴 | ✅ | нет |
+| 3 | Заказы день/неделя/месяц | ✅ | нет |
+| 4 | Изменение цены и способов оплаты | ✅ | нет |
+| 5 | Баланс к выплате | ✅ | нет |
+| 6 | MAX-паритет callbacks | ✅ | нет |
 
 ## Staff
 
@@ -58,8 +73,8 @@
 ## Следующие шаги
 
 1. **Sprint 4 P1:** «Ссылка точки» — QR + deep links в `/admin/points` → [06](../sprints/sprint-4/tasks/06-point-client-links.md)
-2. **Sprint 4 P0:** Partner LK + баланс (PAY-06) + лендинг `/partners`
-3. **Sprint 4 P1:** UX-10 «Готово!», MON-02 → [07](../sprints/sprint-4/tasks/07-ready-offline-guard.md)
+2. **Sprint 4 P1:** UX-10 «Готово!», MON-02 → [07](../sprints/sprint-4/tasks/07-ready-offline-guard.md)
+3. **Sprint 4:** E2E partner LK (bind → настройки → TBANK → баланс)
 4. **Sprint 5 P0:** Выбор точки в боте без QR (UX-06) → [02](../sprints/sprint-5/tasks/02-point-selection-bot.md)
 5. **Sprint 5:** реестр выплат PAY-07, web ЛК, VK + WEB-09
 6. **PAY-04:** ATOL Online — дождаться проверки

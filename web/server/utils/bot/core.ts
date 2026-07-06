@@ -348,7 +348,18 @@ export async function handleStart(
   const trimmed = payload?.trim()
 
   if (trimmed?.startsWith('bind_')) {
-    await handleBind(platform, target, trimmed, adapter, user)
+    const { lookupBindTokenPurpose } = await import('../bind-tokens')
+    const purpose = await lookupBindTokenPurpose(trimmed)
+    if (purpose === 'partner') {
+      await handlePartnerBind(platform, target, trimmed, adapter, user)
+    } else {
+      await handleBind(platform, target, trimmed, adapter, user)
+    }
+    return
+  }
+
+  if (trimmed === 'partner') {
+    await handlePartnerCommand(platform, target, undefined, adapter, user)
     return
   }
 
@@ -474,6 +485,86 @@ export async function handleBind(
     : `✅ Вы привязаны к точке «${point.name}».\n\nБудете получать уведомления о заказах и сможете подтверждать оплату.`
 
   await adapter.sendText(target, message)
+}
+
+export async function handlePartnerBind(
+  platform: MessengerPlatform,
+  target: MessengerReplyTarget,
+  rawToken: string,
+  adapter: MessengerAdapter,
+  user?: BotUser,
+): Promise<void> {
+  if (!user) {
+    await adapter.sendText(target, 'Не удалось определить пользователя')
+    return
+  }
+
+  const { consumeBindToken } = await import('../bind-tokens')
+  const { upsertPartnerFromMessenger } = await import('../partner-auth')
+  const { buildPartnerMenuScreen } = await import('../partner-actions')
+  const partnerMessages = await import('./partner-messages')
+
+  const { point } = await consumeBindToken(rawToken, 'partner')
+  const userId = BigInt(user.externalId)
+  const displayName = user.firstName ?? user.username ?? null
+
+  const partner = await upsertPartnerFromMessenger(platform, userId, displayName)
+  await prisma.point.update({
+    where: { id: point.id },
+    data: { partnerId: partner.id },
+  })
+
+  const screen = await buildPartnerMenuScreen(platform, userId)
+  const text = `${partnerMessages.formatPartnerWelcome(point.name)}\n\n${screen.text}`
+
+  await adapter.sendText(target, text, screen.keyboard.length > 0
+    ? { inlineKeyboard: screen.keyboard }
+    : undefined)
+}
+
+export async function handlePartnerCommand(
+  platform: MessengerPlatform,
+  target: MessengerReplyTarget,
+  arg: string | undefined,
+  adapter: MessengerAdapter,
+  user?: BotUser,
+): Promise<void> {
+  if (!user) {
+    await adapter.sendText(target, 'Не удалось определить пользователя')
+    return
+  }
+
+  const trimmed = arg?.trim()
+
+  if (trimmed?.startsWith('bind_')) {
+    await handlePartnerBind(platform, target, trimmed, adapter, user)
+    return
+  }
+
+  if (trimmed?.startsWith('phone ')) {
+    const parts = trimmed.slice('phone '.length).trim().split(/\s+/)
+    const pointId = parts[0]
+    const phone = parts.slice(1).join(' ')
+    if (!pointId || !phone) {
+      await adapter.sendText(target, 'Использование: /partner phone <id_точки> <номер>')
+      return
+    }
+    try {
+      const { handlePartnerPhoneCommand } = await import('../partner-actions')
+      const text = await handlePartnerPhoneCommand(platform, BigInt(user.externalId), pointId, phone)
+      await adapter.sendText(target, text)
+    } catch (error) {
+      const text = error instanceof Error ? error.message : 'Ошибка'
+      await adapter.sendText(target, text)
+    }
+    return
+  }
+
+  const { buildPartnerMenuScreen } = await import('../partner-actions')
+  const screen = await buildPartnerMenuScreen(platform, BigInt(user.externalId))
+  await adapter.sendText(target, screen.text, screen.keyboard.length > 0
+    ? { inlineKeyboard: screen.keyboard }
+    : undefined)
 }
 
 export async function handleDocument(
