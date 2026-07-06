@@ -16,7 +16,7 @@
 | Экономика | 70/30 или актуальный % из [partner-economics.md](../../../marketing/texts/partner-economics.md) |
 | Как подключиться | 3 шага: бот → агент → QR |
 | CTA | «Стать партнёром» → deep link в бот (`/start partner` или инструкция) |
-| Footer | Ссылка на оферту (когда ONB-06 готова) |
+| Footer | Ссылка на [оферту](/offer) |
 
 ## Не в scope
 

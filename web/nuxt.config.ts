@@ -73,6 +73,11 @@ export default defineNuxtConfig({
     public: {
       appVersion: '0.0.1',
       siteUrl: process.env.NUXT_PUBLIC_SITE_URL ?? '',
+      legalEntityName: process.env.NUXT_PUBLIC_LEGAL_ENTITY_NAME ?? '',
+      legalInn: process.env.NUXT_PUBLIC_LEGAL_INN ?? '',
+      legalOgrnip: process.env.NUXT_PUBLIC_LEGAL_OGRNIP ?? '',
+      legalAddress: process.env.NUXT_PUBLIC_LEGAL_ADDRESS ?? '',
+      legalEmail: process.env.NUXT_PUBLIC_LEGAL_EMAIL ?? '',
     },
   },
 })

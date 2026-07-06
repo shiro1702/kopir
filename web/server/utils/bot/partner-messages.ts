@@ -18,8 +18,11 @@ export function formatRubles(kopeks: number): string {
   return `${(kopeks / 100).toFixed(kopeks % 100 === 0 ? 0 : 2)} ₽`
 }
 
-export function formatPartnerWelcome(pointName: string): string {
-  return `✅ Точка «${pointName}» привязана к вашему кабинету партнёра.`
+export function formatPartnerWelcome(pointName: string, offerUrl?: string | null): string {
+  const offerLine = offerUrl
+    ? `\n\nПродолжая работу в кабинете, вы принимаете условия оферты:\n${offerUrl}`
+    : ''
+  return `✅ Точка «${pointName}» привязана к вашему кабинету партнёра.${offerLine}`
 }
 
 export function formatPartnerNotBound(): string {

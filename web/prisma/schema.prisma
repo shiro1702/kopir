@@ -94,7 +94,7 @@ model Point {
   paymentMethodsEnabled  PaymentMethod[]
   transferPhone          String?
   transferBankLabel      String?
-  commissionPercent      Int              @default(15)
+  commissionPercent      Int              @default(25)
   partnerId              String?
   partner                Partner?         @relation(fields: [partnerId], references: [id], onDelete: SetNull)
   lastSeenAt             DateTime?

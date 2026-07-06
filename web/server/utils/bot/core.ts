@@ -515,7 +515,10 @@ export async function handlePartnerBind(
   })
 
   const screen = await buildPartnerMenuScreen(platform, userId)
-  const text = `${partnerMessages.formatPartnerWelcome(point.name)}\n\n${screen.text}`
+  const { buildPublicOfferUrl } = await import('../public-offer')
+  const config = useRuntimeConfig()
+  const offerUrl = buildPublicOfferUrl(String(config.public?.siteUrl ?? ''))
+  const text = `${partnerMessages.formatPartnerWelcome(point.name, offerUrl)}\n\n${screen.text}`
 
   await adapter.sendText(target, text, screen.keyboard.length > 0
     ? { inlineKeyboard: screen.keyboard }

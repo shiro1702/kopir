@@ -25,7 +25,7 @@ P1: «Ссылка точки» — QR + deep links TG/MAX в админке (п
 P1: лендинг /partners (B2B)
 P1: UX-10 «Готово!», MON-02 offline
 P0 ⚠️: миграция MAX API → platform-api2.max.ru (дедлайн 19.07)
-P2: PDF-плакат A4, QR в Partner ЛК; оферта на сайте (ONB-06)
+P2: PDF-плакат A4, QR в Partner ЛК; ~~оферта на сайте (ONB-06)~~ ✅
 ```
 
 ## Задачи
@@ -40,6 +40,7 @@ P2: PDF-плакат A4, QR в Partner ЛК; оферта на сайте (ONB-0
 | 06 | «Ссылка точки»: QR + deep links в админке | ⬜ | UX-05, ONB-05 | [tasks/06-point-client-links.md](./tasks/06-point-client-links.md) |
 | 07 | «Готово!» + блок offline-точки | ⬜ | UX-10, MON-02 | [tasks/07-ready-offline-guard.md](./tasks/07-ready-offline-guard.md) |
 | 08 | **MAX API → platform-api2 + TLS Минцифры** | ✅ | WEB-15 | [tasks/08-max-api-migration.md](./tasks/08-max-api-migration.md) |
+| 09 | Публичная оферта `/offer` | ✅ | ONB-06 | [tasks/09-public-offer.md](./tasks/09-public-offer.md) |
 
 > **⚠️ Задача 08 — дедлайн 19.07.2026** (уведомление MAX). Сертификат в `web/certs/` уже есть для T-Bank; нужно переключить URL и подключить тот же fetch в MAX-клиент.
 

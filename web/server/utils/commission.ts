@@ -1,6 +1,6 @@
 import { prisma } from './prisma'
 
-export const DEFAULT_COMMISSION_PERCENT = 15
+export const DEFAULT_COMMISSION_PERCENT = 25
 
 /** Preset for tiered mode (Sprint 6). Starts near pilot 30%, converges to outreach 12%. */
 export const STANDARD_COMMISSION_TIERS: CommissionTier[] = [

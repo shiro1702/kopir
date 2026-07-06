@@ -27,7 +27,7 @@ const form = ref({
   slug: '',
   displayCode: '',
   pricePerPageKopeks: 1000,
-  commissionPercent: 15,
+  commissionPercent: 25,
   transferPhone: '',
   transferBankLabel: '',
   paymentMethodsEnabled: ['SBP_TRANSFER', 'ON_SITE'],
@@ -87,7 +87,7 @@ function resetForm() {
     slug: '',
     displayCode: '',
     pricePerPageKopeks: 1000,
-    commissionPercent: 15,
+    commissionPercent: 25,
     transferPhone: '',
     transferBankLabel: '',
     paymentMethodsEnabled: ['SBP_TRANSFER', 'ON_SITE'],
@@ -109,7 +109,7 @@ function openEdit(point) {
     slug: point.slug,
     displayCode: point.displayCode ?? '',
     pricePerPageKopeks: point.pricePerPageKopeks,
-    commissionPercent: point.commissionPercent ?? 15,
+    commissionPercent: point.commissionPercent ?? 25,
     transferPhone: point.transferPhone ?? '',
     transferBankLabel: point.transferBankLabel ?? '',
     paymentMethodsEnabled: [...point.paymentMethodsEnabled],
@@ -861,7 +861,7 @@ function telegramBotLabel() {
               </td>
               <td
                 class="px-4 py-3 text-xs"
-                :title="`Платформа ${point.commissionPercent ?? 15}%, партнёру ${100 - (point.commissionPercent ?? 15)}%`"
+                :title="`Платформа ${point.commissionPercent ?? 25}%, партнёру ${100 - (point.commissionPercent ?? 25)}%`"
               >
                 {{ formatCommissionSplit(point.commissionPercent) }}
               </td>

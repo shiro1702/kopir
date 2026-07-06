@@ -359,6 +359,20 @@ TBANK_API_URL="https://securepay.tinkoff.ru/v2"
 TBANK_NOTIFICATION_URL=""      # https://<домен>/api/payments/webhook/tbank
 TBANK_WEBHOOK_SECRET=""        # опционально: legacy dev-mock webhook
 NUXT_PUBLIC_SITE_URL=""        # fallback для NotificationURL
+
+### Sprint 4 — публичная оферта (ONB-06)
+
+Страница `/offer`. Реквизиты Агента в тексте оферты:
+
+```env
+NUXT_PUBLIC_LEGAL_ENTITY_NAME="ИП Иванов Иван Иванович"
+NUXT_PUBLIC_LEGAL_INN=""
+NUXT_PUBLIC_LEGAL_OGRNIP=""
+NUXT_PUBLIC_LEGAL_ADDRESS=""
+NUXT_PUBLIC_LEGAL_EMAIL="support@kopir.ru"
+```
+
+Без `LEGAL_*` на странице остаётся черновик с placeholder «Оператор платформы Kopir».
 ```
 
 **TLS (Russian Trusted CA):** корневые сертификаты Минцифры лежат в `web/certs/russian-trusted-ca-bundle.pem` и подключаются автоматически в `trusted-ca-fetch.ts` (исходящие запросы T-Bank и MAX API). `tbank-fetch.ts` — thin re-export. Переменная `NODE_EXTRA_CA_CERTS` не обязательна. Инструкция Т-Банка: [migration-russian-trusted-ca](https://developer.tbank.ru/eacq/intro/certificates/migration-russian-trusted-ca).

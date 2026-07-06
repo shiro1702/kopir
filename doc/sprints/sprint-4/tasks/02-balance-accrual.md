@@ -11,19 +11,19 @@
 ### Prisma
 
 - `PartnerBalance` или ledger: `partnerId`, `amountKopeks`, `type` (`CREDIT`/`PAYOUT`), `orderId`/`batchId`, `createdAt`
-- На `Point`: `commissionPercent` (default **15**; пилотные точки могут остаться на 30 вручную) или `payoutType` (`percent` | `per_page`)
+- На `Point`: `commissionPercent` (default **25**; early bird ≤10 точек — **14%**; пилотные точки могут остаться на 30 вручную) или `payoutType` (`percent` | `per_page`)
 
 ### Логика
 
 При `confirmBatchPayment` / webhook онлайн-оплаты:
 
 ```
-Клиент заплатил 100 ₽, commission 15% (default)
-→ platform: +15 ₽
-→ partner balance: +85 ₽
+Клиент заплатил 100 ₽, commission 25% (default)
+→ platform: +25 ₽
+→ partner balance: +75 ₽
 ```
 
-(Пилотные точки с 30% в админке: split 70/30. Tiered шкала — Sprint 6.)
+(Early bird ≤10 точек: **14%** → 86/14. Пилотные точки с 30% в админке: split 70/30. Tiered шкала — Sprint 6.)
 
 - Только для **TBANK_*** online (ручная оплата — без автоначисления на MVP)
 - Идемпотентность: один batch → одно начисление

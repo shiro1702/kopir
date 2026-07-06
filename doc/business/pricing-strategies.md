@@ -1,5 +1,7 @@
 # Стратегии ценообразования
 
+> **Актуальная модель (июль 2026):** [commission-pricing-rationale.md](./commission-pricing-rationale.md) — фаза 1: **25%** fixed, early bird **14%** (10 точек), фаза 2: tiered 25→12%.
+
 Источник: [брейншторм 28.06.2026](../brainstorm/28.06.2026.md)
 
 ## Психологический потолок
