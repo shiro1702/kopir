@@ -76,6 +76,7 @@ export function resolvePointIdFromPartnerPayload(data: string): string | null {
     'partner_price_adj:',
     'partner_toggle_pay:',
     'partner_phone_hint:',
+    'partner_links:',
   ]
 
   for (const prefix of prefixes) {

@@ -10,6 +10,7 @@ import { getPartnerBalanceSummary } from './partner-balance'
 import { getPartnerOrdersStats, type PartnerOrdersPeriod } from './partner-stats'
 import { updatePointSettings } from './point-settings'
 import { isPointAgentOnline } from './points'
+import { buildPointClientLinksForSlug } from './point-links'
 import { prisma } from './prisma'
 import * as messages from './bot/partner-messages'
 import {
@@ -175,6 +176,14 @@ export async function handlePartnerCallbackPayload(
     return {
       text: messages.formatPartnerPhoneHint(pointId),
       keyboard: [[{ text: '◀️ Назад', callbackData: `partner_settings:${pointId}` }]],
+    }
+  }
+
+  if (data.startsWith('partner_links:')) {
+    const links = await buildPointClientLinksForSlug(point.slug)
+    return {
+      text: messages.formatPartnerClientLinks(point.name, links),
+      keyboard: [[{ text: '◀️ Назад', callbackData: `partner_point:${pointId}` }]],
     }
   }
 

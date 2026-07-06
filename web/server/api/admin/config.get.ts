@@ -27,6 +27,11 @@ export default defineEventHandler(async (event) => {
     telegramConfigured: Boolean(config.telegramBotToken),
     telegramBotUsername,
     maxConfigured: Boolean(config.maxBotToken),
+    maxBotLinkConfigured: Boolean(
+      String(config.maxBotLink ?? '').trim()
+      || String(config.maxBotUsername ?? '').trim(),
+    ),
+    siteUrl: String(config.public?.siteUrl ?? '').trim() || null,
     points: points.map(pointAgentStatusPayload),
   }
 })

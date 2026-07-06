@@ -12,19 +12,22 @@
     "db:deploy": "prisma migrate deploy",
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio",
-    "test": "tsx --test server/utils/payments/tbank-client.test.ts server/utils/payments/tbank-acquiring.test.ts server/utils/payments/tbank-receipt.test.ts server/utils/payments/tbank-receipt-link.test.ts server/utils/partner-balance.test.ts server/utils/commission.test.ts"
+    "test": "tsx --test server/utils/payments/tbank-client.test.ts server/utils/payments/tbank-acquiring.test.ts server/utils/payments/tbank-receipt.test.ts server/utils/payments/tbank-receipt-link.test.ts server/utils/partner-balance.test.ts server/utils/commission.test.ts server/utils/point-links.test.ts server/utils/point-links-qr.test.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.9.0",
     "@vercel/blob": "^2.4.0",
     "grammy": "^1.36.3",
     "nuxt": "^3.17.6",
+    "pdf-lib": "^1.17.1",
+    "qrcode": "^1.5.4",
     "vue": "^3.5.35",
     "vue-bundle-renderer": "^2.2.0",
     "vue-router": "^5.1.0"
   },
   "devDependencies": {
     "@nuxtjs/tailwindcss": "^6.14.0",
+    "@types/qrcode": "^1.5.6",
     "prisma": "^6.9.0",
     "tsx": "^4.20.3",
     "typescript": "^5.8.3"

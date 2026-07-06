@@ -111,6 +111,34 @@ export function formatPartnerPhoneUpdated(phone: string): string {
   return `✅ Телефон для перевода: ${phone}`
 }
 
+export function formatPartnerClientLinks(
+  pointName: string,
+  links: {
+    telegramDeepLink: string | null
+    telegramPayload: string
+    maxDeepLink: string | null
+    maxPayload: string
+    goLink: string | null
+  },
+): string {
+  const lines = [`🔗 QR и ссылки — ${pointName}`, '']
+  if (links.telegramDeepLink) {
+    lines.push('Telegram:', links.telegramDeepLink, `Payload: ${links.telegramPayload}`, '')
+  } else {
+    lines.push('Telegram:', `/start ${links.telegramPayload}`, '')
+  }
+  if (links.maxDeepLink) {
+    lines.push('MAX:', links.maxDeepLink, `Payload: ${links.maxPayload}`, '')
+  } else {
+    lines.push('MAX:', `/start ${links.maxPayload}`, '')
+  }
+  if (links.goLink) {
+    lines.push('Универсально (скоро):', links.goLink)
+  }
+  lines.push('', 'Плакат A4: /admin/points → «Ссылка точки» → «Скачать плакат»')
+  return lines.join('\n').trimEnd()
+}
+
 export function formatPartnerPhoneHint(pointId: string): string {
   return `Отправьте команду:\n/partner phone ${pointId} +79XXXXXXXXX`
 }

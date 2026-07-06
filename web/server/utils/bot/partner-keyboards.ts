@@ -10,6 +10,7 @@ export function partnerMainMenuKeyboard(points: Point[]): InlineKeyboardButton[]
       [{ text: '📡 Статус', callbackData: `partner_status:${pointId}` }],
       [{ text: '📊 Заказы', callbackData: `partner_orders:${pointId}:day` }],
       [{ text: '⚙️ Настройки', callbackData: `partner_settings:${pointId}` }],
+      [{ text: '🔗 QR и ссылки', callbackData: `partner_links:${pointId}` }],
       [{ text: '💰 Баланс', callbackData: 'partner_balance' }],
     ]
   }
@@ -26,6 +27,7 @@ export function partnerPointMenuKeyboard(pointId: string): InlineKeyboardButton[
     [{ text: '📡 Статус', callbackData: `partner_status:${pointId}` }],
     [{ text: '📊 Заказы', callbackData: `partner_orders:${pointId}:day` }],
     [{ text: '⚙️ Настройки', callbackData: `partner_settings:${pointId}` }],
+    [{ text: '🔗 QR и ссылки', callbackData: `partner_links:${pointId}` }],
     [{ text: '◀️ К точкам', callbackData: 'partner_menu' }],
   ]
 }

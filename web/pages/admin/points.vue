@@ -16,6 +16,9 @@ const showForm = ref(false)
 const editingPoint = ref(null)
 const saving = ref(false)
 const tokenResult = ref(null)
+const clientLinks = ref(null)
+const clientLinksLoading = ref(false)
+const posterDownloading = ref(false)
 const tbankConfigured = ref(false)
 const adminConfig = ref(null)
 
@@ -24,7 +27,7 @@ const form = ref({
   slug: '',
   displayCode: '',
   pricePerPageKopeks: 1000,
-  commissionPercent: 30,
+  commissionPercent: 15,
   transferPhone: '',
   transferBankLabel: '',
   paymentMethodsEnabled: ['SBP_TRANSFER', 'ON_SITE'],
@@ -52,7 +55,20 @@ onActivated(() => {
 
 onUnmounted(() => {
   if (refreshTimer) clearInterval(refreshTimer)
+  revokeClientLinkQrUrls()
 })
+
+function revokeClientLinkQrUrls() {
+  const urls = clientLinks.value?.qrUrls
+  if (!urls) return
+  if (urls.telegram) URL.revokeObjectURL(urls.telegram)
+  if (urls.max) URL.revokeObjectURL(urls.max)
+}
+
+function closeClientLinks() {
+  revokeClientLinkQrUrls()
+  clientLinks.value = null
+}
 
 function saveSecret() {
   const validationError = persistAdminSecret()
@@ -71,7 +87,7 @@ function resetForm() {
     slug: '',
     displayCode: '',
     pricePerPageKopeks: 1000,
-    commissionPercent: 30,
+    commissionPercent: 15,
     transferPhone: '',
     transferBankLabel: '',
     paymentMethodsEnabled: ['SBP_TRANSFER', 'ON_SITE'],
@@ -83,6 +99,7 @@ function openCreate() {
   resetForm()
   showForm.value = true
   tokenResult.value = null
+  closeClientLinks()
 }
 
 function openEdit(point) {
@@ -92,7 +109,7 @@ function openEdit(point) {
     slug: point.slug,
     displayCode: point.displayCode ?? '',
     pricePerPageKopeks: point.pricePerPageKopeks,
-    commissionPercent: point.commissionPercent ?? 30,
+    commissionPercent: point.commissionPercent ?? 15,
     transferPhone: point.transferPhone ?? '',
     transferBankLabel: point.transferBankLabel ?? '',
     paymentMethodsEnabled: [...point.paymentMethodsEnabled],
@@ -100,6 +117,7 @@ function openEdit(point) {
   }
   showForm.value = true
   tokenResult.value = null
+  closeClientLinks()
 }
 
 function closeForm() {
@@ -187,6 +205,7 @@ function toggleMethod(methodId) {
 
 async function generatePartnerToken(point) {
   tokenResult.value = null
+  closeClientLinks()
   error.value = ''
   try {
     const data = await $fetch(`/api/admin/points/${point.id}/partner-token`, {
@@ -201,6 +220,7 @@ async function generatePartnerToken(point) {
 
 async function generateBindToken(point) {
   tokenResult.value = null
+  closeClientLinks()
   error.value = ''
   try {
     const data = await $fetch(`/api/admin/points/${point.id}/bind-token`, {
@@ -215,6 +235,7 @@ async function generateBindToken(point) {
 
 async function generateAgentToken(point) {
   tokenResult.value = null
+  closeClientLinks()
   error.value = ''
   try {
     const data = await $fetch(`/api/admin/points/${point.id}/agent-token`, {
@@ -259,12 +280,63 @@ function staffTelegramLink(result) {
   return result?.telegramDeepLink || result?.deepLink || null
 }
 
-function clientDeepLink(slug) {
-  const username = adminConfig.value?.telegramBotUsername
-  if (username) {
-    return `https://t.me/${username}?start=${slug}`
+async function openClientLinks(point) {
+  if (!adminSecret.value || clientLinksLoading.value) return
+  tokenResult.value = null
+  closeClientLinks()
+  clientLinksLoading.value = true
+  error.value = ''
+  try {
+    const data = await $fetch(`/api/admin/points/${point.id}/links`, {
+      headers: authHeaders(),
+    })
+    const qrUrls = {}
+    if (data.links.telegramDeepLink) {
+      const blob = await $fetch(`/api/admin/points/${point.id}/qr`, {
+        headers: authHeaders(),
+        query: { platform: 'telegram' },
+        responseType: 'blob',
+      })
+      qrUrls.telegram = URL.createObjectURL(blob)
+    }
+    if (data.links.maxDeepLink) {
+      const blob = await $fetch(`/api/admin/points/${point.id}/qr`, {
+        headers: authHeaders(),
+        query: { platform: 'max' },
+        responseType: 'blob',
+      })
+      qrUrls.max = URL.createObjectURL(blob)
+    }
+    clientLinks.value = { ...data, qrUrls }
+  } catch (e) {
+    error.value = e?.data?.error ?? 'Не удалось загрузить ссылки точки'
+  } finally {
+    clientLinksLoading.value = false
   }
-  return `?start=${slug}`
+}
+
+async function downloadPoster() {
+  if (!clientLinks.value?.point?.id || posterDownloading.value) return
+  posterDownloading.value = true
+  error.value = ''
+  try {
+    const blob = await $fetch(`/api/admin/points/${clientLinks.value.point.id}/poster.pdf`, {
+      headers: authHeaders(),
+      responseType: 'blob',
+    })
+    const url = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = `kopir-poster-${clientLinks.value.point.slug}.pdf`
+    anchor.click()
+    URL.revokeObjectURL(url)
+    success.value = 'Плакат скачан'
+    setTimeout(() => { success.value = '' }, 2000)
+  } catch (e) {
+    error.value = e?.data?.error ?? 'Не удалось скачать плакат'
+  } finally {
+    posterDownloading.value = false
+  }
 }
 
 function telegramBotLabel() {
@@ -345,6 +417,19 @@ function telegramBotLabel() {
       >
         {{ success }}
       </p>
+
+      <PointClientLinksPanel
+        v-if="clientLinks"
+        :point="clientLinks.point"
+        :links="clientLinks.links"
+        :qr-urls="clientLinks.qrUrls"
+        :admin-config="adminConfig"
+        show-poster-download
+        :poster-downloading="posterDownloading"
+        @copy="copyText"
+        @close="closeClientLinks"
+        @download-poster="downloadPoster"
+      />
 
       <div
         v-if="tokenResult?.type === 'staff'"
@@ -776,7 +861,7 @@ function telegramBotLabel() {
               </td>
               <td
                 class="px-4 py-3 text-xs"
-                :title="`Платформа ${point.commissionPercent ?? 30}%, партнёру ${100 - (point.commissionPercent ?? 30)}%`"
+                :title="`Платформа ${point.commissionPercent ?? 15}%, партнёру ${100 - (point.commissionPercent ?? 15)}%`"
               >
                 {{ formatCommissionSplit(point.commissionPercent) }}
               </td>
@@ -818,11 +903,12 @@ function telegramBotLabel() {
                     Программа печати
                   </button>
                   <button
-                    class="rounded bg-gray-100 px-2 py-1 text-xs hover:bg-gray-200"
-                    :title="`Ссылка для клиентов: ${clientDeepLink(point.slug)}`"
-                    @click="copyText(clientDeepLink(point.slug))"
+                    class="rounded bg-sky-50 px-2 py-1 text-xs text-sky-900 hover:bg-sky-100 disabled:opacity-50"
+                    title="QR и deep links для клиентов"
+                    :disabled="clientLinksLoading"
+                    @click="openClientLinks(point)"
                   >
-                    Ссылка клиенту
+                    Ссылка точки
                   </button>
                 </div>
               </td>

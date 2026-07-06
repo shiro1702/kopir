@@ -47,6 +47,8 @@ export default defineNuxtConfig({
     telegramBotToken: process.env.TELEGRAM_BOT_TOKEN,
     telegramBotUsername: process.env.TELEGRAM_BOT_USERNAME ?? '',
     maxBotToken: process.env.MAX_BOT_TOKEN,
+    maxBotLink: process.env.MAX_BOT_LINK ?? '',
+    maxBotUsername: process.env.MAX_BOT_USERNAME ?? '',
     maxWebhookSecret: process.env.MAX_WEBHOOK_SECRET,
     adminSecret: process.env.ADMIN_SECRET,
     agentApiKey: process.env.AGENT_API_KEY,
