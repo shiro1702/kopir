@@ -79,9 +79,9 @@ export function formatPartnerSettings(point: {
 
 export function formatPartnerBalance(
   balanceKopeks: number,
-  entries: Array<{ type: string, amountKopeks: number, createdAt: Date }>,
+  entries: Array<{ type: string, amountKopeks: number, createdAt: Date, batchId?: string | null }>,
 ): string {
-  let text = `💰 Баланс\n\nК выплате: ${formatRubles(balanceKopeks)}\n`
+  let text = `💰 Баланс к выплате: ${formatRubles(balanceKopeks)}\n\n`
     + 'Выплаты раз в неделю по реквизитам.\n'
 
   if (entries.length === 0) {
@@ -93,7 +93,8 @@ export function formatPartnerBalance(
   for (const entry of entries) {
     const sign = entry.type === 'CREDIT' ? '+' : '−'
     const date = entry.createdAt.toLocaleDateString('ru-RU')
-    text += `${date}: ${sign}${formatRubles(entry.amountKopeks)}\n`
+    const batchSuffix = entry.batchId ? ` · #${entry.batchId.slice(-6)}` : ''
+    text += `${sign}${formatRubles(entry.amountKopeks)} · ${date}${batchSuffix}\n`
   }
   return text.trimEnd()
 }

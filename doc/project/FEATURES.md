@@ -101,7 +101,7 @@
 | ✅ done | PAY-03 | Webhook оплаты → печать | 3 | prod webhook ✅; GetState — ручной fallback |
 | 🟡 review | PAY-04 | Облачная касса ATOL Online (ФЗ-54) | 3 | на проверке |
 | ⬜ todo | PAY-05 | Агентская схема в чеке | 3 | ИНН партнёра |
-| ⬜ todo | PAY-06 | Баланс партнёра + ledger | 4 | Sprint 4, bot |
+| ✅ done | PAY-06 | Баланс партнёра + ledger | 4 | Sprint 4, bot |
 | ⬜ todo | PAY-07 | Еженедельные выплаты (ручные СБП) | 5 | реестр + Т-Бизнес |
 | ⬜ todo | PAY-08 | Mass Payments API (автовыплаты) | 3 | самозанятые |
 | ⬜ todo | PAY-09 | Тарифы: revenue share / SaaS / гибрид | 3 | |

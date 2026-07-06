@@ -1,3 +1,4 @@
+-- prisma-migrate-disable-transaction
 -- CreateEnum
 CREATE TYPE "PartnerBalanceEntryType" AS ENUM ('CREDIT', 'PAYOUT');
 

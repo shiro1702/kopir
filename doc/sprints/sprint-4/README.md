@@ -35,7 +35,7 @@ P2: PDF-плакат A4, QR в Partner ЛК; оферта на сайте (ONB-0
 | 01 | Partner bind + модель `Partner` | ⬜ | ONB-01 bot | [tasks/01-partner-bot-lk.md](./tasks/01-partner-bot-lk.md) |
 | 02 | Меню ЛК: статус, заказы, агент online | ⬜ | WEB-13 bot | [tasks/01-partner-bot-lk.md](./tasks/01-partner-bot-lk.md) |
 | 03 | Настройки точки в боте (цена, способы оплаты) | ⬜ | WEB-12 | [tasks/01-partner-bot-lk.md](./tasks/01-partner-bot-lk.md) |
-| 04 | Начисление комиссии + баланс партнёра | ⬜ | PAY-06 | [tasks/02-balance-accrual.md](./tasks/02-balance-accrual.md) |
+| 04 | Начисление комиссии + баланс партнёра | ✅ | PAY-06 | [tasks/02-balance-accrual.md](./tasks/02-balance-accrual.md) |
 | 05 | Лендинг `/partners` → CTA в бот | ⬜ | MKT | [tasks/03-partner-landing.md](./tasks/03-partner-landing.md) |
 | 06 | «Ссылка точки»: QR + deep links в админке | ⬜ | UX-05, ONB-05 | [tasks/06-point-client-links.md](./tasks/06-point-client-links.md) |
 | 07 | «Готово!» + блок offline-точки | ⬜ | UX-10, MON-02 | [tasks/07-ready-offline-guard.md](./tasks/07-ready-offline-guard.md) |

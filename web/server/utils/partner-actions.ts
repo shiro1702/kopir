@@ -6,10 +6,7 @@ import {
   getPartnerPoints,
   resolvePointIdFromPartnerPayload,
 } from './partner-auth'
-import {
-  getPartnerBalanceEntries,
-  getPartnerBalanceKopeks,
-} from './partner-balance'
+import { getPartnerBalanceSummary } from './partner-balance'
 import { getPartnerOrdersStats, type PartnerOrdersPeriod } from './partner-stats'
 import { updatePointSettings } from './point-settings'
 import { isPointAgentOnline } from './points'
@@ -71,12 +68,9 @@ export async function handlePartnerCallbackPayload(
     if (!partner) {
       throw new Error('Нет доступа')
     }
-    const [balance, entries] = await Promise.all([
-      getPartnerBalanceKopeks(partner.id),
-      getPartnerBalanceEntries(partner.id, 10),
-    ])
+    const { balanceKopeks, recentEntries } = await getPartnerBalanceSummary(partner.id)
     return {
-      text: messages.formatPartnerBalance(balance, entries),
+      text: messages.formatPartnerBalance(balanceKopeks, recentEntries),
       keyboard: partnerBackMenuKeyboard(),
     }
   }

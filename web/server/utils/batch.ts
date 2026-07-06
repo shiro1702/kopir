@@ -543,20 +543,37 @@ export async function confirmBatchPayment(batchId: string) {
   assertReadyForStaffPaymentConfirm(batch.paymentMethod, batch.paymentClaimedAt)
 
   const now = new Date()
-  await prisma.$transaction([
-    prisma.orderBatch.update({
+  await prisma.$transaction(async (tx) => {
+    await tx.orderBatch.update({
       where: { id: batchId },
       data: { status: OrderBatchStatus.PAID, paidAt: now },
-    }),
-    prisma.order.updateMany({
+    })
+    await tx.order.updateMany({
       where: { batchId },
       data: {
         status: OrderStatus.PAID,
         paidAt: now,
         paymentConfirmedAt: now,
       },
-    }),
-  ])
+    })
+
+    const { accruePartnerBalanceForBatch } = await import('./partner-balance')
+    const accrual = await accruePartnerBalanceForBatch({
+      id: batch.id,
+      pointId: batch.pointId,
+      totalAmountKopeks: batch.totalAmountKopeks,
+      paymentMethod: batch.paymentMethod,
+      point: batch.point
+        ? {
+            partnerId: batch.point.partnerId,
+            commissionPercent: batch.point.commissionPercent,
+          }
+        : null,
+    }, tx)
+    if (accrual.credited) {
+      batchLog(batchId, `partner balance +${accrual.partnerKopeks} kopeks`)
+    }
+  })
 
   batchLog(batchId, 'payment confirmed, all orders PAID')
 
@@ -586,18 +603,6 @@ export async function confirmBatchPayment(batchId: string) {
     })
   } catch (error) {
     console.error('[staff] batch payment confirmed notify failed:', batchId, error)
-  }
-
-  try {
-    const { creditPartnerBalanceForBatch } = await import('./partner-balance')
-    await creditPartnerBalanceForBatch({
-      id: batch.id,
-      pointId: batch.pointId,
-      totalAmountKopeks: batch.totalAmountKopeks,
-      paymentMethod: batch.paymentMethod,
-    })
-  } catch (error) {
-    console.error('[batch] partner balance credit failed:', batchId, error)
   }
 
   return {

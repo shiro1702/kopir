@@ -2,7 +2,7 @@ import { prisma } from './prisma'
 
 export const DEFAULT_COMMISSION_PERCENT = 30
 
-/** Sprint 5+: tiered commission by monthly paid turnover (kopeks). */
+/** Sprint 6+: tiered commission by monthly paid turnover (kopeks). */
 export type CommissionTier = {
   minMonthlyTurnoverKopeks: number
   platformPercent: number
@@ -42,7 +42,7 @@ function pickTierPercent(turnoverKopeks: number, tiers: CommissionTier[]): numbe
 /**
  * Platform commission % at credit time.
  * Today: fixed `Point.commissionPercent`.
- * Sprint 5: when `commissionTiers` is set on Point, derive from current-month paid turnover.
+ * Sprint 6: when `commissionTiers` is set on Point, derive from current-month paid turnover.
  */
 export async function resolveEffectiveCommissionPercent(pointId: string): Promise<number> {
   const point = await prisma.point.findUnique({
