@@ -8,6 +8,7 @@
 | [economics.md](./economics.md) | Цифры по городам (ранние расчёты) |
 | [scaling.md](./scaling.md) | Триггеры перехода между этапами |
 | [pricing-strategies.md](./pricing-strategies.md) | 4 стратегии, шкала 7–15%, рекомендация |
+| [commission-pricing-rationale.md](./commission-pricing-rationale.md) | **Рассуждения:** цены, % партнёру/платформе, гибридная модель |
 | [saas-financial-model.md](./saas-financial-model.md) | Финмодель агрегатора, 12 мес |
 | [agent-payments-tbank.md](./agent-payments-tbank.md) | Агентский договор, УСН, номинальный счёт Т-Банк |
 | [print-box-financial-model.md](./print-box-financial-model.md) | Юнит-экономика бокса, УУ → Иркутск → Чита |

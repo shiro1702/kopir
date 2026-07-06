@@ -7,48 +7,79 @@
 | **Приоритет** | P1 |
 | **Feature** | PAY-06 (фаза 2), экономика партнёра |
 | **Спека** | [pricing-strategies.md](../../../business/pricing-strategies.md) · [partner-economics.md](../../../marketing/texts/partner-economics.md) |
-| **Предусловие** | Sprint 4 ✅ фиксированный `commissionPercent` в админке + `resolveEffectiveCommissionPercent()` |
+| **Предусловие** | Sprint 4 ✅ `commissionPercent` в админке + `resolveEffectiveCommissionPercent()` |
 | **Оценка** | 2–3 дня |
 
 ## Проблема
 
-Сейчас комиссия платформы задаётся **вручную** на точку (`Point.commissionPercent`, default 30%). Для масштаба нужна **прогрессивная шкала**: чем выше месячный оборот точки, тем ниже % платформы — стимул роста без переговоров с каждым партнёром.
+В Sprint 4 для пилота стоял **жёсткий 30%** (70/30) — просто и понятно на старте. Целевая экономика из [partner-economics.md](../../../marketing/texts/partner-economics.md) — **12–15%** платформы. Резкий переход «30% → шкала от 12%» при включении tiered ломает доверие пилотных партнёров.
 
-Sprint 4 оставил extension point в коде:
+**Решение: гибрид в три слоя** (см. ниже).
+
+Код extension point:
 
 - [`web/server/utils/commission.ts`](../../../../web/server/utils/commission.ts) — `CommissionTier`, `pickTierPercent()`, `resolveEffectiveCommissionPercent()`
-- начисление: [`partner-balance.ts`](../../../../web/server/utils/partner-balance.ts) → `creditPartnerBalanceForBatch`
+- [`partner-balance.ts`](../../../../web/server/utils/partner-balance.ts) → `creditPartnerBalanceForBatch`
 
-## Бизнес-правила (MVP шкала)
+---
 
-Ориентир — [pricing-strategies.md](../../../business/pricing-strategies.md) «комбо 1+3»:
+## Модель комиссии (гибрид)
 
-| Оборот точки за календарный месяц (TBANK, ₽) | Комиссия платформы |
-|----------------------------------------------|-------------------|
-| до 10 000 | 12% |
-| 10 000 – 49 999 | 10% |
-| ≥ 50 000 | 8% |
+### Слой 1 — Сейчас (Sprint 4–5)
 
-Дополнительно (флаги на `Point` или `Partner`):
+| Кто | Режим | % платформы |
+|-----|-------|-------------|
+| **Новые точки** | `FIXED` | **15%** default (партнёру 85%) |
+| **Пилотные точки** | `FIXED` | **30%** вручную в админке, пока не переведём |
+| **Ранние птички** | `FIXED` + флаг | **7%** навсегда |
+
+> Default в БД и форме админки: **15**, не 30. Пилоты не трогаем — у них в БД остаётся 30.
+
+### Слой 2 — Tiered (этот спринт)
+
+Шкала **начинается близко к пилотным 30%** и сходится к целевым 12% при росте оборота:
+
+| Оборот точки за месяц (TBANK, ₽) | Комиссия платформы | Партнёру |
+|----------------------------------|-------------------|----------|
+| до 10 000 | **25%** | 75% |
+| 10 000 – 49 999 | **18%** | 82% |
+| 50 000 – 149 999 | **14%** | 86% |
+| ≥ 150 000 | **12%** | 88% |
+
+Логика: на малых оборотах платформа ближе к пилоту (25% vs 30%), на крупных — как в outreach (12%). Порог 150k — когда точка «окупает» инфраструктуру.
+
+### Слой 3 — Overrides
 
 | Правило | Поведение |
 |---------|-----------|
-| **Ранние птички** | `earlyBirdCommissionPercent = 7` — не участвует в шкале, навсегда |
-| **Ручной override** | `commissionMode = fixed` + `commissionPercent` — как сейчас (админка) |
-| **Шкала** | `commissionMode = tiered` + `commissionTiers` JSON |
+| `commissionMode = fixed` | всегда `commissionPercent` из админки (пилот 30%, новая точка 15%, ручная правка) |
+| `commissionMode = tiered` | шкала выше; `commissionPercent` = fallback если tiers пуст |
+| `earlyBirdLocked` | **7%** платформы, шкала не применяется |
+| Перевод пилота на tiered | явное действие в админке + уведомление партнёру («с оборотом комиссия снижается») |
 
-> Точные пороги и % — конфигурируемые в super-admin, не хардкод в коде.
+### Сравнение вариантов (почему не «сразу 12%»)
+
+| Вариант | Плюс | Минус |
+|---------|------|-------|
+| A. Default 15% сейчас | Честно для новых, близко к целевой экономике | Пилоты на 30% — разный разговор |
+| B. Шкала от 25% | Плавный спуск с пилота | На старте всё ещё выше outreach |
+| C. Гибрид A+B | Новые сразу 15%; tiered — мост от 25% к 12% | Чуть сложнее объяснить | **← выбрано** |
+
+Пресет в админке **«Стандартная шкала»** заполняет 25 / 18 / 14 / 12.
+
+---
 
 ## Когда считается %
 
-**В момент начисления** на баланс партнёра (`creditPartnerBalanceForBatch`), не в конце месяца ретроактивно.
+**В момент начисления** (`creditPartnerBalanceForBatch`), не ретроактивно в конце месяца.
 
 ```
-Клиент оплатил batch на 500 ₽ (TBANK)
-→ turnover_month = SUM(paid TBANK batches point) за текущий месяц, включая этот batch
-→ platform% = pickTier(turnover_month)
-→ partnerCredit = 500 * (100 - platform%) / 100
-→ PartnerBalanceEntry CREDIT + metadata (platformPercentUsed)
+Клиент оплатил batch 500 ₽ (TBANK)
+→ turnover_month = SUM(paid TBANK batches) за календарный месяц, включая этот batch
+→ если TIERED: platform% = pickTier(turnover_month)
+→ если FIXED: platform% = commissionPercent
+→ partnerCredit = floor(500 * (100 - platform%) / 100)
+→ ledger CREDIT + platformPercentApplied
 ```
 
 ### Оборот для шкалы
@@ -56,12 +87,12 @@ Sprint 4 оставил extension point в коде:
 | Включать | Да/нет |
 |----------|--------|
 | `TBANK_SBP`, `TBANK_ONLINE` | ✅ |
-| `SBP_TRANSFER`, `ON_SITE` | ❌ (как в Sprint 4) |
-| Статусы batch | `PAID`, `COMPLETED`, `PARTIALLY_FAILED` (оплаченные) |
-| Период | календарный месяц `paidAt` (TZ: `Asia/Irkutsk` / Улан-Удэ) |
-| Текущий batch | ✅ входит в turnover **до** расчёта % |
+| `SBP_TRANSFER`, `ON_SITE` | ❌ |
+| Статусы batch | оплаченные (`PAID`+) |
+| Период | календарный месяц `paidAt`, TZ `Asia/Irkutsk` |
+| Текущий batch | ✅ в turnover до расчёта % |
 
-Идемпотентность: повторный webhook не меняет уже записанный `platformPercent` в ledger.
+---
 
 ## Prisma (миграция)
 
@@ -72,92 +103,52 @@ enum CommissionMode {
 }
 
 model Point {
-  // ...
   commissionMode     CommissionMode @default(FIXED)
-  commissionPercent  Int            @default(30)   // fallback / FIXED mode
-  commissionTiers    Json?          // CommissionTier[]
-  earlyBirdLocked    Boolean        @default(false) // 7% навсегда
+  commissionPercent  Int            @default(15)   // FIXED / fallback
+  commissionTiers    Json?
+  earlyBirdLocked    Boolean        @default(false)
 }
 ```
 
-Опционально на `PartnerBalanceEntry`:
+`PartnerBalanceEntry`: `platformPercentApplied`, `turnoverMonthKopeks` (аудит).
 
-```prisma
-platformPercentApplied Int?  // аудит: какой % был при начислении
-turnoverMonthKopeks    Int?  // оборот на момент расчёта
-```
-
-Тип `CommissionTier` (уже в коде):
+Константа пресета в коде:
 
 ```ts
-{ minMonthlyTurnoverKopeks: number; platformPercent: number }
+export const STANDARD_COMMISSION_TIERS: CommissionTier[] = [
+  { minMonthlyTurnoverKopeks: 0, platformPercent: 25 },
+  { minMonthlyTurnoverKopeks: 1_000_000, platformPercent: 18 },
+  { minMonthlyTurnoverKopeks: 5_000_000, platformPercent: 14 },
+  { minMonthlyTurnoverKopeks: 15_000_000, platformPercent: 12 },
+]
 ```
 
-## Код
+---
 
-### 1. `getPointMonthlyPaidTurnoverKopeks(pointId, at: Date)`
-
-- Агрегация `OrderBatch.totalAmountKopeks` за месяц `at`
-- Фильтр: `paymentMethod IN (TBANK_*)`, `paidAt` not null, статус оплачен
-
-### 2. `resolveEffectiveCommissionPercent(pointId, batchAmountKopeks?)`
-
-Расширить существующую функцию:
-
-1. Загрузить `Point` (mode, tiers, earlyBird, fixed %)
-2. Если `earlyBirdLocked` → return 7 (или `earlyBirdCommissionPercent`)
-3. Если `commissionMode === FIXED` → return `commissionPercent`
-4. Если `TIERED` → `turnover = monthlyTurnover + (batchAmountKopeks ?? 0)` → `pickTierPercent(turnover, tiers)`
-
-### 3. Admin UI (`/admin/points`)
+## Admin UI
 
 | Режим | UI |
 |-------|-----|
-| Fixed | поле % (уже есть) |
-| Tiered | таблица порогов: «от X ₽/мес → Y%», кнопки +/− строка |
-| Early bird | чекбокс «7% навсегда (ранняя точка)» |
+| Fixed | % платформы (default 15) |
+| Tiered | таблица порогов + пресет «Стандартная шкала» |
+| Early bird | ☑ 7% навсегда |
+| Пилот | подсказка: «30% — legacy пилот; для новых рекомендуем 15% или Tiered» |
 
-Пресет «Стандартная шкала» — кнопка заполнить 12/10/8 из спеки.
+## Partner bot (read-only)
 
-### 4. Partner bot (read-only)
-
-Экран **Баланс** или **Настройки**:
-
-> Ваша комиссия сейчас: **10%** (оборот за месяц: 24 300 ₽).  
-> До снижения до 8% осталось: 25 700 ₽.
-
-### 5. Super-admin отчёт выплат
-
-В реестре PAY-07 показывать средний % за период / breakdown по tier.
-
-## Не в scope
-
-- Ретроактивный пересчёт прошлых `CREDIT` при смене tier в середине месяца
-- Разные шкалы по городам (→ backlog)
-- SaaS 1 900 ₽/мес + 3% (отдельная модель)
-- Комиссия с доп. услуг (фото, визитки)
-
-## Edge cases
-
-| Ситуация | Поведение |
-|----------|-----------|
-| Пустой `commissionTiers` при `TIERED` | fallback на `commissionPercent` |
-| Переход tier внутри месяца | каждый новый batch — % по **текущему** накопленному обороту |
-| Точка без партнёра | skip credit (как сейчас) |
-| Первая оплата месяца | turnover = сумма первого batch |
+> Комиссия сейчас: **18%** (оборот за месяц: 24 300 ₽).  
+> До **14%** осталось: 25 700 ₽ оборота.
 
 ## DoD
 
-- [ ] Точка в режиме `TIERED` с оборотом 9k → batch 1k начисляет партнёру 88% (12%)
-- [ ] После перехода оборота за 10k следующий batch → 90% партнёру (10%)
-- [ ] `earlyBirdLocked` → всегда 7% платформы
-- [ ] `FIXED` + 30% в админке — поведение как Sprint 4
-- [ ] Unit-тесты: `pickTierPercent`, turnover agg, `resolveEffectiveCommissionPercent`
-- [ ] Партнёр видит текущий % и оборот в боте
-- [ ] В ledger сохранён `platformPercentApplied` для аудита
+- [ ] Новая точка без правок → FIXED **15%**
+- [ ] Пилот с 30% в БД → без изменений до ручного перевода
+- [ ] TIERED, оборот 9k → batch 1k → партнёру **75%** (25%)
+- [ ] Оборот перешёл 10k → следующий batch → **82%** (18%)
+- [ ] `earlyBirdLocked` → 7%
+- [ ] Unit-тесты + `platformPercentApplied` в ledger
 
 ## Связанные задачи
 
-- Sprint 4: [02-balance-accrual.md](../../sprint-4/tasks/02-balance-accrual.md) — фиксированный split
-- Sprint 5: [01-partner-payouts.md](../../sprint-5/tasks/01-partner-payouts.md) — реестр; отчёт агента может включать tier breakdown
-- Backlog: partner landing v2 калькулятор дохода с учётом tier
+- Sprint 4: [02-balance-accrual.md](../../sprint-4/tasks/02-balance-accrual.md)
+- Sprint 5: [01-partner-payouts.md](../../sprint-5/tasks/01-partner-payouts.md)

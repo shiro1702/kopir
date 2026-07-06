@@ -172,7 +172,7 @@ Staff callback маршрутизируется только если payload **
 | `partner_phone_hint:{pointId}` | Подсказка `/partner phone …` | ✅ |
 | `partner_balance` | Баланс + последние 10 операций | ✅ |
 
-Начисление на баланс: только `TBANK_SBP` / `TBANK_ONLINE`, split 70/30 (default `commissionPercent=30`), идемпотентно по `batchId`.
+Начисление на баланс: только `TBANK_SBP` / `TBANK_ONLINE`, default split **85/15** (`commissionPercent=15`; пилоты могут иметь 30%), идемпотентно по `batchId`. Tiered — Sprint 6.
 
 ---
 

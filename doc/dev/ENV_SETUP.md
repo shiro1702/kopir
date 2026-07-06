@@ -133,6 +133,8 @@ openssl rand -hex 16
 
 ```env
 MAX_BOT_TOKEN="..."
+MAX_BOT_LINK="https://max.ru/your_bot"   # без ?start= — для QR клиентов в админке
+MAX_BOT_USERNAME=""                        # fallback, если MAX_BOT_LINK пуст
 MAX_WEBHOOK_SECRET="my-webhook-secret-2026"
 ```
 
