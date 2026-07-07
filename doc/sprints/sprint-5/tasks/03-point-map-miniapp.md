@@ -25,8 +25,8 @@
 ## Не в scope
 
 - Динамическая нагрузка 🟢🟡🔴 (WEB-11) → Sprint 6+
-- Upload файлов в Mini App → backlog
-- PWA omni-site (WEB-06)
+- Upload файлов в Mini App → [Sprint 6 / 02](../../sprint-6/tasks/02-print-miniapp.md)
+- PWA omni-site / печать на сайте (WEB-06) → [Sprint 6 / 03](../../sprint-6/tasks/03-web-print-auth.md)
 
 ## DoD
 

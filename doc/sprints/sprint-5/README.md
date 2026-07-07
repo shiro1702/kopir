@@ -45,4 +45,4 @@ P2: WEB-09 мультиссылка QR, автопереключение offline
 
 ## После спринта
 
-→ [Sprint 6 — Рост](../SPRINTS.md#sprint-6--рост-сентябрь-2026): Mass Payments, принт-бокс, реферальная программа
+→ [Sprint 6 — Рост](../SPRINTS.md#sprint-6--рост-сентябрь-2026): Mini App печати, web `/print`, Mass Payments, принт-бокс
