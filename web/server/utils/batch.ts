@@ -3,7 +3,7 @@ import { deleteOrderFile } from './blob'
 import { getPricePerPageKopeks } from './calculation'
 import { prisma } from './prisma'
 import { assertReadyForStaffPaymentConfirm } from './payments/service'
-import { isPointAgentOnline } from './points'
+import { assertPointAgentOnline, isPointAgentOnline } from './points'
 import type { BatchKeyboardMode } from './bot/types'
 import {
   MSG_BATCH_CALCULATION_FAILED,
@@ -154,7 +154,10 @@ function batchLog(batchId: string, message: string, extra?: unknown) {
 }
 
 export async function getBatchKeyboardMode(batchId: string): Promise<BatchKeyboardMode> {
-  const batch = await prisma.orderBatch.findUnique({ where: { id: batchId } })
+  const batch = await prisma.orderBatch.findUnique({
+    where: { id: batchId },
+    include: { point: { select: { lastSeenAt: true } } },
+  })
   const active = await getActiveBatchOrders(batchId)
   const calculating = active.filter((o) => o.status === OrderStatus.CALCULATING)
   if (calculating.length > 0) {
@@ -162,6 +165,9 @@ export async function getBatchKeyboardMode(batchId: string): Promise<BatchKeyboa
   }
   if (!batch?.pointId && active.length > 0) {
     return 'needs_point'
+  }
+  if (batch?.pointId && batch.point && !isPointAgentOnline(batch.point)) {
+    return 'point_offline'
   }
   return 'ready'
 }
@@ -442,6 +448,8 @@ export async function finalizeBatch(batchId: string): Promise<FinalizeBatchResul
     })
   }
 
+  assertPointAgentOnline(batch.point)
+
   const calculating = activeOrders.filter((o) => o.status === OrderStatus.CALCULATING)
   if (calculating.length > 0) {
     throw createError({
@@ -658,10 +666,13 @@ export async function checkBatchCompletion(batchId: string): Promise<void> {
     ? OrderBatchStatus.COMPLETED
     : OrderBatchStatus.PARTIALLY_FAILED
 
-  await prisma.orderBatch.update({
-    where: { id: batchId },
+  const { count } = await prisma.orderBatch.updateMany({
+    where: { id: batchId, status: OrderBatchStatus.PAID },
     data: { status: newStatus },
   })
+  if (count === 0) {
+    return
+  }
 
   batchLog(batchId, `batch finished: ${newStatus}`)
 

@@ -8,10 +8,20 @@ export const BTN_REMOVE_CANCEL = 'Нет'
 export const BTN_RETRY_PRINT = '🔄 Попробовать снова'
 export const BTN_SELECT_POINT = '📋 Выбрать точку'
 export const BTN_CHANGE_POINT = '📍 Изменить точку'
+export const BTN_SELECT_OTHER_POINT = '📍 Выбрать другую точку'
 export const BTN_POINT_LIST = '📋 Выбрать из списка'
 export const BTN_POINT_BACK = '⬅️ Назад'
 
 export const MSG_POINT_NOT_FOUND = 'Точка не найдена. Проверьте код или выберите из списка.'
+export const MSG_POINT_OFFLINE =
+  '❌ К сожалению, этот принтер сейчас временно не работает.\n\n'
+  + 'Попробуйте позже или выберите другую точку.'
+export const MSG_POINT_OFFLINE_NO_FILES =
+  '❌ Принтер сейчас не подключён к системе. '
+  + 'Отправьте файлы, когда точка снова будет в сети.'
+export const MSG_POINT_OFFLINE_PAYMENT =
+  '❌ Принтер сейчас не подключён к системе. Оплата недоступна — '
+  + 'дождитесь подключения или выберите другую точку.'
 export const MSG_POINT_SELECTED = (label: string) => `📍 Выбрана точка: ${label}`
 
 export const MSG_FILE_RECEIVING = '📥 Принимаю'
@@ -100,6 +110,7 @@ export function formatBatchFileCalculating(
 export interface BatchFileReadyOptions {
   pointLabel?: string | null
   totalAmountKopeks?: number
+  pointOffline?: boolean
 }
 
 export function formatBatchFileReady(
@@ -123,9 +134,13 @@ export function formatBatchFileReady(
     if (options?.totalAmountKopeks !== undefined && options.totalAmountKopeks > 0) {
       lines.push(`💰 Стоимость: ${Math.round(options.totalAmountKopeks / 100)} ₽`)
     }
-    lines.push('', canFinalize
-      ? 'Нажмите «Оплатить», когда будете готовы.'
-      : 'Можно отправить ещё файлы.')
+    if (options?.pointOffline) {
+      lines.push('', MSG_POINT_OFFLINE_PAYMENT)
+    } else {
+      lines.push('', canFinalize
+        ? 'Нажмите «Оплатить», когда будете готовы.'
+        : 'Можно отправить ещё файлы.')
+    }
   } else {
     lines.push(
       '',
@@ -210,6 +225,13 @@ export function formatStartWithPoint(pointLabel: string): string {
   )
 }
 
+export function formatPointOfflineAtStart(pointLabel: string): string {
+  return (
+    `📍 Вы выбрали точку: ${pointLabel}\n\n`
+    + MSG_POINT_OFFLINE
+  )
+}
+
 function pluralFiles(count: number): string {
   const mod10 = count % 10
   const mod100 = count % 100
@@ -242,12 +264,8 @@ export function formatBatchPrintStarted(batchShortId: string, current: number, t
   )
 }
 
-export function formatBatchPrintComplete(batchShortId: string, fileCount: number): string {
-  return (
-    `✅ Готово!\n`
-    + `#${batchShortId} · ${fileCount} ${pluralFiles(fileCount)}\n`
-    + 'Заберите документы у принтера.'
-  )
+export function formatBatchPrintComplete(_batchShortId: string, _fileCount: number): string {
+  return '✅ Готово!\nЗаберите распечатку у принтера.'
 }
 
 export function formatBatchPrintPartialFailure(
@@ -322,8 +340,8 @@ export function formatPaymentConfirmed(shortId: string): string {
   return formatPrintStarted(shortId)
 }
 
-export function formatPrintComplete(shortId: string): string {
-  return `✅ Готово!\nЗаказ #${shortId}\nЗаберите документ у принтера.`
+export function formatPrintComplete(_shortId: string): string {
+  return '✅ Готово!\nЗаберите распечатку у принтера.'
 }
 
 export function formatPrintFailed(shortId: string, fileName: string): string {

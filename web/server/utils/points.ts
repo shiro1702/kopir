@@ -1,3 +1,4 @@
+import { MSG_POINT_OFFLINE_PAYMENT } from './bot/messages'
 import { prisma } from './prisma'
 
 export function getPointOfflineThresholdSec(): number {
@@ -12,6 +13,15 @@ export function isPointAgentOnline(point: { lastSeenAt: Date | null }): boolean 
   }
   const thresholdMs = getPointOfflineThresholdSec() * 1000
   return Date.now() - point.lastSeenAt.getTime() < thresholdMs
+}
+
+export function assertPointAgentOnline(point: { lastSeenAt: Date | null }): void {
+  if (!isPointAgentOnline(point)) {
+    throw createError({
+      statusCode: 400,
+      data: { error: MSG_POINT_OFFLINE_PAYMENT, code: 'POINT_AGENT_OFFLINE' },
+    })
+  }
 }
 
 export function pointAgentStatusPayload(point: {
@@ -73,6 +83,10 @@ export async function listActivePoints() {
       lastSeenAt: true,
     },
   })
+}
+
+export async function countActivePoints(): Promise<number> {
+  return prisma.point.count({ where: { isActive: true } })
 }
 
 export function formatPointLabel(point: { name: string, displayCode?: string | null }): string {

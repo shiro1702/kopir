@@ -9,6 +9,7 @@ import {
   BTN_RETRY_PRINT,
   BTN_SELECT_POINT,
   BTN_CHANGE_POINT,
+  BTN_SELECT_OTHER_POINT,
 } from './messages'
 import type { InlineKeyboardButton } from './types'
 import type { BatchKeyboardMode } from './types'
@@ -160,11 +161,19 @@ export function pointChangeMenuKeyboard(): InlineKeyboardButton[][] {
   ]]
 }
 
+export function pointOfflineStartKeyboard(hasOtherPoints: boolean): InlineKeyboardButton[][] {
+  if (!hasOtherPoints) {
+    return []
+  }
+  return [[{ text: BTN_SELECT_OTHER_POINT, callbackData: 'point_list' }]]
+}
+
 export function fileStatusKeyboard(
   orderId: string,
   options: {
     withRemove: boolean
     keyboardMode: BatchKeyboardMode
+    hasOtherPoints?: boolean
   },
 ): InlineKeyboardButton[][] {
   const rows: InlineKeyboardButton[][] = []
@@ -172,6 +181,8 @@ export function fileStatusKeyboard(
     rows.push([{ text: BTN_SELECT_POINT, callbackData: 'point_list' }])
   } else if (options.keyboardMode === 'ready') {
     rows.push([{ text: BTN_CHANGE_POINT, callbackData: 'point_change' }])
+  } else if (options.keyboardMode === 'point_offline' && options.hasOtherPoints) {
+    rows.push([{ text: BTN_SELECT_OTHER_POINT, callbackData: 'point_list' }])
   }
   if (options.withRemove) {
     rows.push([{ text: BTN_REMOVE_FILE, callbackData: batchRemovePayload(orderId) }])

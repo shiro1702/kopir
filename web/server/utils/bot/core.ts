@@ -24,10 +24,10 @@ import {
   sniffDocumentKind,
 } from '../file-types'
 import { prisma } from '../prisma'
-import { resolvePointByDisplayCode, resolvePointBySlug, formatPointLabel } from '../points'
+import { resolvePointByDisplayCode, resolvePointBySlug, formatPointLabel, isPointAgentOnline, listActivePoints } from '../points'
 import { DEFAULT_POINT_SLUG } from './constants'
 import * as messages from './messages'
-import { fileStatusKeyboard, removeConfirmKeyboard } from './keyboards'
+import { fileStatusKeyboard, pointOfflineStartKeyboard, removeConfirmKeyboard } from './keyboards'
 import {
   editOrderClientMessage,
   editOrderClientMessageViaAdapter,
@@ -109,6 +109,7 @@ function orderMessageText(
     {
       pointLabel: batchContext?.pointLabel,
       totalAmountKopeks: batchContext?.totalAmountKopeks,
+      pointOffline: keyboardMode === 'point_offline',
     },
   )
 }
@@ -126,6 +127,9 @@ async function refreshMaxBatchFileKeyboards(
   const maxFiles = getBatchMaxFiles()
   const { editMaxStatusMessage } = await import('../max/client')
   const pointLabel = batch?.point ? formatPointLabel(batch.point) : null
+  const hasOtherPoints = keyboardMode === 'point_offline'
+    ? (await listActivePoints()).length > 1
+    : false
 
   for (const order of orders) {
     if (order.id === excludeOrderId || !order.clientMessageId || !order.clientMessageChatId) {
@@ -142,7 +146,7 @@ async function refreshMaxBatchFileKeyboards(
     await editMaxStatusMessage(
       { messageId: order.clientMessageId, chatId: order.clientMessageChatId },
       text,
-      orderStatusOptions(order.id, true, 'max', keyboardMode),
+      orderStatusOptions(order.id, true, 'max', keyboardMode, hasOtherPoints),
     )
   }
 }
@@ -173,12 +177,14 @@ function orderStatusOptions(
   withRemoveButton: boolean,
   platform?: MessengerPlatform,
   keyboardMode?: BatchKeyboardMode,
+  hasOtherPoints = false,
 ): StatusMessageOptions {
   const opts: StatusMessageOptions = {}
   if (keyboardMode) {
     const inline = fileStatusKeyboard(orderId, {
       withRemove: withRemoveButton,
       keyboardMode,
+      hasOtherPoints,
     })
     if (inline.length > 0) {
       opts.inlineKeyboard = inline
@@ -196,7 +202,6 @@ function orderStatusOptions(
 }
 
 async function upsertBotUser(platform: MessengerPlatform, user: BotUser) {
-  const messengerUserId = BigInt(user.externalId)
   const profile = {
     username: user.username ?? null,
     firstName: user.firstName ?? null,
@@ -381,11 +386,11 @@ export async function handleStart(
   }
 
   const slug = trimmed || DEFAULT_POINT_SLUG
-  let pointName: string | null = null
+  let resolvedPoint: Awaited<ReturnType<typeof resolvePointBySlug>> | null = null
 
   try {
     const point = await resolvePointBySlug(slug)
-    pointName = formatPointLabel(point)
+    resolvedPoint = point
     if (!dbUser && user) {
       dbUser = await upsertBotUser(platform, user)
     }
@@ -400,7 +405,7 @@ export async function handleStart(
     if (trimmed) {
       try {
         const point = await resolvePointByDisplayCode(trimmed)
-        pointName = formatPointLabel(point)
+        resolvedPoint = point
         if (!dbUser && user) {
           dbUser = await upsertBotUser(platform, user)
         }
@@ -421,8 +426,19 @@ export async function handleStart(
     }
   }
 
-  if (pointName) {
-    await adapter.sendText(target, messages.formatStartWithPoint(pointName))
+  if (resolvedPoint) {
+    const pointLabel = formatPointLabel(resolvedPoint)
+    if (!isPointAgentOnline(resolvedPoint)) {
+      const hasOtherPoints = (await listActivePoints()).length > 1
+      const keyboard = pointOfflineStartKeyboard(hasOtherPoints)
+      await adapter.sendText(
+        target,
+        messages.formatPointOfflineAtStart(pointLabel),
+        keyboard.length > 0 ? { inlineKeyboard: keyboard } : undefined,
+      )
+    } else {
+      await adapter.sendText(target, messages.formatStartWithPoint(pointLabel))
+    }
     return
   }
 
@@ -616,6 +632,12 @@ export async function handleDocument(
   const boundPoint = batch.pointId
     ? batch.point ?? await prisma.point.findUnique({ where: { id: batch.pointId } })
     : null
+
+  if (boundPoint && !isPointAgentOnline(boundPoint)) {
+    await adapter.sendText(target, messages.MSG_POINT_OFFLINE_NO_FILES)
+    return
+  }
+
   const mimeType = document.mimeType || mimeTypeForKind(kind, fileName)
   const isWord = kind === 'word'
   const maxFiles = getBatchMaxFiles()
@@ -681,6 +703,9 @@ export async function handleDocument(
       include: { point: { select: { name: true, displayCode: true } } },
     })
     const pointLabel = freshBatch?.point ? formatPointLabel(freshBatch.point) : null
+    const hasOtherPoints = keyboardMode === 'point_offline'
+      ? (await listActivePoints()).length > 1
+      : false
 
     const statusText = isWord
       ? messages.formatFileCalculating(fileName, batchIndex, maxFiles)
@@ -693,15 +718,23 @@ export async function handleDocument(
           {
             pointLabel,
             totalAmountKopeks: freshBatch?.totalAmountKopeks,
+            pointOffline: keyboardMode === 'point_offline',
           },
         )
 
+    const statusOpts = orderStatusOptions(
+      order.id,
+      !isWord,
+      platform,
+      keyboardMode,
+      hasOtherPoints,
+    )
     const edited = await editOrderClientMessageViaAdapter(
       adapter,
       target,
       freshOrder,
       statusText,
-      orderStatusOptions(order.id, !isWord, platform, keyboardMode),
+      statusOpts,
     )
     if (!edited) {
       await adapter.sendText(target, statusText, { batchKeyboard: keyboardMode })
