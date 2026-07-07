@@ -1,5 +1,6 @@
 import type { PaymentMethod } from '@prisma/client'
 import type { PartnerOrdersPeriod } from '../partner-stats'
+import { formatRequisitesForDisplay, type PartnerRequisites } from '../partner-requisites'
 
 const PAYMENT_LABELS: Record<PaymentMethod, string> = {
   SBP_TRANSFER: 'Перевод СБП',
@@ -83,9 +84,14 @@ export function formatPartnerSettings(point: {
 export function formatPartnerBalance(
   balanceKopeks: number,
   entries: Array<{ type: string, amountKopeks: number, createdAt: Date, batchId?: string | null }>,
+  requisitesIncomplete = false,
 ): string {
   let text = `💰 Баланс к выплате: ${formatRubles(balanceKopeks)}\n\n`
     + 'Выплаты раз в неделю по реквизитам.\n'
+
+  if (requisitesIncomplete) {
+    text += '\n⚠️ Заполните реквизиты для выплат в разделе «Реквизиты».\n'
+  }
 
   if (entries.length === 0) {
     text += '\nОпераций пока нет.'
@@ -112,6 +118,19 @@ export function formatPartnerPaymentMethodsUpdated(): string {
 
 export function formatPartnerPhoneUpdated(phone: string): string {
   return `✅ Телефон для перевода: ${phone}`
+}
+
+export function formatPartnerRequisites(req: PartnerRequisites | null): string {
+  const current = formatRequisitesForDisplay(req)
+  return `🏦 Реквизиты для выплат\n\n${current}\n\n`
+    + 'Чтобы указать или изменить, отправьте:\n'
+    + '/partner req Название | ИНН | Расчётный счёт | БИК\n\n'
+    + 'Например:\n'
+    + '/partner req ИП Иванов И.И. | 772345678901 | 40802810100000012345 | 044525225'
+}
+
+export function formatPartnerRequisitesUpdated(req: PartnerRequisites): string {
+  return `✅ Реквизиты сохранены\n\n${formatRequisitesForDisplay(req)}`
 }
 
 export function formatPartnerClientLinks(

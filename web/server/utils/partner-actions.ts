@@ -7,6 +7,11 @@ import {
   resolvePointIdFromPartnerPayload,
 } from './partner-auth'
 import { getPartnerBalanceSummary } from './partner-balance'
+import {
+  isRequisitesComplete,
+  parsePartnerRequisites,
+  validatePartnerRequisites,
+} from './partner-requisites'
 import { getPartnerOrdersStats, type PartnerOrdersPeriod } from './partner-stats'
 import { updatePointSettings } from './point-settings'
 import { isPointAgentOnline } from './points'
@@ -69,9 +74,25 @@ export async function handlePartnerCallbackPayload(
     if (!partner) {
       throw new Error('Нет доступа')
     }
+    const requisites = parsePartnerRequisites(partner.requisites)
     const { balanceKopeks, recentEntries } = await getPartnerBalanceSummary(partner.id)
     return {
-      text: messages.formatPartnerBalance(balanceKopeks, recentEntries),
+      text: messages.formatPartnerBalance(
+        balanceKopeks,
+        recentEntries,
+        !isRequisitesComplete(requisites),
+      ),
+      keyboard: partnerBackMenuKeyboard(),
+    }
+  }
+
+  if (data === 'partner_requisites') {
+    const partner = await getPartnerByMessenger(platform, userId)
+    if (!partner) {
+      throw new Error('Нет доступа')
+    }
+    return {
+      text: messages.formatPartnerRequisites(parsePartnerRequisites(partner.requisites)),
       keyboard: partnerBackMenuKeyboard(),
     }
   }
@@ -205,12 +226,55 @@ export async function handlePartnerPhoneCommand(
   return messages.formatPartnerPhoneUpdated(normalized)
 }
 
+export async function handlePartnerRequisitesCommand(
+  platform: MessengerPlatform,
+  userId: bigint,
+  raw: string,
+): Promise<string> {
+  const partner = await getPartnerByMessenger(platform, userId)
+  if (!partner) {
+    throw new Error('Нет доступа')
+  }
+
+  const parts = raw.split('|').map((p) => p.trim())
+  if (parts.length < 4 || parts.some((p) => !p)) {
+    throw new Error(
+      'Формат: /partner req Название | ИНН | Расчётный счёт | БИК',
+    )
+  }
+
+  let requisites
+  try {
+    requisites = validatePartnerRequisites({
+      legalName: parts[0],
+      inn: parts[1],
+      accountNumber: parts[2],
+      bik: parts[3],
+    })
+  } catch {
+    throw new Error(
+      'Проверьте данные:\nИНН — 10 или 12 цифр\nРасчётный счёт — 20 цифр\nБИК — 9 цифр',
+    )
+  }
+
+  await prisma.partner.update({
+    where: { id: partner.id },
+    data: { requisites },
+  })
+
+  return messages.formatPartnerRequisitesUpdated(requisites)
+}
+
 export async function assertPartnerForPayload(
   platform: MessengerPlatform,
   userId: bigint,
   payload: string,
 ): Promise<void> {
-  if (payload === 'partner_menu' || payload === 'partner_balance') {
+  if (
+    payload === 'partner_menu'
+    || payload === 'partner_balance'
+    || payload === 'partner_requisites'
+  ) {
     const partner = await getPartnerByMessenger(platform, userId)
     if (!partner) {
       throw new Error('Нет доступа')

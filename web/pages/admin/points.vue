@@ -364,6 +364,12 @@ function telegramBotLabel() {
           >
             Заказы
           </NuxtLink>
+          <NuxtLink
+            to="/admin/payouts"
+            class="rounded bg-gray-200 px-3 py-1.5 text-sm hover:bg-gray-300"
+          >
+            Выплаты
+          </NuxtLink>
           <button
             class="rounded bg-gray-200 px-3 py-1.5 text-sm hover:bg-gray-300 disabled:opacity-50"
             :disabled="loading || !adminSecret"

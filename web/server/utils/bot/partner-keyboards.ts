@@ -11,6 +11,7 @@ export function partnerMainMenuKeyboard(points: Point[]): InlineKeyboardButton[]
       [{ text: '📊 Заказы', callbackData: `partner_orders:${pointId}:day` }],
       [{ text: '⚙️ Настройки', callbackData: `partner_settings:${pointId}` }],
       [{ text: '🔗 QR и ссылки', callbackData: `partner_links:${pointId}` }],
+      [{ text: '🏦 Реквизиты', callbackData: 'partner_requisites' }],
       [{ text: '💰 Баланс', callbackData: 'partner_balance' }],
     ]
   }
@@ -18,6 +19,7 @@ export function partnerMainMenuKeyboard(points: Point[]): InlineKeyboardButton[]
   const rows: InlineKeyboardButton[][] = points.map((p) => ([
     { text: `📍 ${p.name}`, callbackData: `partner_point:${p.id}` },
   ]))
+  rows.push([{ text: '🏦 Реквизиты', callbackData: 'partner_requisites' }])
   rows.push([{ text: '💰 Баланс', callbackData: 'partner_balance' }])
   return rows
 }

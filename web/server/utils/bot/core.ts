@@ -579,6 +579,19 @@ export async function handlePartnerCommand(
     return
   }
 
+  if (trimmed?.startsWith('req ')) {
+    const raw = trimmed.slice('req '.length).trim()
+    try {
+      const { handlePartnerRequisitesCommand } = await import('../partner-actions')
+      const text = await handlePartnerRequisitesCommand(platform, BigInt(user.externalId), raw)
+      await adapter.sendText(target, text)
+    } catch (error) {
+      const text = error instanceof Error ? error.message : 'Ошибка'
+      await adapter.sendText(target, text)
+    }
+    return
+  }
+
   const { buildPartnerMenuScreen } = await import('../partner-actions')
   const screen = await buildPartnerMenuScreen(platform, BigInt(user.externalId))
   await adapter.sendText(target, screen.text, screen.keyboard.length > 0

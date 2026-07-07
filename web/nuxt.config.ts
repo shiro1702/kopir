@@ -11,6 +11,7 @@ export default defineNuxtConfig({
     preset: 'vercel',
     serverAssets: [
       { baseName: 'certs', dir: './certs' },
+      { baseName: 'fonts', dir: './fonts' },
     ],
     // Prisma must stay external: bundling into ESM breaks __dirname in the query engine.
     // traceInclude copies .prisma/client binaries into the Vercel function output.
@@ -70,6 +71,12 @@ export default defineNuxtConfig({
     tbankNotificationUrl: process.env.TBANK_NOTIFICATION_URL ?? '',
     tbankReceiptEnabled: process.env.TBANK_RECEIPT_ENABLED ?? 'false',
     tbankReceiptEmail: process.env.TBANK_RECEIPT_EMAIL ?? '',
+    payoutPayerName: process.env.PAYOUT_PAYER_NAME ?? '',
+    payoutPayerInn: process.env.PAYOUT_PAYER_INN ?? '',
+    payoutPayerAccount: process.env.PAYOUT_PAYER_ACCOUNT ?? '',
+    payoutPayerBik: process.env.PAYOUT_PAYER_BIK ?? '',
+    payoutPayerBankName: process.env.PAYOUT_PAYER_BANK_NAME ?? '',
+    payoutPayerCorrAccount: process.env.PAYOUT_PAYER_CORR_ACCOUNT ?? '',
     public: {
       appVersion: '0.0.1',
       siteUrl: process.env.NUXT_PUBLIC_SITE_URL ?? '',
