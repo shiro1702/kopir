@@ -495,7 +495,7 @@ export async function handleBind(
     }
   }
 
-  const isTelegramGroup = platform === 'telegram' && BigInt(target.chatId) < 0n
+  const isTelegramGroup = platform === 'telegram' && BigInt(target.chatId) < BigInt(0)
   const message = isTelegramGroup
     ? `✅ Группа привязана к точке «${point.name}».\n\nВсе участники чата будут получать уведомления о заказах и смогут подтверждать оплату.`
     : `✅ Вы привязаны к точке «${point.name}».\n\nБудете получать уведомления о заказах и сможете подтверждать оплату.`

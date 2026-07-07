@@ -1,8 +1,8 @@
 import type { H3Event } from 'h3'
 import type { MessengerPlatform } from '@prisma/client'
-import { assertPartnerOwnsPoint } from '../../utils/partner-auth'
-import { buildPointClientLinksPayloadForPoint } from '../../utils/point-links'
-import { prisma } from '../../utils/prisma'
+import { assertPartnerOwnsPoint } from '../../../../utils/partner-auth'
+import { buildPointClientLinksPayloadForPoint } from '../../../../utils/point-links'
+import { prisma } from '../../../../utils/prisma'
 
 function parsePartnerAuth(event: H3Event): { platform: MessengerPlatform, userId: bigint } {
   const platform = String(getHeader(event, 'x-partner-platform') ?? '').trim()
