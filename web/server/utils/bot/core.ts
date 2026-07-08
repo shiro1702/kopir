@@ -202,6 +202,7 @@ function orderStatusOptions(
 }
 
 async function upsertBotUser(platform: MessengerPlatform, user: BotUser) {
+  const messengerUserId = BigInt(user.externalId)
   const profile = {
     username: user.username ?? null,
     firstName: user.firstName ?? null,
