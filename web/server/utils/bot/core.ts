@@ -648,7 +648,13 @@ export async function handleDocument(
     : null
 
   if (boundPoint && !isPointAgentOnline(boundPoint)) {
-    await adapter.sendText(target, messages.MSG_POINT_OFFLINE_NO_FILES)
+    const hasOtherPoints = (await listActivePoints()).length > 1
+    const keyboard = pointOfflineStartKeyboard(hasOtherPoints)
+    await adapter.sendText(
+      target,
+      messages.MSG_POINT_OFFLINE_NO_FILES,
+      keyboard.length > 0 ? { inlineKeyboard: keyboard } : undefined,
+    )
     return
   }
 
