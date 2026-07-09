@@ -42,6 +42,7 @@
 | Блок | Статус | Спринт | Примечание |
 |------|--------|--------|------------|
 | `/start`, deep link `point_*` | ✅ | 0 | Preference в БД (`User.preferredPointSlug`) |
+| Меню команд клиента (`/print`, `/files`, `/point`, `/help`) | ✅ | 5 | TG: Menu + reply; MAX: inline |
 | Выбор точки без QR (список / код) | 🟡 | 5 P0 | `point_*` callbacks; DaData/гео — позже |
 | `/bind` (staff) | ✅ | 2 | Токен из админки `/admin/points` |
 | Сбор нескольких файлов (batch) | ✅ | 0.2 | До 5 файлов; в UI: «Файлов: N из 5», «Отменить всё» |
@@ -101,6 +102,10 @@ flowchart LR
 |---------|-----|---------|----------|--------|
 | `/start` | Клиент | всегда | Приветствие `MSG_START`, сохранить `point_slug` | ✅ |
 | `/start point_<slug>` | Клиент | deep link / QR | Точка печати | ✅ |
+| `/print` | Клиент | всегда | Инструкция `MSG_START` + меню | ✅ |
+| `/files` | Клиент | всегда | Список файлов в текущей пачке | ✅ |
+| `/point` | Клиент | всегда | Меню смены точки | ✅ |
+| `/help` | Клиент | всегда | Справка `MSG_HELP` | ✅ |
 | `/start bind_<token>` | Staff / Partner | токен из админки | Staff: `StaffChannel`; Partner: `Point.partnerId` | ✅ |
 | `/start partner` | Partner | — | Меню ЛК или «не привязан» | ✅ |
 | `/bind <token>` | Staff | альтернатива deep link | Привязка staff (`purpose=staff`) | ✅ |
@@ -114,10 +119,11 @@ flowchart LR
 
 | Кнопка | Показать когда | Скрыть когда |
 |--------|----------------|--------------|
+| `📄 Печать` / `📁 Мои файлы` / `📍 Точка` / `❓ Помощь` | После `/start`, отмены пачки, idle | Когда показана пачка |
 | `✅ Оплатить` | `getBatchKeyboardMode === 'ready'` (нет файлов в `CALCULATING`) | `calculating` или batch нет |
 | `❌ Отменить всё` | Всегда, пока batch `COLLECTING` | После finalize / cancel |
 
-MAX: те же действия через **inline** `batch_finalize` / `batch_cancel` (reply-клавиатуры нет).
+MAX: команды — inline `client_cmd:*`; пачка — `batch_finalize` / `batch_cancel`.
 
 ### Inline-кнопки клиента (callback)
 

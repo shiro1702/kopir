@@ -201,7 +201,7 @@ function orderStatusOptions(
   return opts
 }
 
-async function upsertBotUser(platform: MessengerPlatform, user: BotUser) {
+export async function upsertBotUser(platform: MessengerPlatform, user: BotUser) {
   const messengerUserId = BigInt(user.externalId)
   const profile = {
     username: user.username ?? null,
@@ -438,12 +438,12 @@ export async function handleStart(
         keyboard.length > 0 ? { inlineKeyboard: keyboard } : undefined,
       )
     } else {
-      await adapter.sendText(target, messages.formatStartWithPoint(pointLabel))
+      await adapter.sendText(target, messages.formatStartWithPoint(pointLabel), { clientMenu: true })
     }
     return
   }
 
-  await adapter.sendText(target, messages.MSG_START)
+  await adapter.sendText(target, messages.MSG_START, { clientMenu: true })
 }
 
 export async function handleBind(
@@ -803,14 +803,14 @@ export async function handleBatchAction(
   const batch = await getActiveCollectingBatch(dbUser.id)
 
   if (!batch) {
-    await adapter.sendText(target, 'Нет активных файлов. Отправьте документ для начала.')
+    await adapter.sendText(target, 'Нет активных файлов. Отправьте документ для начала.', { clientMenu: true })
     return
   }
 
   if (action === 'cancel') {
     await cancelBatch(batch.id, { notifyUser: false })
     clearLastBatchKeyboardMode(platform, target.chatId)
-    await adapter.sendText(target, messages.MSG_BATCH_CANCELLED)
+    await adapter.sendText(target, messages.MSG_BATCH_CANCELLED, { clientMenu: true })
     return
   }
 

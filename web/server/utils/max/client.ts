@@ -3,6 +3,7 @@ const MAX_API_BASE = 'https://platform-api2.max.ru'
 import type { BatchKeyboardMode, InlineKeyboardButton, SentMessage, StatusMessageOptions } from '../bot/types'
 import { trustedCaFetch } from '../trusted-ca-fetch'
 import { maxBatchActionButtons } from '../bot/keyboards'
+import { clientMenuInlineKeyboard } from '../bot/client-commands'
 
 const MAX_UPDATE_TYPES = [
   'message_created',
@@ -214,6 +215,12 @@ export function maxAttachmentsFromOptions(options?: StatusMessageOptions): unkno
 
   if (options?.batchKeyboard) {
     rows.push(maxBatchActionButtons(options.batchKeyboard))
+  }
+
+  if (options?.clientMenu) {
+    for (const row of clientMenuInlineKeyboard()) {
+      rows.push(row.map(maxInlineButton))
+    }
   }
 
   if (rows.length === 0) {

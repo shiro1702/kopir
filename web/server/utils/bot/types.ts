@@ -39,6 +39,14 @@ export interface StatusMessageOptions {
   batchKeyboard?: BatchKeyboardMode
   inlineKeyboard?: InlineKeyboardButton[][]
   removeInlineKeyboard?: boolean
+  clientMenu?: boolean
+}
+
+export interface MessengerSendTextOptions {
+  batchKeyboard?: BatchKeyboardMode
+  inlineKeyboard?: InlineKeyboardButton[][]
+  /** Telegram: reply keyboard with client commands; MAX: inline command menu */
+  clientMenu?: boolean
 }
 
 export interface MessengerAdapter {
@@ -46,7 +54,7 @@ export interface MessengerAdapter {
   sendText(
     target: MessengerReplyTarget,
     text: string,
-    options?: { batchKeyboard?: BatchKeyboardMode, inlineKeyboard?: InlineKeyboardButton[][] },
+    options?: MessengerSendTextOptions,
   ): Promise<void>
   sendStatus?(
     target: MessengerReplyTarget,

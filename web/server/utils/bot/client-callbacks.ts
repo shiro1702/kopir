@@ -12,6 +12,7 @@ import {
   parsePointListPagePayload,
   parsePointSelectPayload,
 } from './keyboards'
+import { parseClientCommandCallback } from './client-commands'
 import type {
   BotUser,
   CallbackContext,
@@ -110,6 +111,13 @@ export async function routeClientCallback(
   if (data === 'point_back') {
     const { handlePointBack } = await import('./point-selection')
     return { toast: await handlePointBack(target, user, adapter) }
+  }
+
+  const clientCommand = parseClientCommandCallback(data)
+  if (clientCommand) {
+    const { handleClientCommand } = await import('./client-commands')
+    await handleClientCommand(clientCommand, target.platform, target, user, adapter)
+    return { toast: 'Готово' }
   }
 
   throw new Error('Неизвестное действие')
