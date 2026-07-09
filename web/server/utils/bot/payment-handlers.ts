@@ -305,7 +305,6 @@ export async function handlePaymentCheckStatusByEntity(
   const payments = await prisma.payment.findMany({
     where: {
       OR: [{ batchId: entityId }, { orderId: entityId }],
-      method: { in: [PaymentMethod.TBANK_SBP, PaymentMethod.TBANK_ONLINE] },
       status: { in: [PaymentStatus.PENDING, PaymentStatus.CONFIRMED] },
     },
     orderBy: { createdAt: 'desc' },
