@@ -1,6 +1,8 @@
-import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
+import { PDFDocument, rgb } from 'pdf-lib'
+import fontkit from '@pdf-lib/fontkit'
 import QRCode from 'qrcode'
 import type { PointClientLinks } from './point-links'
+import { loadReportFontBold, loadReportFontRegular } from './pdf-font'
 
 const A4_WIDTH = 595.28
 const A4_HEIGHT = 841.89
@@ -34,9 +36,10 @@ export async function generatePointPosterPdf(options: {
   }
 
   const pdf = await PDFDocument.create()
+  pdf.registerFontkit(fontkit)
+  const font = await pdf.embedFont(loadReportFontRegular(), { subset: true })
+  const fontBold = await pdf.embedFont(loadReportFontBold(), { subset: true })
   const page = pdf.addPage([A4_WIDTH, A4_HEIGHT])
-  const font = await pdf.embedFont(StandardFonts.Helvetica)
-  const fontBold = await pdf.embedFont(StandardFonts.HelveticaBold)
   const black = rgb(0, 0, 0)
   const gray = rgb(0.35, 0.35, 0.35)
 
