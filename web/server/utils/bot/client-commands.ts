@@ -65,6 +65,16 @@ export function clientMenuInlineKeyboard(): InlineKeyboardButton[][] {
   ]
 }
 
+export function formatClientCommandList(): string {
+  return [
+    'Доступные команды:',
+    '/print - начать печать',
+    '/files - мои файлы',
+    '/point - выбрать точку',
+    '/help - помощь',
+  ].join('\n')
+}
+
 export function parseClientCommandText(text: string): ClientCommandName | null {
   const trimmed = text.trim()
   const slashMatch = trimmed.match(/^\/(print|files|point|help|my_files)(?:@\S+)?$/i)
@@ -177,4 +187,15 @@ export async function handleClientCommand(
       return
     }
   }
+}
+
+export async function handleUnknownClientText(
+  target: MessengerReplyTarget,
+  adapter: MessengerAdapter,
+): Promise<void> {
+  await adapter.sendText(
+    target,
+    `Не понял сообщение.\n\n${formatClientCommandList()}`,
+    { clientMenu: true },
+  )
 }

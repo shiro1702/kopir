@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import {
+  formatPartnerHelp,
   parsePartnerCommandCallback,
   parsePartnerCommandText,
 } from './partner-commands.ts'
@@ -22,5 +23,13 @@ describe('partner-commands', () => {
   it('parses callbacks', () => {
     assert.equal(parsePartnerCommandCallback('partner_cmd:partner_help'), 'partner_help')
     assert.equal(parsePartnerCommandCallback('partner_cmd:nope'), null)
+  })
+
+  it('formats partner help', () => {
+    const text = formatPartnerHelp()
+    assert.match(text, /\/partner/)
+    assert.match(text, /\/partner_points/)
+    assert.match(text, /\/partner_balance/)
+    assert.match(text, /\/partner_requisites/)
   })
 })

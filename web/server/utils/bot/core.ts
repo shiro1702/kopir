@@ -535,11 +535,12 @@ export async function handlePartnerBind(
   const { buildPublicOfferUrl } = await import('../public-offer')
   const config = useRuntimeConfig()
   const offerUrl = buildPublicOfferUrl(String(config.public?.siteUrl ?? ''))
-  const text = `${partnerMessages.formatPartnerWelcome(point.name, offerUrl)}\n\n${screen.text}`
+  const { formatPartnerHelp } = await import('./partner-commands')
+  const text = `${partnerMessages.formatPartnerWelcome(point.name, offerUrl)}\n\n${screen.text}\n\n${formatPartnerHelp()}`
 
   await adapter.sendText(target, text, screen.keyboard.length > 0
     ? { inlineKeyboard: screen.keyboard }
-    : undefined)
+    : { partnerMenu: true })
 }
 
 export async function handlePartnerCommand(
@@ -595,9 +596,11 @@ export async function handlePartnerCommand(
 
   const { buildPartnerMenuScreen } = await import('../partner-actions')
   const screen = await buildPartnerMenuScreen(platform, BigInt(user.externalId))
-  await adapter.sendText(target, screen.text, screen.keyboard.length > 0
+  const { formatPartnerHelp } = await import('./partner-commands')
+  const text = `${screen.text}\n\n${formatPartnerHelp()}`
+  await adapter.sendText(target, text, screen.keyboard.length > 0
     ? { inlineKeyboard: screen.keyboard }
-    : undefined)
+    : { partnerMenu: true })
 }
 
 export async function handleDocument(

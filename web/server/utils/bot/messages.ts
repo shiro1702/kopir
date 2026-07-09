@@ -38,7 +38,12 @@ export const MSG_START =
   'Привет! Отправляйте файлы по одному (PDF или Word).\n\n'
   + 'Word-файлы сначала считаются на принтере — это может занять до 20 секунд.\n'
   + 'Можно отправить до 5 документов за раз — оплата одна.\n'
-  + 'Когда всё готово, появится кнопка «Оплатить».'
+  + 'Когда всё готово, появится кнопка «Оплатить».\n\n'
+  + 'Доступные команды:\n'
+  + '/print — начать печать\n'
+  + '/files — мои файлы\n'
+  + '/point — выбрать точку\n'
+  + '/help — помощь'
 
 export const MSG_HELP =
   '❓ Как пользоваться ботом\n\n'
@@ -50,6 +55,13 @@ export const MSG_HELP =
   + '/files — текущие файлы\n'
   + '/point — выбрать или сменить точку\n'
   + '/help — эта справка'
+
+export const MSG_COMMANDS_SHORT =
+  'Доступные команды:\n'
+  + '/print — начать печать\n'
+  + '/files — мои файлы\n'
+  + '/point — выбрать точку\n'
+  + '/help — помощь'
 
 export const MSG_UNSUPPORTED_FILE =
   'Пока принимаем только PDF и Word (.doc, .docx). Отправьте файл в одном из этих форматов.'
@@ -232,14 +244,16 @@ export function formatStartWithPoint(pointLabel: string): string {
   return (
     `${MSG_POINT_SELECTED(pointLabel)}\n\n`
     + 'Отправляйте файлы по одному (PDF или Word).\n'
-    + 'Можно отправить до 5 документов за раз — оплата одна.'
+    + 'Можно отправить до 5 документов за раз — оплата одна.\n\n'
+    + MSG_COMMANDS_SHORT
   )
 }
 
 export function formatPointOfflineAtStart(pointLabel: string): string {
   return (
     `📍 Вы выбрали точку: ${pointLabel}\n\n`
-    + MSG_POINT_OFFLINE
+    + `${MSG_POINT_OFFLINE}\n\n`
+    + MSG_COMMANDS_SHORT
   )
 }
 

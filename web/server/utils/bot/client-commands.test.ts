@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import {
+  formatClientCommandList,
   parseClientCommandCallback,
   parseClientCommandText,
 } from './client-commands.ts'
@@ -23,5 +24,13 @@ describe('client-commands', () => {
   it('parses client command callbacks', () => {
     assert.equal(parseClientCommandCallback('client_cmd:help'), 'help')
     assert.equal(parseClientCommandCallback('client_cmd:unknown'), null)
+  })
+
+  it('formats client command list', () => {
+    const text = formatClientCommandList()
+    assert.match(text, /\/print/)
+    assert.match(text, /\/files/)
+    assert.match(text, /\/point/)
+    assert.match(text, /\/help/)
   })
 })

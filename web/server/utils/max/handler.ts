@@ -22,6 +22,7 @@ import { editMaxStatusMessage, getMaxClient, maxAttachmentsFromOptions, sendMaxS
 import { BTN_CANCEL_BATCH, BTN_FINALIZE_BATCH, MSG_BATCH_BATCH_CANCELLED_ACTION, MSG_BATCH_CONTROLS, MSG_BATCH_FINALIZING } from '../bot/messages'
 import { downloadMaxFileAttachment, resolveFileAttachment } from './files'
 import { getStaffMaxUserId } from '../payment-mode'
+import { getPartnerByMessenger } from '../partner-auth'
 import { assertStaffForPayload } from '../staff-auth'
 import type { MaxUpdate } from './types'
 
@@ -205,6 +206,19 @@ export async function handleMaxUpdate(update: MaxUpdate): Promise<void> {
         if (handled) {
           return
         }
+      }
+
+      if (plainText) {
+        const partner = await getPartnerByMessenger('max', BigInt(user.externalId))
+        if (partner) {
+          const { handleUnknownPartnerText } = await import('../bot/partner-commands')
+          await handleUnknownPartnerText(target, adapter)
+          return
+        }
+
+        const { handleUnknownClientText } = await import('../bot/client-commands')
+        await handleUnknownClientText(target, adapter)
+        return
       }
 
       const fileAttachment = resolveFileAttachment(message)

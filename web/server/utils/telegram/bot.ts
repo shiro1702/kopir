@@ -37,6 +37,7 @@ import {
   isPrintRetryClientCallbackPayload,
 } from '../bot/keyboards'
 import { isPartnerCallbackPayload } from '../bot/partner-keyboards'
+import { getPartnerByMessenger } from '../partner-auth'
 import { assertStaffForPayload } from '../staff-auth'
 import {
   downloadTelegramFile,
@@ -365,6 +366,16 @@ function createBot(): Bot {
         return
       }
     }
+
+    const partner = await getPartnerByMessenger('telegram', BigInt(user.externalId))
+    if (partner) {
+      const { handleUnknownPartnerText } = await import('../bot/partner-commands')
+      await handleUnknownPartnerText(target, adapter)
+      return
+    }
+
+    const { handleUnknownClientText } = await import('../bot/client-commands')
+    await handleUnknownClientText(target, adapter)
   })
 
   bot.on('callback_query:data', async (ctx) => {

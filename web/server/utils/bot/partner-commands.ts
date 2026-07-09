@@ -101,6 +101,17 @@ export function formatPartnerHelp(): string {
   ].join('\n')
 }
 
+export async function handleUnknownPartnerText(
+  target: MessengerReplyTarget,
+  adapter: MessengerAdapter,
+): Promise<void> {
+  await adapter.sendText(
+    target,
+    `Не понял сообщение.\n\n${formatPartnerHelp()}`,
+    { partnerMenu: true },
+  )
+}
+
 async function ensurePartner(platform: MessengerPlatform, user: BotUser) {
   return getPartnerByMessenger(platform, BigInt(user.externalId))
 }
