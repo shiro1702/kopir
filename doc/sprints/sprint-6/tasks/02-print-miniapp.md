@@ -56,7 +56,7 @@
 ## Не в scope
 
 - VK Mini App → после WEB-16 (Sprint 5 backlog)
-- PWA / сайт без мессенджера → [03-web-print-auth.md](./03-web-print-auth.md)
+- PWA / сайт без мессенджера → [03-web-print-guest.md](./03-web-print-guest.md)
 - DOCX preview, диапазон страниц (FILE-05) → backlog
 - Реклама при ожидании (MKT-02)
 
@@ -71,4 +71,4 @@
 ## Связанные задачи
 
 - Sprint 5: [03-point-map-miniapp.md](../../sprint-5/tasks/03-point-map-miniapp.md) — карта точки
-- Sprint 6: [03-web-print-auth.md](./03-web-print-auth.md) — общий UI на сайте
+- Sprint 6: [03-web-print-guest.md](./03-web-print-guest.md) — общий UI на сайте (guest session)

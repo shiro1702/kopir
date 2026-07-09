@@ -26,7 +26,8 @@
 
 - Динамическая нагрузка 🟢🟡🔴 (WEB-11) → Sprint 6+
 - Upload файлов в Mini App → [Sprint 6 / 02](../../sprint-6/tasks/02-print-miniapp.md)
-- PWA omni-site / печать на сайте (WEB-06) → [Sprint 6 / 03](../../sprint-6/tasks/03-web-print-auth.md)
+- PWA omni-site / печать на сайте (WEB-06) → [Sprint 6 / 03](../../sprint-6/tasks/03-web-print-guest.md)
+- SEO-страницы точек → [Sprint 5 / 06](./06-print-point-pages.md)
 
 ## DoD
 

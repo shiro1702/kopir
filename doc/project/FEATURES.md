@@ -36,7 +36,7 @@
 | ✅ done | WEB-03 | REST API: upload, orders, points | 1 | PDF → Vercel Blob |
 | ⬜ todo | WEB-04 | WebSocket: агент ↔ сервер | 1 | print jobs, heartbeat |
 | ⬜ todo | WEB-05 | Redis: heartbeat + TTL коды | 2 | |
-| ⬜ todo | WEB-06 | Омниканальный сайт (PWA) | 2 | QR → `?point_id=`; клиентская печать `/print` — Sprint 6 |
+| ⬜ todo | WEB-06 | Омниканальный сайт (PWA) | 2 | Sprint 5: SEO `/print/[city]/[slug]`; Sprint 6: guest wizard `/print` |
 | ⬜ todo | WEB-07 | Telegram Mini App (SPA) | 2 | Sprint 5: карта точки; Sprint 6: upload + оплата |
 | ✅ done | WEB-08 | Telegram Bot: /start, приём PDF | 1 | grammY; см. WEB-14 |
 | ✅ done | WEB-14 | Ядро мультиканальных ботов (`bot/core`) | 1 | общая логика заказов |

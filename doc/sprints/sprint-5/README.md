@@ -14,8 +14,8 @@
 P0: выбор точки в боте (UX-06, last point, список) — 5+ точек
 P0: web ЛК v1, регистрация партнёра на сайте
 P0: реестр выплат PAY-07 фаза 2
-P1: карта точек WEB-10, геолокация UX-07
-P1: Windows Service, алерты, VK-бот
+P1: карта точек WEB-10, SEO-страницы точек `/print/[city]/[slug]`
+P1: геолокация UX-07, Windows Service, алерты, VK-бот
 P2: WEB-09 мультиссылка QR, автопереключение offline
 ```
 
@@ -26,6 +26,7 @@ P2: WEB-09 мультиссылка QR, автопереключение offline
 | 01 | Реестр выплат + ручной СБП | ⬜ | PAY-07 | [tasks/01-partner-payouts.md](./tasks/01-partner-payouts.md) |
 | 02 | Выбор точки в боте (без QR) | ⬜ | UX-06, UX-05b | [tasks/02-point-selection-bot.md](./tasks/02-point-selection-bot.md) |
 | 03 | Карта точек + Mini App | ⬜ | WEB-10, WEB-07 | [tasks/03-point-map-miniapp.md](./tasks/03-point-map-miniapp.md) |
+| 06 | SEO-страницы точек (подготовка к web-печати) | ⬜ | WEB-06 partial | [tasks/06-print-point-pages.md](./tasks/06-print-point-pages.md) |
 | — | Прогрессивная комиссия от оборота | ⬜ | PAY-06b | → [Sprint 6 / 01](../sprint-6/tasks/01-tiered-commission.md) |
 | 04 | Web ЛК партнёра v1 | ⬜ | WEB-13 | _(спека TBD)_ |
 | 05 | Регистрация партнёра на сайте | ⬜ | ONB-01, ONB-02 | _(спека TBD)_ |
@@ -45,4 +46,4 @@ P2: WEB-09 мультиссылка QR, автопереключение offline
 
 ## После спринта
 
-→ [Sprint 6 — Рост](../SPRINTS.md#sprint-6--рост-сентябрь-2026): Mini App печати, web `/print`, Mass Payments, принт-бокс
+→ [Sprint 6 — Рост](../SPRINTS.md#sprint-6--рост-сентябрь-2026): Mini App печати, web `/print` без логина, Mass Payments, принт-бокс

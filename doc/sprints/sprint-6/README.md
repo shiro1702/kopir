@@ -12,8 +12,8 @@
 
 ```
 P0: Mini App для печати файлов (TG + MAX) — WEB-07
+P0: Сайт `/print` без логина (guest session) — WEB-06
 P0: Mass Payments API (PAY-08)
-P1: Сайт: авторизация клиента + печать — WEB-06
 P1: Прогрессивная комиссия от оборота точки
 P1: Принт-бокс / Linux agent
 P2: Реферальная программа, динамическое ценообразование
@@ -25,7 +25,7 @@ P2: Реферальная программа, динамическое цено
 |---|--------|--------|---------|------|
 | 01 | Комиссия от оборота точки (tiered) | ⬜ | PAY-06b | [tasks/01-tiered-commission.md](./tasks/01-tiered-commission.md) |
 | 02 | Mini App: загрузка файлов и оплата (TG + MAX) | ⬜ | WEB-07, FILE-04 | [tasks/02-print-miniapp.md](./tasks/02-print-miniapp.md) |
-| 03 | Сайт: авторизация клиента + печать | ⬜ | WEB-06 | [tasks/03-web-print-auth.md](./tasks/03-web-print-auth.md) |
+| 03 | Сайт: печать без логина (guest session) | ⬜ | WEB-06 | [tasks/03-web-print-guest.md](./tasks/03-web-print-guest.md) |
 | — | Mass Payments «Вывести» | ⬜ | PAY-08 | см. [SPRINTS.md](../SPRINTS.md) |
 | — | Принт-бокс | ⬜ | BOX-01 | — |
 | — | Реферальная программа | ⬜ | MKT-01 | — |
@@ -33,7 +33,7 @@ P2: Реферальная программа, динамическое цено
 ## Definition of Done
 
 - [ ] Mini App: клиент загружает файлы и оплачивает без чата (TG; MAX — по готовности SDK)
-- [ ] Сайт `/print`: вход через Telegram Login + тот же wizard печати
+- [ ] Сайт `/print`: guest session, загрузка с десктопа без логина + тот же wizard, что Mini App
 - [ ] Автовыплаты или one-click withdraw (PAY-08)
 - [ ] Комиссия пересчитывается по обороту без ручного SQL
 - [ ] 10+ активных точек

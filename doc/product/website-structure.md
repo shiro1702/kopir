@@ -28,17 +28,18 @@ Web + Telegram Mini App. Mobile-first для ЛК.
 
 ## Раздел «Печать» `/print`
 
-| URL | Назначение |
-|-----|------------|
-| `/print/` | Автоопределение города → redirect |
-| `/print/ulan-ude/` | Карта + список точек города |
-| `/print/ulan-ude/[slug]/` | SEO-страница точки |
+| URL | Назначение | Спринт |
+|-----|------------|--------|
+| `/print/` | Автоопределение города → redirect | Sprint 5 |
+| `/print/ulan-ude/` | Карта + список точек города | Sprint 5 |
+| `/print/ulan-ude/[slug]/` | SEO-страница точки (CTA → бот, потом web-wizard) | Sprint 5 |
+| `/print?point={slug}` | Wizard печати без логина | Sprint 6 |
 
-**Страница точки:**
+**Страница точки (Sprint 5):**
 - Адрес, фото входа, часы работы
 - Цены (Ч/Б, цвет)
 - Статус в реальном времени (в сети / пауза)
-- Кнопка «Печатать здесь» → deep link в бот с `point_id`
+- Кнопка «Печатать здесь» → deep link в бот с `point_id` (Sprint 5); `/print?point=slug` (Sprint 6)
 - Блок доп. услуг (см. [point-pricing-and-services.md](./point-pricing-and-services.md))
 
 **Карта:** фильтры «Работает сейчас», «Цветная печать».
