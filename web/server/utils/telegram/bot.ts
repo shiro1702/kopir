@@ -21,6 +21,16 @@ import {
   parseClientCommandText,
 } from '../bot/client-commands'
 import {
+  BTN_PARTNER_BALANCE,
+  BTN_PARTNER_HELP,
+  BTN_PARTNER_MENU,
+  BTN_PARTNER_POINTS,
+  BTN_PARTNER_REQUISITES,
+  isPartnerCommandCallback,
+  parsePartnerCommandText,
+  PARTNER_COMMAND_DEFINITIONS,
+} from '../bot/partner-commands'
+import {
   isBatchClientCallbackPayload,
   isPaymentClientCallbackPayload,
   isPointClientCallbackPayload,
@@ -55,6 +65,19 @@ function clientReplyKeyboard() {
     .persistent()
 }
 
+function partnerReplyKeyboard() {
+  return new Keyboard()
+    .text(BTN_PARTNER_MENU)
+    .text(BTN_PARTNER_POINTS)
+    .row()
+    .text(BTN_PARTNER_BALANCE)
+    .text(BTN_PARTNER_REQUISITES)
+    .row()
+    .text(BTN_PARTNER_HELP)
+    .resized()
+    .persistent()
+}
+
 function resolveTelegramReplyMarkup(options?: MessengerSendTextOptions) {
   if (options?.batchKeyboard) {
     return batchReplyKeyboard(options.batchKeyboard)
@@ -62,13 +85,16 @@ function resolveTelegramReplyMarkup(options?: MessengerSendTextOptions) {
   if (options?.clientMenu) {
     return clientReplyKeyboard()
   }
+  if (options?.partnerMenu) {
+    return partnerReplyKeyboard()
+  }
   return undefined
 }
 
-export async function registerTelegramClientCommands(): Promise<void> {
+export async function registerTelegramCommands(): Promise<void> {
   const bot = await getInitializedBot()
   await bot.api.setMyCommands(
-    CLIENT_COMMAND_DEFINITIONS.map((item) => ({
+    [...CLIENT_COMMAND_DEFINITIONS, ...PARTNER_COMMAND_DEFINITIONS].map((item) => ({
       command: item.command,
       description: item.description,
     })),
@@ -197,6 +223,23 @@ function createBot(): Bot {
     })
   }
 
+  for (const { command } of PARTNER_COMMAND_DEFINITIONS) {
+    bot.command(command, async (ctx) => {
+      const telegramUser = ctx.from!
+      const target: MessengerReplyTarget = {
+        platform: 'telegram',
+        chatId: String(telegramUser.id),
+      }
+      const user = {
+        externalId: String(telegramUser.id),
+        username: telegramUser.username ?? null,
+        firstName: telegramUser.first_name ?? null,
+      }
+      const { handlePartnerQuickCommand } = await import('../bot/partner-commands')
+      await handlePartnerQuickCommand(command, 'telegram', target, user, adapter)
+    })
+  }
+
   bot.command('partner', async (ctx) => {
     const telegramUser = ctx.from!
     const chatId = ctx.chat.id
@@ -307,6 +350,13 @@ function createBot(): Bot {
       return
     }
 
+    const partnerCommand = parsePartnerCommandText(text)
+    if (partnerCommand) {
+      const { handlePartnerQuickCommand } = await import('../bot/partner-commands')
+      await handlePartnerQuickCommand(partnerCommand, 'telegram', target, user, adapter)
+      return
+    }
+
     const trimmed = text.trim()
     if (/^\d{2,4}$/.test(trimmed)) {
       const { handleDisplayCodeMessage } = await import('../bot/point-selection')
@@ -350,6 +400,7 @@ function createBot(): Bot {
       const isPartnerCallback = isPartnerCallbackPayload(data)
       const isStaffCallback = !isPartnerCallback
         && !isClientCommandCallback(data)
+        && !isPartnerCommandCallback(data)
         && !isBatchClientCallbackPayload(data)
         && !isPaymentClientCallbackPayload(data)
         && !isPrintRetryClientCallbackPayload(data)

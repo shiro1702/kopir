@@ -110,6 +110,10 @@ flowchart LR
 | `/start partner` | Partner | — | Меню ЛК или «не привязан» | ✅ |
 | `/bind <token>` | Staff | альтернатива deep link | Привязка staff (`purpose=staff`) | ✅ |
 | `/partner` | Partner | привязан к точке | Главное меню ЛК | ✅ |
+| `/partner_points` | Partner | привязан к точке | Список точек / возврат в меню ЛК | ✅ |
+| `/partner_balance` | Partner | привязан к точке | Баланс к выплате | ✅ |
+| `/partner_requisites` | Partner | привязан к точке | Просмотр реквизитов | ✅ |
+| `/partner_help` | Partner | всегда | Подсказка по командам партнёра | ✅ |
 | `/partner bind_<token>` | Partner | токен из админки | Привязка `Partner` + `Point.partnerId` | ✅ |
 | `/partner phone <pointId> <номер>` | Partner | владелец точки | Обновить `transferPhone` | ✅ |
 | Текст `✅ Оплатить` | Клиент | TG only; есть пачка `COLLECTING`; режим `ready` | `finalizeBatch` → выбор оплаты | ✅ |
@@ -120,10 +124,11 @@ flowchart LR
 | Кнопка | Показать когда | Скрыть когда |
 |--------|----------------|--------------|
 | `📄 Печать` / `📁 Мои файлы` / `📍 Точка` / `❓ Помощь` | После `/start`, отмены пачки, idle | Когда показана пачка |
+| `📋 Кабинет` / `📍 Точки` / `💰 Баланс` / `🏦 Реквизиты` / `❓ Помощь` | После команд партнёра | Когда активен клиентский flow |
 | `✅ Оплатить` | `getBatchKeyboardMode === 'ready'` (нет файлов в `CALCULATING`) | `calculating` или batch нет |
 | `❌ Отменить всё` | Всегда, пока batch `COLLECTING` | После finalize / cancel |
 
-MAX: команды — inline `client_cmd:*`; пачка — `batch_finalize` / `batch_cancel`.
+MAX: команды — inline `client_cmd:*` и `partner_cmd:*`; пачка — `batch_finalize` / `batch_cancel`.
 
 ### Inline-кнопки клиента (callback)
 

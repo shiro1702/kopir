@@ -4,6 +4,7 @@ import type { BatchKeyboardMode, InlineKeyboardButton, SentMessage, StatusMessag
 import { trustedCaFetch } from '../trusted-ca-fetch'
 import { maxBatchActionButtons } from '../bot/keyboards'
 import { clientMenuInlineKeyboard } from '../bot/client-commands'
+import { partnerMenuInlineKeyboard } from '../bot/partner-commands'
 
 const MAX_UPDATE_TYPES = [
   'message_created',
@@ -219,6 +220,12 @@ export function maxAttachmentsFromOptions(options?: StatusMessageOptions): unkno
 
   if (options?.clientMenu) {
     for (const row of clientMenuInlineKeyboard()) {
+      rows.push(row.map(maxInlineButton))
+    }
+  }
+
+  if (options?.partnerMenu) {
+    for (const row of partnerMenuInlineKeyboard()) {
       rows.push(row.map(maxInlineButton))
     }
   }

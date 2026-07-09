@@ -40,6 +40,7 @@ export interface StatusMessageOptions {
   inlineKeyboard?: InlineKeyboardButton[][]
   removeInlineKeyboard?: boolean
   clientMenu?: boolean
+  partnerMenu?: boolean
 }
 
 export interface MessengerSendTextOptions {
@@ -47,6 +48,8 @@ export interface MessengerSendTextOptions {
   inlineKeyboard?: InlineKeyboardButton[][]
   /** Telegram: reply keyboard with client commands; MAX: inline command menu */
   clientMenu?: boolean
+  /** Telegram: reply keyboard with partner commands; MAX: inline command menu */
+  partnerMenu?: boolean
 }
 
 export interface MessengerAdapter {

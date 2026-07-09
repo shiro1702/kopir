@@ -4,11 +4,11 @@ import { resolveWebhookUrl } from '../../utils/webhook-url'
 export default defineEventHandler(async (event) => {
   assertAdminAuth(event)
 
-  const { getInitializedBot, registerTelegramClientCommands } = await import('../../utils/telegram/bot')
+  const { getInitializedBot, registerTelegramCommands } = await import('../../utils/telegram/bot')
   const webhookUrl = resolveWebhookUrl(event, '/api/telegram/webhook')
 
   await (await getInitializedBot()).api.setWebhook(webhookUrl)
-  await registerTelegramClientCommands()
+  await registerTelegramCommands()
 
   return { ok: true, webhookUrl }
 })

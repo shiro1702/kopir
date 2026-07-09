@@ -572,10 +572,10 @@ export async function handlePartnerCommand(
     try {
       const { handlePartnerPhoneCommand } = await import('../partner-actions')
       const text = await handlePartnerPhoneCommand(platform, BigInt(user.externalId), pointId, phone)
-      await adapter.sendText(target, text)
+      await adapter.sendText(target, text, { partnerMenu: true })
     } catch (error) {
       const text = error instanceof Error ? error.message : 'Ошибка'
-      await adapter.sendText(target, text)
+      await adapter.sendText(target, text, { partnerMenu: true })
     }
     return
   }
@@ -585,10 +585,10 @@ export async function handlePartnerCommand(
     try {
       const { handlePartnerRequisitesCommand } = await import('../partner-actions')
       const text = await handlePartnerRequisitesCommand(platform, BigInt(user.externalId), raw)
-      await adapter.sendText(target, text)
+      await adapter.sendText(target, text, { partnerMenu: true })
     } catch (error) {
       const text = error instanceof Error ? error.message : 'Ошибка'
-      await adapter.sendText(target, text)
+      await adapter.sendText(target, text, { partnerMenu: true })
     }
     return
   }

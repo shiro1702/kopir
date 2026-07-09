@@ -8,6 +8,7 @@ import {
   isPrintRetryClientCallbackPayload,
 } from '../bot/keyboards'
 import { isClientCommandCallback, parseClientCommandText } from '../bot/client-commands'
+import { isPartnerCommandCallback, parsePartnerCommandText } from '../bot/partner-commands'
 import { isPartnerCallbackPayload } from '../bot/partner-keyboards'
 import type {
   BatchKeyboardMode,
@@ -28,6 +29,7 @@ function maxSendOptionsAttachments(options?: {
   batchKeyboard?: BatchKeyboardMode
   inlineKeyboard?: import('../bot/types').InlineKeyboardButton[][]
   clientMenu?: boolean
+  partnerMenu?: boolean
 }): unknown[] | undefined {
   return maxAttachmentsFromOptions(options)
 }
@@ -182,6 +184,13 @@ export async function handleMaxUpdate(update: MaxUpdate): Promise<void> {
         return
       }
 
+      const partnerCommand = message.body?.text ? parsePartnerCommandText(message.body.text) : null
+      if (partnerCommand) {
+        const { handlePartnerQuickCommand } = await import('../bot/partner-commands')
+        await handlePartnerQuickCommand(partnerCommand, 'max', target, user, adapter)
+        return
+      }
+
       const textAction = message.body?.text ? isBatchActionText(message.body.text) : null
       if (textAction) {
         const { handleBatchAction } = await import('../bot/core')
@@ -244,6 +253,7 @@ export async function handleMaxUpdate(update: MaxUpdate): Promise<void> {
       const isPartnerCallback = isPartnerCallbackPayload(callback.payload)
       const isStaffCallback = !isPartnerCallback
         && !isClientCommandCallback(callback.payload)
+        && !isPartnerCommandCallback(callback.payload)
         && !isBatchClientCallbackPayload(callback.payload)
         && !isPaymentClientCallbackPayload(callback.payload)
         && !isPrintRetryClientCallbackPayload(callback.payload)
@@ -288,6 +298,7 @@ export async function handleMaxUpdate(update: MaxUpdate): Promise<void> {
 
       if (!isStaffCallback && (
         isClientCommandCallback(callback.payload)
+        || isPartnerCommandCallback(callback.payload)
         || isBatchClientCallbackPayload(callback.payload)
         || isPaymentClientCallbackPayload(callback.payload)
         || isPrintRetryClientCallbackPayload(callback.payload)

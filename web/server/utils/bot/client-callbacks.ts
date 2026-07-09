@@ -13,6 +13,7 @@ import {
   parsePointSelectPayload,
 } from './keyboards'
 import { parseClientCommandCallback } from './client-commands'
+import { parsePartnerCommandCallback } from './partner-commands'
 import type {
   BotUser,
   CallbackContext,
@@ -117,6 +118,13 @@ export async function routeClientCallback(
   if (clientCommand) {
     const { handleClientCommand } = await import('./client-commands')
     await handleClientCommand(clientCommand, target.platform, target, user, adapter)
+    return { toast: 'Готово' }
+  }
+
+  const partnerCommand = parsePartnerCommandCallback(data)
+  if (partnerCommand) {
+    const { handlePartnerQuickCommand } = await import('./partner-commands')
+    await handlePartnerQuickCommand(partnerCommand, target.platform, target, user, adapter)
     return { toast: 'Готово' }
   }
 
