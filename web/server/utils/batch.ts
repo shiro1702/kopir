@@ -184,9 +184,27 @@ export async function recalculateBatchTotals(batchId: string): Promise<OrderBatc
   })
 }
 
+const collectingBatchPointSelect = {
+  id: true,
+  slug: true,
+  name: true,
+  displayCode: true,
+  pricePerPageKopeks: true,
+  lastSeenAt: true,
+} as const
+
+export type CollectingBatchPoint = {
+  id: string
+  slug: string
+  name: string
+  displayCode: string | null
+  pricePerPageKopeks: number
+  lastSeenAt: Date | null
+}
+
 export async function getActiveCollectingBatch(
   userId: string,
-): Promise<(OrderBatch & { orders: Order[], point: { id: string, slug: string, name: string, displayCode: string | null } | null }) | null> {
+): Promise<(OrderBatch & { orders: Order[], point: CollectingBatchPoint | null }) | null> {
   const batches = await prisma.orderBatch.findMany({
     where: {
       userId,
@@ -194,7 +212,7 @@ export async function getActiveCollectingBatch(
     },
     include: {
       orders: { orderBy: { batchIndex: 'asc' } },
-      point: { select: { id: true, slug: true, name: true, displayCode: true, pricePerPageKopeks: true } },
+      point: { select: collectingBatchPointSelect },
     },
     orderBy: { createdAt: 'desc' },
   })
@@ -215,7 +233,7 @@ export async function getActiveCollectingBatch(
 export async function getOrCreateCollectingBatch(
   userId: string,
   pointId?: string | null,
-): Promise<OrderBatch & { orders: Order[], point: { id: string, slug: string, name: string, displayCode: string | null } | null }> {
+): Promise<OrderBatch & { orders: Order[], point: CollectingBatchPoint | null }> {
   const existing = await getActiveCollectingBatch(userId)
   if (existing) {
     if (pointId && !existing.pointId) {
@@ -236,7 +254,7 @@ export async function getOrCreateCollectingBatch(
     },
     include: {
       orders: true,
-      point: { select: { id: true, slug: true, name: true, displayCode: true, pricePerPageKopeks: true } },
+      point: { select: collectingBatchPointSelect },
     },
   })
   batchLog(batch.id, 'created collecting batch', { pointId: pointId ?? null })
