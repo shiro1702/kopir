@@ -1,5 +1,5 @@
-import { updateOrderCopies } from '../../../utils/batch'
-import { prisma } from '../../../utils/prisma'
+import { updateOrderCopies } from '../../../../utils/batch'
+import { prisma } from '../../../../utils/prisma'
 
 interface PatchOrderBody {
   copies: number
