@@ -128,6 +128,8 @@ export function isBatchClientCallbackPayload(payload: string): boolean {
     || payload.startsWith('batch_remove:')
     || payload.startsWith('batch_remove_confirm:')
     || payload.startsWith('batch_remove_cancel:')
+    || isOrderCopiesCallbackPayload(payload)
+    || payload.startsWith('order_copies_nop:')
 }
 
 export const POINT_SELECT_PREFIX = 'point_select:'
