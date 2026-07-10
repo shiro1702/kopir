@@ -27,6 +27,7 @@ P2: WEB-09 мультиссылка QR, автопереключение offline
 | 02 | Выбор точки в боте (без QR) | ⬜ | UX-06, UX-05b | [tasks/02-point-selection-bot.md](./tasks/02-point-selection-bot.md) |
 | 03 | Карта точек + Mini App | ⬜ | WEB-10, WEB-07 | [tasks/03-point-map-miniapp.md](./tasks/03-point-map-miniapp.md) |
 | 06 | SEO-страницы точек (подготовка к web-печати) | ⬜ | WEB-06 partial | [tasks/06-print-point-pages.md](./tasks/06-print-point-pages.md) |
+| 07 | Количество копий в боте | ✅ | UX-04 | [tasks/07-print-copies.md](./tasks/07-print-copies.md) |
 | — | Прогрессивная комиссия от оборота | ⬜ | PAY-06b | → [Sprint 6 / 01](../sprint-6/tasks/01-tiered-commission.md) |
 | 04 | Web ЛК партнёра v1 | ⬜ | WEB-13 | _(спека TBD)_ |
 | 05 | Регистрация партнёра на сайте | ⬜ | ONB-01, ONB-02 | _(спека TBD)_ |
