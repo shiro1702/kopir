@@ -285,10 +285,12 @@ export async function reconcileTbankPayment(paymentId: string): Promise<TbankRec
   }
 
   if (payment.status === PaymentStatus.CONFIRMED) {
+    const entityId = resolveEntityIdFromPayment(payment)
+    const { alreadyConfirmed } = await ensureEntityPaymentConfirmed(entityId)
     return {
       status: 'confirmed',
-      entityId: resolveEntityIdFromPayment(payment),
-      alreadyConfirmed: true,
+      entityId,
+      alreadyConfirmed,
     }
   }
 
@@ -309,6 +311,15 @@ export async function reconcileTbankPayment(paymentId: string): Promise<TbankRec
   }
 }
 
+async function ensureEntityPaymentConfirmed(entityId: string) {
+  const result = await confirmTbankPayment(entityId)
+  const alreadyConfirmed = typeof result === 'object'
+    && result !== null
+    && 'alreadyConfirmed' in result
+    && (result as { alreadyConfirmed?: boolean }).alreadyConfirmed === true
+  return { alreadyConfirmed, result }
+}
+
 async function processConfirmedPayment(payment: {
   id: string
   batchId: string | null
@@ -320,7 +331,8 @@ async function processConfirmedPayment(payment: {
 }, externalPaymentId?: string | number | null, webhookPayload?: Record<string, unknown>) {
   if (payment.status === PaymentStatus.CONFIRMED) {
     const entityId = resolveEntityIdFromPayment(payment)
-    return { ok: true, alreadyConfirmed: true, entityId }
+    const { alreadyConfirmed, result } = await ensureEntityPaymentConfirmed(entityId)
+    return { ok: true, alreadyConfirmed, entityId, result }
   }
 
   const entityId = resolveEntityIdFromPayment(payment)
@@ -347,7 +359,7 @@ async function processConfirmedPayment(payment: {
   const { scheduleTbankReceiptNotify } = await import('../tbank-payment-receipt-notify')
   scheduleTbankReceiptNotify(payment.id, webhookPayload)
 
-  return { ok: true, result, entityId }
+  return { ok: true, result, entityId, alreadyConfirmed: false }
 }
 
 function inferTbankChannelFromPayUrl(payUrl: string | null | undefined): TbankPayChannel | null {

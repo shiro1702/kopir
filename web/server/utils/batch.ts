@@ -2,7 +2,7 @@ import { OrderBatchStatus, OrderStatus, PaymentMethod, type Order, type OrderBat
 import { deleteOrderFile } from './blob'
 import { getPricePerPageKopeks } from './calculation'
 import { billablePages, clampCopies, computeOrderAmountKopeks, ORDER_COPIES_MAX, ORDER_COPIES_MIN } from './order-pricing'
-import { prisma } from './prisma'
+import { PAYMENT_TX_OPTIONS, prisma } from './prisma'
 import { assertReadyForStaffPaymentConfirm } from './payments/service'
 import { assertPointAgentOnline, isPointAgentOnline } from './points'
 import type { BatchKeyboardMode } from './bot/types'
@@ -663,6 +663,18 @@ export async function confirmBatchPayment(batchId: string) {
 
   assertReadyForStaffPaymentConfirm(batch.paymentMethod, batch.paymentClaimedAt)
 
+  const pointForAccrual = batch.point
+    ? {
+        partnerId: batch.point.partnerId,
+        commissionPercent: batch.point.commissionPercent,
+      }
+    : batch.pointId
+      ? await prisma.point.findUnique({
+          where: { id: batch.pointId },
+          select: { partnerId: true, commissionPercent: true },
+        })
+      : null
+
   const now = new Date()
   await prisma.$transaction(async (tx) => {
     await tx.orderBatch.update({
@@ -684,17 +696,12 @@ export async function confirmBatchPayment(batchId: string) {
       pointId: batch.pointId,
       totalAmountKopeks: batch.totalAmountKopeks,
       paymentMethod: batch.paymentMethod,
-      point: batch.point
-        ? {
-            partnerId: batch.point.partnerId,
-            commissionPercent: batch.point.commissionPercent,
-          }
-        : null,
+      point: pointForAccrual,
     }, tx)
     if (accrual.credited) {
       batchLog(batchId, `partner balance +${accrual.partnerKopeks} kopeks`)
     }
-  })
+  }, PAYMENT_TX_OPTIONS)
 
   batchLog(batchId, 'payment confirmed, all orders PAID')
 

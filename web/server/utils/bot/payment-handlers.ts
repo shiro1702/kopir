@@ -315,14 +315,8 @@ export async function handlePaymentCheckStatusByEntity(
     return 'Сначала оплатите'
   }
 
-  const confirmed = payments.find((payment) => payment.status === PaymentStatus.CONFIRMED)
-  if (confirmed) {
-    await adapter.sendText(target, messages.formatOnlinePaymentConfirmed(shortId))
-    return 'Оплата подтверждена'
-  }
-
   for (const payment of payments) {
-    if (payment.status !== PaymentStatus.PENDING) {
+    if (payment.status !== PaymentStatus.PENDING && payment.status !== PaymentStatus.CONFIRMED) {
       continue
     }
     const result = await checkTbankPaymentStatus(payment.id, user.externalId)

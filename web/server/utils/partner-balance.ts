@@ -61,12 +61,21 @@ export async function accruePartnerBalanceForBatch(
 
   const db = tx ?? prisma
 
-  const partnerId = batch.point?.partnerId ?? (
-    await db.point.findUnique({
+  let partnerId = batch.point?.partnerId
+  let commissionPercent = batch.point?.commissionPercent
+
+  if (partnerId === undefined || commissionPercent === undefined) {
+    const point = await db.point.findUnique({
       where: { id: batch.pointId },
-      select: { partnerId: true },
+      select: { partnerId: true, commissionPercent: true },
     })
-  )?.partnerId
+    if (partnerId === undefined) {
+      partnerId = point?.partnerId ?? null
+    }
+    if (commissionPercent === undefined) {
+      commissionPercent = point?.commissionPercent ?? DEFAULT_COMMISSION_PERCENT
+    }
+  }
 
   if (!partnerId) {
     console.warn('[partner-balance] skip accrual: point has no partner', {
@@ -83,14 +92,12 @@ export async function accruePartnerBalanceForBatch(
     return { credited: false, partnerKopeks: existing.amountKopeks }
   }
 
-  const commissionPercent = batch.point?.commissionPercent ?? (
-    await db.point.findUnique({
-      where: { id: batch.pointId },
-      select: { commissionPercent: true },
-    })
-  )?.commissionPercent ?? DEFAULT_COMMISSION_PERCENT
+  const effectiveCommissionPercent = commissionPercent ?? DEFAULT_COMMISSION_PERCENT
 
-  const { partnerKopeks } = calculatePartnerShareKopeks(batch.totalAmountKopeks, commissionPercent)
+  const { partnerKopeks } = calculatePartnerShareKopeks(
+    batch.totalAmountKopeks,
+    effectiveCommissionPercent,
+  )
   if (partnerKopeks <= 0) {
     return { credited: false }
   }

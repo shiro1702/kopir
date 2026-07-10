@@ -17,6 +17,12 @@ function getPrismaClient(): PrismaClient {
   return globalForPrisma.prisma
 }
 
+/** Interactive transactions for payment confirmation (Neon latency + row locks). */
+export const PAYMENT_TX_OPTIONS = {
+  timeout: 15_000,
+  maxWait: 10_000,
+} as const
+
 export const prisma = new Proxy({} as PrismaClient, {
   get(_target, property, receiver) {
     const client = getPrismaClient()
