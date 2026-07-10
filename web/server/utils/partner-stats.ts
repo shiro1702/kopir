@@ -1,4 +1,5 @@
 import { OrderStatus } from '@prisma/client'
+import { billablePages } from './order-pricing'
 import { prisma } from './prisma'
 
 export type PartnerOrdersPeriod = 'day' | 'week' | 'month'
@@ -31,20 +32,21 @@ export async function getPartnerOrdersStats(
 ): Promise<{ pages: number, amountKopeks: number }> {
   const since = periodStart(period)
 
-  const agg = await prisma.order.aggregate({
+  const orders = await prisma.order.findMany({
     where: {
       pointId,
       status: { in: PAID_STATUSES },
       paidAt: { gte: since },
     },
-    _sum: {
+    select: {
       pageCount: true,
+      copies: true,
       amountKopeks: true,
     },
   })
 
   return {
-    pages: agg._sum.pageCount ?? 0,
-    amountKopeks: agg._sum.amountKopeks ?? 0,
+    pages: orders.reduce((sum, order) => sum + billablePages(order.pageCount, order.copies), 0),
+    amountKopeks: orders.reduce((sum, order) => sum + order.amountKopeks, 0),
   }
 }

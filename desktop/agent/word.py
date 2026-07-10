@@ -88,16 +88,18 @@ def count_pages(path: str) -> int:
         raise WordError(f"Word failed to count pages: {exc}") from exc
 
 
-def print_document(path: str, *, printer_name: str = "") -> None:
+def print_document(path: str, *, printer_name: str = "", copies: int = 1) -> None:
     file_path = str(Path(path).resolve())
     if not Path(file_path).is_file():
         raise WordError(f"File not found: {path}")
+
+    safe_copies = max(1, int(copies))
 
     def run(session: _WordSession) -> int:
         session.doc = _open_document(session.word, file_path, read_only=True)
         if printer_name:
             session.word.ActivePrinter = printer_name
-        session.doc.PrintOut(Background=True)
+        session.doc.PrintOut(Background=True, Copies=safe_copies)
         time.sleep(2)
         return 0
 

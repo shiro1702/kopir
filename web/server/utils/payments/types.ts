@@ -12,7 +12,7 @@ export interface PaymentContext {
   paymentMethod: PaymentMethod | null
   point: Point
   user: Pick<User, 'username' | 'firstName'>
-  order?: Pick<Order, 'id' | 'fileName' | 'pageCount'>
+  order?: Pick<Order, 'id' | 'fileName' | 'pageCount' | 'copies'>
   batch?: Pick<OrderBatch, 'id' | 'totalPages'> & {
     orders: Array<Pick<Order, 'fileName' | 'batchIndex'>>
   }

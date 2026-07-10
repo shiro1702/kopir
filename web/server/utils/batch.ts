@@ -1,6 +1,7 @@
 import { OrderBatchStatus, OrderStatus, PaymentMethod, type Order, type OrderBatch } from '@prisma/client'
 import { deleteOrderFile } from './blob'
 import { getPricePerPageKopeks } from './calculation'
+import { billablePages, clampCopies, computeOrderAmountKopeks, ORDER_COPIES_MAX, ORDER_COPIES_MIN } from './order-pricing'
 import { prisma } from './prisma'
 import { assertReadyForStaffPaymentConfirm } from './payments/service'
 import { assertPointAgentOnline, isPointAgentOnline } from './points'
@@ -133,6 +134,97 @@ export async function removeOrderFromBatch(
   }
 }
 
+export interface UpdateOrderCopiesResult {
+  order: Order
+  batch: OrderBatch
+}
+
+export async function updateOrderCopies(
+  orderId: string,
+  userId: string,
+  copies: number,
+): Promise<UpdateOrderCopiesResult> {
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    include: { batch: { include: { point: true } } },
+  })
+
+  if (!order?.batchId || !order.batch) {
+    throw createError({
+      statusCode: 404,
+      data: { error: 'Order not found in batch', code: 'ORDER_NOT_FOUND' },
+    })
+  }
+
+  if (order.userId !== userId) {
+    throw createError({
+      statusCode: 403,
+      data: { error: 'Forbidden', code: 'FORBIDDEN' },
+    })
+  }
+
+  if (order.batch.status !== OrderBatchStatus.COLLECTING) {
+    throw createError({
+      statusCode: 400,
+      data: { error: 'Файлы уже отправлены на оплату', code: 'INVALID_BATCH_STATUS' },
+    })
+  }
+
+  if (!isActiveBatchOrder(order)) {
+    throw createError({
+      statusCode: 404,
+      data: { error: 'Order not found in batch', code: 'ORDER_NOT_FOUND' },
+    })
+  }
+
+  if (order.status === OrderStatus.CALCULATING) {
+    throw createError({
+      statusCode: 409,
+      data: {
+        error: MSG_BATCH_CANNOT_REMOVE_CALCULATING,
+        code: 'BATCH_FILE_CALCULATING',
+      },
+    })
+  }
+
+  if (order.status !== OrderStatus.AWAITING_PAYMENT) {
+    throw createError({
+      statusCode: 400,
+      data: { error: 'Копии можно менять только для готовых файлов', code: 'INVALID_ORDER_STATUS' },
+    })
+  }
+
+  const nextCopies = clampCopies(copies)
+  if (nextCopies < ORDER_COPIES_MIN || nextCopies > ORDER_COPIES_MAX) {
+    throw createError({
+      statusCode: 400,
+      data: {
+        error: `Количество копий: от ${ORDER_COPIES_MIN} до ${ORDER_COPIES_MAX}`,
+        code: 'INVALID_COPIES',
+      },
+    })
+  }
+
+  const pricePerPage = order.batch.point
+    ? getPricePerPageKopeks(order.batch.point)
+    : 0
+  const amountKopeks = order.batch.pointId && order.batch.point
+    ? computeOrderAmountKopeks(order.pageCount, nextCopies, pricePerPage)
+    : 0
+
+  const updatedOrder = await prisma.order.update({
+    where: { id: orderId },
+    data: {
+      copies: nextCopies,
+      amountKopeks,
+    },
+  })
+
+  const batch = await recalculateBatchTotals(order.batchId)
+
+  return { order: updatedOrder, batch }
+}
+
 export function getBatchMaxFiles(): number {
   const config = useRuntimeConfig()
   const value = Number(config.batchMaxFiles)
@@ -175,7 +267,10 @@ export async function getBatchKeyboardMode(batchId: string): Promise<BatchKeyboa
 export async function recalculateBatchTotals(batchId: string): Promise<OrderBatch> {
   const orders = await getActiveBatchOrders(batchId)
 
-  const totalPages = orders.reduce((sum, order) => sum + order.pageCount, 0)
+  const totalPages = orders.reduce(
+    (sum, order) => sum + billablePages(order.pageCount, order.copies),
+    0,
+  )
   const totalAmountKopeks = orders.reduce((sum, order) => sum + order.amountKopeks, 0)
 
   return prisma.orderBatch.update({
@@ -307,7 +402,7 @@ export async function bindBatchToPoint(
     for (const order of activeOrders) {
       const amountKopeks = order.status === OrderStatus.CALCULATING
         ? 0
-        : order.pageCount * pricePerPage
+        : computeOrderAmountKopeks(order.pageCount, order.copies, pricePerPage)
       await tx.order.update({
         where: { id: order.id },
         data: { pointId, amountKopeks },
@@ -496,7 +591,7 @@ export async function finalizeBatch(batchId: string): Promise<FinalizeBatchResul
       await prisma.order.update({
         where: { id: order.id },
         data: {
-          amountKopeks: order.pageCount * pricePerPage,
+          amountKopeks: computeOrderAmountKopeks(order.pageCount, order.copies, pricePerPage),
           status: OrderStatus.AWAITING_PAYMENT,
         },
       })

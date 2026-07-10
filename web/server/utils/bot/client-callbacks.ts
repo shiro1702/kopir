@@ -9,6 +9,7 @@ import {
   parsePayClaimedPayload,
   parsePayMethodPayload,
   parseOrderRetryPayload,
+  parseOrderCopiesPayload,
   parsePointListPagePayload,
   parsePointSelectPayload,
 } from './keyboards'
@@ -85,6 +86,26 @@ export async function routeClientCallback(
   if (retryOrderId) {
     const { handleClientOrderRetry } = await import('./core')
     return { toast: await handleClientOrderRetry(user, retryOrderId) }
+  }
+
+  const copiesChange = parseOrderCopiesPayload(data)
+  if (copiesChange) {
+    const { handleOrderCopiesChange } = await import('./core')
+    return {
+      toast: await handleOrderCopiesChange(
+        target,
+        user,
+        copiesChange.orderId,
+        copiesChange.delta,
+        adapter,
+        callbackCtx,
+        message,
+      ),
+    }
+  }
+
+  if (data.startsWith('order_copies_nop:')) {
+    return { toast: '' }
   }
 
   const pointSlug = parsePointSelectPayload(data)

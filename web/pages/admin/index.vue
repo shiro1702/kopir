@@ -59,7 +59,10 @@ const displayGroups = computed(() => {
 
   const batches = [...batchMap.entries()].map(([batchId, batchOrders]) => {
     const sorted = [...batchOrders].sort((a, b) => (a.batchIndex ?? 0) - (b.batchIndex ?? 0))
-    const totalPages = sorted.reduce((sum, o) => sum + (o.pageCount ?? 0), 0)
+    const totalPages = sorted.reduce(
+      (sum, o) => sum + (o.pageCount ?? 0) * (o.copies ?? 1),
+      0,
+    )
     const totalAmountKopeks = sorted.reduce((sum, o) => sum + (o.amountKopeks ?? 0), 0)
     return {
       type: 'batch',
@@ -261,8 +264,14 @@ function formatAmount(amountKopeks) {
   return `${Math.round(amountKopeks / 100)} ₽`
 }
 
-function formatPages(pageCount = null) {
-  return pageCount ?? '—'
+function formatPages(pageCount = null, copies = 1) {
+  if (pageCount == null) {
+    return '—'
+  }
+  if (copies > 1) {
+    return `${pageCount}×${copies}`
+  }
+  return String(pageCount)
 }
 
 function formatUser(user) {
@@ -535,7 +544,7 @@ function formatPointCell(point) {
                     {{ order.fileName }}
                   </td>
                   <td class="px-4 py-2">
-                    {{ formatPages(order.pageCount) }}
+                    {{ formatPages(order.pageCount, order.copies) }}
                   </td>
                   <td class="px-4 py-2">
                     {{ formatAmount(order.amountKopeks) }}
@@ -558,7 +567,7 @@ function formatPointCell(point) {
                     {{ group.order.fileName }}
                   </td>
                   <td class="px-4 py-3">
-                    {{ formatPages(group.order.pageCount) }}
+                    {{ formatPages(group.order.pageCount, group.order.copies) }}
                   </td>
                   <td class="px-4 py-3">
                     {{ formatAmount(group.order.amountKopeks) }}
@@ -615,7 +624,7 @@ function formatPointCell(point) {
                   {{ order.fileName }}
                 </td>
                 <td class="px-4 py-3">
-                  {{ formatPages(order.pageCount) }}
+                  {{ formatPages(order.pageCount, order.copies) }}
                 </td>
                 <td class="px-4 py-3">
                   {{ formatAmount(order.amountKopeks) }}

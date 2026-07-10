@@ -1,4 +1,5 @@
 import { isTerminalPaymentMode } from '../payment-mode'
+import { formatPagesWithCopies } from '../order-pricing'
 
 export const BTN_FINALIZE_BATCH = '✅ Оплатить'
 export const BTN_CANCEL_BATCH = '❌ Отменить всё'
@@ -32,6 +33,9 @@ export const MSG_BATCH_EMPTY_AFTER_REMOVE =
   'Файлов не осталось. Отправьте документ, когда будете готовы.'
 export const MSG_BATCH_CANNOT_REMOVE_CALCULATING =
   'Этот файл ещё считается на принтере. Подождите несколько секунд.'
+
+export const MSG_COPIES_MIN = 'Минимум 1 копия'
+export const MSG_COPIES_MAX = 'Максимум 10 копий'
 export const MSG_BATCH_CONTROLS = 'Ваши файлы'
 
 export const MSG_START =
@@ -134,6 +138,7 @@ export interface BatchFileReadyOptions {
   pointLabel?: string | null
   totalAmountKopeks?: number
   pointOffline?: boolean
+  copies?: number
 }
 
 export function formatBatchFileReady(
@@ -145,9 +150,10 @@ export function formatBatchFileReady(
   options?: BatchFileReadyOptions,
 ): string {
   const hasPoint = Boolean(options?.pointLabel)
+  const copies = options?.copies ?? 1
   const lines = [
     `📎 Файл готов: ${fileName}`,
-    `Страниц: ${pageCount}`,
+    `Страниц: ${formatPagesWithCopies(pageCount, copies)}`,
     '',
     `Файлов: ${fileIndex} из ${maxFiles}.`,
   ]
@@ -327,11 +333,16 @@ export function formatCalculating(fileName: string, shortId: string): string {
   )
 }
 
-export function formatQuote(fileName: string, pageCount: number, amountKopeks: number): string {
+export function formatQuote(
+  fileName: string,
+  pageCount: number,
+  amountKopeks: number,
+  copies = 1,
+): string {
   const amountRub = Math.round(amountKopeks / 100)
   return (
     `📄 ${fileName}\n`
-    + `Страниц: ${pageCount}\n`
+    + `Страниц: ${formatPagesWithCopies(pageCount, copies)}\n`
     + `Стоимость: ${amountRub} ₽`
   )
 }
@@ -410,6 +421,7 @@ interface StaffOrderInfo {
   id: string
   fileName: string
   pageCount: number
+  copies?: number
   amountKopeks: number
   user: {
     username?: string | null
@@ -418,6 +430,10 @@ interface StaffOrderInfo {
   point: {
     name: string
   }
+}
+
+function staffPagesLine(order: Pick<StaffOrderInfo, 'pageCount' | 'copies'>): string {
+  return formatPagesWithCopies(order.pageCount, order.copies ?? 1)
 }
 
 export function formatStaffOrderAwaitingPayment(order: StaffOrderInfo): string {
@@ -432,7 +448,7 @@ export function formatStaffOrderAwaitingPayment(order: StaffOrderInfo): string {
   return (
     `🆕 Новый заказ #${shortId}\n`
     + `📄 ${order.fileName}\n`
-    + `Страниц: ${order.pageCount} | ${amountText}\n`
+    + `Страниц: ${staffPagesLine(order)} | ${amountText}\n`
     + `Клиент: ${userLabel}\n`
     + `Точка: ${order.point.name}\n\n`
     + 'Примите оплату на терминале, затем:\n'
@@ -637,7 +653,7 @@ export function formatStaffTransferAwaitingConfirm(order: StaffOrderInfo & {
     '🔔 Проверьте приложение банка\n\n'
     + `Заказ #${shortId} | ${staffAmountText(order.amountKopeks)}\n`
     + `📄 ${order.fileName}\n`
-    + `Страниц: ${order.pageCount}\n`
+    + `Страниц: ${staffPagesLine(order)}\n`
     + `Клиент: ${staffUserLabel(order.user)}\n`
     + `Точка: ${order.point.name}\n`
     + 'Способ: перевод СБП\n\n'
@@ -652,7 +668,7 @@ export function formatStaffOnSiteAwaitingPayment(order: StaffOrderInfo): string 
     '🆕 Клиент идёт на стойку\n\n'
     + `Заказ #${shortId} | ${staffAmountText(order.amountKopeks)}\n`
     + `📄 ${order.fileName}\n`
-    + `Страниц: ${order.pageCount}\n`
+    + `Страниц: ${staffPagesLine(order)}\n`
     + `Клиент: ${staffUserLabel(order.user)}\n`
     + `Точка: ${order.point.name}\n`
     + 'Способ: оплата на месте\n\n'

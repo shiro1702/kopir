@@ -30,6 +30,43 @@ export function batchRemoveCancelPayload(orderId: string): string {
   return `${BATCH_REMOVE_CANCEL_PREFIX}${orderId}`
 }
 
+export function orderCopiesDecPayload(orderId: string): string {
+  return `order_copies_dec:${orderId}`
+}
+
+export function orderCopiesIncPayload(orderId: string): string {
+  return `order_copies_inc:${orderId}`
+}
+
+export function formatCopiesButtonLabel(copies: number): string {
+  const n = Math.max(1, Math.round(copies))
+  const mod10 = n % 10
+  const mod100 = n % 100
+  if (mod10 === 1 && mod100 !== 11) {
+    return `${n} копия`
+  }
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) {
+    return `${n} копии`
+  }
+  return `${n} копий`
+}
+
+export function parseOrderCopiesPayload(payload: string): { orderId: string, delta: -1 | 1 } | null {
+  if (payload.startsWith('order_copies_dec:')) {
+    const orderId = payload.slice('order_copies_dec:'.length)
+    return orderId ? { orderId, delta: -1 } : null
+  }
+  if (payload.startsWith('order_copies_inc:')) {
+    const orderId = payload.slice('order_copies_inc:'.length)
+    return orderId ? { orderId, delta: 1 } : null
+  }
+  return null
+}
+
+export function isOrderCopiesCallbackPayload(payload: string): boolean {
+  return payload.startsWith('order_copies_dec:') || payload.startsWith('order_copies_inc:')
+}
+
 export function removeFileKeyboard(orderId: string): InlineKeyboardButton[][] {
   return [[{ text: BTN_REMOVE_FILE, callbackData: batchRemovePayload(orderId) }]]
 }
@@ -174,6 +211,8 @@ export function fileStatusKeyboard(
     withRemove: boolean
     keyboardMode: BatchKeyboardMode
     hasOtherPoints?: boolean
+    withCopies?: boolean
+    copies?: number
   },
 ): InlineKeyboardButton[][] {
   const rows: InlineKeyboardButton[][] = []
@@ -183,6 +222,14 @@ export function fileStatusKeyboard(
     rows.push([{ text: BTN_CHANGE_POINT, callbackData: 'point_change' }])
   } else if (options.keyboardMode === 'point_offline' && options.hasOtherPoints) {
     rows.push([{ text: BTN_SELECT_OTHER_POINT, callbackData: 'point_list' }])
+  }
+  if (options.withCopies) {
+    const copies = options.copies ?? 1
+    rows.push([
+      { text: '−', callbackData: orderCopiesDecPayload(orderId) },
+      { text: formatCopiesButtonLabel(copies), callbackData: `order_copies_nop:${orderId}` },
+      { text: '+', callbackData: orderCopiesIncPayload(orderId) },
+    ])
   }
   if (options.withRemove) {
     rows.push([{ text: BTN_REMOVE_FILE, callbackData: batchRemovePayload(orderId) }])

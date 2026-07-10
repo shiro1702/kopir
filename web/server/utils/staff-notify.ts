@@ -21,7 +21,7 @@ import {
   hasStaffNotifyTargets,
 } from './staff-auth'
 
-type OrderForStaff = Pick<Order, 'id' | 'fileName' | 'pageCount' | 'amountKopeks' | 'paymentConfirmedAt' | 'paymentMethod' | 'paymentClaimedAt' | 'batchId' | 'errorMessage' | 'pointId'>
+type OrderForStaff = Pick<Order, 'id' | 'fileName' | 'pageCount' | 'amountKopeks' | 'paymentConfirmedAt' | 'paymentMethod' | 'paymentClaimedAt' | 'batchId' | 'errorMessage' | 'pointId'> & { copies?: number }
   & {
     user: {
       username?: string | null

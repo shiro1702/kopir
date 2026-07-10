@@ -3,6 +3,7 @@ import { prisma } from '../../prisma'
 import { getTbankPassword, getTbankWebhookSecret } from '../../tbank-config'
 import { isTbankPaymentMethod } from '../methods'
 import type { PaymentContext } from '../types'
+import { billablePages } from '../../order-pricing'
 import {
   tbankGetQr,
   tbankGetState,
@@ -57,7 +58,7 @@ function buildReceiptItemName(ctx: PaymentContext): string {
     return `Печать, ${ctx.batch.totalPages} стр.`
   }
   if (ctx.order && ctx.order.pageCount > 0) {
-    return `Печать, ${ctx.order.pageCount} стр.`
+    return `Печать, ${billablePages(ctx.order.pageCount, ctx.order.copies ?? 1)} стр.`
   }
   return `Печать #${ctx.shortId}`
 }

@@ -14,9 +14,11 @@ import {
   isActiveBatchOrder,
   recalculateBatchTotals,
   removeOrderFromBatch,
+  updateOrderCopies,
 } from '../batch'
 import { uploadOrderFile } from '../blob'
 import { getPricePerPageKopeks } from '../calculation'
+import { computeOrderAmountKopeks } from '../order-pricing'
 import {
   detectDocumentKind,
   ensureFileExtension,
@@ -27,7 +29,7 @@ import { prisma } from '../prisma'
 import { resolvePointByDisplayCode, resolvePointBySlug, formatPointLabel, isPointAgentOnline, listActivePoints } from '../points'
 import { DEFAULT_POINT_SLUG } from './constants'
 import * as messages from './messages'
-import { fileStatusKeyboard, pointOfflineStartKeyboard, removeConfirmKeyboard } from './keyboards'
+import { fileStatusKeyboard, formatCopiesButtonLabel, pointOfflineStartKeyboard, removeConfirmKeyboard } from './keyboards'
 import {
   editOrderClientMessage,
   editOrderClientMessageViaAdapter,
@@ -92,7 +94,7 @@ function resolveOrderClientPlatform(
 }
 
 function orderMessageText(
-  order: Pick<Order, 'fileName' | 'batchIndex' | 'pageCount' | 'status' | 'errorMessage' | 'id'>,
+  order: Pick<Order, 'fileName' | 'batchIndex' | 'pageCount' | 'status' | 'errorMessage' | 'id'> & { copies?: number },
   maxFiles: number,
   keyboardMode: BatchKeyboardMode,
   batchContext?: { pointLabel?: string | null, totalAmountKopeks?: number },
@@ -110,8 +112,19 @@ function orderMessageText(
       pointLabel: batchContext?.pointLabel,
       totalAmountKopeks: batchContext?.totalAmountKopeks,
       pointOffline: keyboardMode === 'point_offline',
+      copies: order.copies ?? 1,
     },
   )
+}
+
+function copiesControlsForOrder(order: { status: OrderStatus, copies?: number }): {
+  withCopies: boolean
+  copies: number
+} {
+  return {
+    withCopies: order.status === OrderStatus.AWAITING_PAYMENT,
+    copies: order.copies ?? 1,
+  }
 }
 
 async function refreshMaxBatchFileKeyboards(
@@ -143,10 +156,19 @@ async function refreshMaxBatchFileKeyboards(
       pointLabel,
       totalAmountKopeks: batch?.totalAmountKopeks,
     })
+    const copiesOpts = copiesControlsForOrder(order)
     await editMaxStatusMessage(
       { messageId: order.clientMessageId, chatId: order.clientMessageChatId },
       text,
-      orderStatusOptions(order.id, true, 'max', keyboardMode, hasOtherPoints),
+      orderStatusOptions(
+        order.id,
+        true,
+        'max',
+        keyboardMode,
+        hasOtherPoints,
+        copiesOpts.copies,
+        copiesOpts.withCopies,
+      ),
     )
   }
 }
@@ -178,6 +200,8 @@ function orderStatusOptions(
   platform?: MessengerPlatform,
   keyboardMode?: BatchKeyboardMode,
   hasOtherPoints = false,
+  copies = 1,
+  withCopies = false,
 ): StatusMessageOptions {
   const opts: StatusMessageOptions = {}
   if (keyboardMode) {
@@ -185,6 +209,8 @@ function orderStatusOptions(
       withRemove: withRemoveButton,
       keyboardMode,
       hasOtherPoints,
+      withCopies,
+      copies,
     })
     if (inline.length > 0) {
       opts.inlineKeyboard = inline
@@ -675,7 +701,8 @@ export async function handleDocument(
   const batchIndex = await getNextBatchIndex(batch.id)
   const pricePerPage = boundPoint ? getPricePerPageKopeks(boundPoint) : 0
   const pageCount = 1
-  const amountKopeks = isWord || !boundPoint ? 0 : pageCount * pricePerPage
+  const copies = 1
+  const amountKopeks = isWord || !boundPoint ? 0 : computeOrderAmountKopeks(pageCount, copies, pricePerPage)
 
   const order = await prisma.order.create({
     data: {
@@ -684,6 +711,7 @@ export async function handleDocument(
       filePath: '',
       mimeType,
       pageCount,
+      copies,
       amountKopeks,
       userId: dbUser.id,
       pointId: batch.pointId,
@@ -742,15 +770,19 @@ export async function handleDocument(
             pointLabel,
             totalAmountKopeks: freshBatch?.totalAmountKopeks,
             pointOffline: keyboardMode === 'point_offline',
+            copies: freshOrder.copies,
           },
         )
 
+    const copiesOpts = copiesControlsForOrder(freshOrder)
     const statusOpts = orderStatusOptions(
       order.id,
       !isWord,
       platform,
       keyboardMode,
       hasOtherPoints,
+      copiesOpts.copies,
+      copiesOpts.withCopies,
     )
     const edited = await editOrderClientMessageViaAdapter(
       adapter,
@@ -999,9 +1031,11 @@ export async function handleBatchRemoveCancel(
     {
       pointLabel: batch?.point ? formatPointLabel(batch.point) : null,
       totalAmountKopeks: batch?.totalAmountKopeks,
+      copies: order.copies ?? 1,
     },
   )
 
+  const copiesOpts = copiesControlsForOrder(order)
   const msgRef = message ?? order
   if (msgRef && 'clientMessageId' in msgRef && msgRef.clientMessageId) {
     await editOrderClientMessageViaAdapter(
@@ -1014,11 +1048,102 @@ export async function handleBatchRemoveCancel(
         order.status !== OrderStatus.CALCULATING,
         target.platform,
         keyboardMode,
+        false,
+        copiesOpts.copies,
+        copiesOpts.withCopies,
       ),
     )
   }
 
   return 'Отменено'
+}
+
+export async function handleOrderCopiesChange(
+  target: MessengerReplyTarget,
+  user: BotUser,
+  orderId: string,
+  delta: -1 | 1,
+  adapter: MessengerAdapter,
+  _callbackCtx: CallbackContext,
+  message?: SentMessage,
+): Promise<string> {
+  const { order, dbUser } = await loadOrderForUser(orderId, user)
+
+  if (order.batch?.status === OrderBatchStatus.CANCELLED) {
+    return messages.MSG_BATCH_BATCH_CANCELLED_ACTION
+  }
+  if (order.batch?.status !== OrderBatchStatus.COLLECTING) {
+    return 'Уже отправлено на оплату'
+  }
+  if (!isActiveBatchOrder(order)) {
+    return messages.MSG_BATCH_FILE_ALREADY_REMOVED
+  }
+  if (order.status === OrderStatus.CALCULATING) {
+    return messages.MSG_BATCH_CANNOT_REMOVE_CALCULATING
+  }
+  if (order.status !== OrderStatus.AWAITING_PAYMENT) {
+    return 'Копии можно менять только для готовых файлов'
+  }
+
+  const nextCopies = (order.copies ?? 1) + delta
+  if (nextCopies < 1) {
+    return messages.MSG_COPIES_MIN
+  }
+  if (nextCopies > 10) {
+    return messages.MSG_COPIES_MAX
+  }
+
+  const result = await updateOrderCopies(orderId, dbUser.id, nextCopies)
+  const batch = await prisma.orderBatch.findUnique({
+    where: { id: result.batch.id },
+    include: { point: { select: { name: true, displayCode: true } } },
+  })
+  const keyboardMode = await getBatchKeyboardMode(result.batch.id)
+  const maxFiles = getBatchMaxFiles()
+  const pointLabel = batch?.point ? formatPointLabel(batch.point) : null
+  const readyText = messages.formatBatchFileReady(
+    result.order.fileName,
+    result.order.batchIndex ?? 1,
+    maxFiles,
+    result.order.pageCount,
+    keyboardMode === 'ready',
+    {
+      pointLabel,
+      totalAmountKopeks: batch?.totalAmountKopeks,
+      copies: result.order.copies,
+    },
+  )
+  const copiesOpts = copiesControlsForOrder(result.order)
+  const msgRef = message ?? result.order
+
+  if (msgRef && 'clientMessageId' in msgRef && msgRef.clientMessageId) {
+    await editOrderClientMessageViaAdapter(
+      adapter,
+      target,
+      msgRef as Pick<Order, 'clientMessageId' | 'clientMessageChatId'>,
+      readyText,
+      orderStatusOptions(
+        orderId,
+        true,
+        target.platform,
+        keyboardMode,
+        false,
+        copiesOpts.copies,
+        copiesOpts.withCopies,
+      ),
+    )
+  }
+
+  await syncBatchReplyKeyboard(
+    target.platform,
+    target,
+    adapter,
+    result.batch.id,
+    keyboardMode,
+    { force: true },
+  )
+
+  return formatCopiesButtonLabel(result.order.copies)
 }
 
 /** @deprecated Use handleDocument */
@@ -1132,7 +1257,7 @@ export async function notifyBatchPrintPartialFailure(
 
 export async function notifyBatchFileCalculated(
   user: Pick<User, 'telegramId' | 'maxUserId'>,
-  order: Pick<Order, 'id' | 'fileName' | 'pageCount' | 'batchId' | 'batchIndex' | 'clientMessageId' | 'clientMessageChatId'>,
+  order: Pick<Order, 'id' | 'fileName' | 'pageCount' | 'copies' | 'status' | 'batchId' | 'batchIndex' | 'clientMessageId' | 'clientMessageChatId'>,
 ): Promise<void> {
   if (!order.batchId) {
     return
@@ -1156,14 +1281,24 @@ export async function notifyBatchFileCalculated(
     {
       pointLabel,
       totalAmountKopeks: batch.totalAmountKopeks,
+      copies: order.copies ?? 1,
     },
   )
   const platform = resolveOrderClientPlatform(user, order)
+  const copiesOpts = copiesControlsForOrder(order)
   const edited = await editOrderClientMessage(
     user,
     order,
     text,
-    orderStatusOptions(order.id, true, platform ?? undefined, keyboardMode),
+    orderStatusOptions(
+      order.id,
+      true,
+      platform ?? undefined,
+      keyboardMode,
+      false,
+      copiesOpts.copies,
+      copiesOpts.withCopies,
+    ),
   )
   if (!edited) {
     await sendBatchUiToUser(user, text, keyboardMode)
@@ -1210,7 +1345,7 @@ export async function notifyPaymentConfirmed(
 
 export async function notifyQuoteReady(
   user: Pick<User, 'telegramId' | 'maxUserId'>,
-  order: Pick<Order, 'id' | 'fileName' | 'pageCount' | 'amountKopeks' | 'batchId' | 'batchIndex' | 'clientMessageId' | 'clientMessageChatId'>,
+  order: Pick<Order, 'id' | 'fileName' | 'pageCount' | 'copies' | 'amountKopeks' | 'batchId' | 'batchIndex' | 'clientMessageId' | 'clientMessageChatId' | 'status'>,
 ): Promise<void> {
   if (order.batchId) {
     const batch = await prisma.orderBatch.findUnique({
@@ -1234,7 +1369,7 @@ export async function notifyQuoteReady(
   }
   await sendToUser(
     user,
-    messages.formatQuote(order.fileName, order.pageCount, order.amountKopeks),
+    messages.formatQuote(order.fileName, order.pageCount, order.amountKopeks, order.copies),
   )
 }
 

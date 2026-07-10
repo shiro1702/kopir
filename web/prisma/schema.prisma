@@ -177,6 +177,7 @@ model Order {
   filePath           String
   mimeType           String?
   pageCount          Int         @default(1)
+  copies             Int         @default(1)
   amountKopeks       Int         @default(0)
   calculatedAt       DateTime?
   paymentConfirmedAt DateTime?

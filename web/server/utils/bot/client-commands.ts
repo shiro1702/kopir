@@ -118,7 +118,9 @@ async function formatActiveFilesMessage(userId: string): Promise<string> {
   const maxFiles = getBatchMaxFiles()
   const keyboardMode = await getBatchKeyboardMode(batch.id)
   const filesList = orders.map((order, index) => {
-    const pages = order.pageCount > 0 ? ` — ${order.pageCount} стр.` : ''
+    const pages = order.pageCount > 0
+      ? ` — ${order.pageCount}${order.copies > 1 ? `×${order.copies}` : ''} стр.`
+      : ''
     const status = order.status === 'CALCULATING' ? ' (считаем…)' : ''
     return `${index + 1}. ${order.fileName}${pages}${status}`
   }).join('\n')

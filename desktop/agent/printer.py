@@ -41,11 +41,12 @@ def _extension_for_order(order: dict) -> str:
     return ".pdf"
 
 
-def print_pdf(pdf_path: str, config: Config) -> None:
+def print_pdf(pdf_path: str, config: Config, *, copies: int = 1) -> None:
     path = Path(pdf_path)
     if not path.is_file():
         raise PrintError(f"PDF file not found: {pdf_path}")
 
+    safe_copies = max(1, int(copies))
     platform = sys.platform
     timeout = 120
 
@@ -59,11 +60,15 @@ def print_pdf(pdf_path: str, config: Config) -> None:
             cmd.extend(["-print-to", config.printer_name])
         else:
             cmd.append("-print-to-default")
+        if safe_copies > 1:
+            cmd.extend(["-print-settings", f"copies={safe_copies}"])
         cmd.append(str(path))
     elif platform in ("darwin", "linux"):
         cmd = ["lp"]
         if config.printer_name:
             cmd.extend(["-d", config.printer_name])
+        if safe_copies > 1:
+            cmd.extend(["-#", str(safe_copies)])
         cmd.append(str(path))
     else:
         raise PrintError(f"Unsupported platform: {platform}")
@@ -71,6 +76,10 @@ def print_pdf(pdf_path: str, config: Config) -> None:
     try:
         result = subprocess.run(cmd, check=False, timeout=timeout)
         if result.returncode != 0:
+            if platform == "win32" and safe_copies > 1:
+                for _ in range(safe_copies):
+                    print_pdf(pdf_path, config, copies=1)
+                return
             raise PrintError(_sumatra_failure_message(result.returncode))
     except subprocess.TimeoutExpired as exc:
         raise PrintError(f"Print timed out after {timeout}s") from exc
@@ -78,9 +87,12 @@ def print_pdf(pdf_path: str, config: Config) -> None:
 
 def print_order(file_path: str, order: dict, config: Config) -> None:
     ext = Path(file_path).suffix.lower() or _extension_for_order(order)
+    copies = int(order.get("copies") or 1)
+    if copies < 1:
+        copies = 1
 
     if ext == ".pdf":
-        print_pdf(file_path, config)
+        print_pdf(file_path, config, copies=copies)
         return
 
     if ext in {".doc", ".docx"}:
@@ -89,7 +101,7 @@ def print_order(file_path: str, order: dict, config: Config) -> None:
         if sys.platform != "win32":
             raise PrintError("Word printing requires Windows")
         try:
-            word.print_document(file_path, printer_name=config.printer_name)
+            word.print_document(file_path, printer_name=config.printer_name, copies=copies)
         except word.WordError as exc:
             raise PrintError(str(exc)) from exc
         return

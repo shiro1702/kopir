@@ -2,6 +2,7 @@ import { OrderStatus } from '@prisma/client'
 import { assertAgentAuth } from '../../../../utils/agent-auth'
 import { notifyCalculationFailed, notifyQuoteReady } from '../../../../utils/bot/core'
 import { getPricePerPageKopeks, isCalculationTimeoutError } from '../../../../utils/calculation'
+import { computeOrderAmountKopeks } from '../../../../utils/order-pricing'
 import { prisma } from '../../../../utils/prisma'
 import { touchPointAgentSeen } from '../../../../utils/points'
 
@@ -96,7 +97,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const amountKopeks = pageCount * getPricePerPageKopeks(order.point)
+  const amountKopeks = computeOrderAmountKopeks(pageCount, order.copies, getPricePerPageKopeks(order.point))
   const updated = await prisma.order.update({
     where: { id },
     data: {

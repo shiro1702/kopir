@@ -67,11 +67,15 @@ async function refreshBatchFileCards(
       {
         pointLabel,
         totalAmountKopeks: batch.totalAmountKopeks,
+        copies: order.copies,
       },
     )
+    const copiesOpts = order.status === OrderStatus.AWAITING_PAYMENT
     const inlineKeyboard = fileStatusKeyboard(order.id, {
       withRemove: order.status !== OrderStatus.CALCULATING,
       keyboardMode,
+      withCopies: copiesOpts,
+      copies: order.copies,
     })
     if (order.clientMessageId && order.clientMessageChatId) {
       await editOrderClientMessageViaAdapter(
@@ -181,6 +185,7 @@ export async function handlePointBack(
     {
       pointLabel,
       totalAmountKopeks: batch.totalAmountKopeks,
+      copies: lastOrder.copies,
     },
   )
 
@@ -188,6 +193,8 @@ export async function handlePointBack(
     inlineKeyboard: fileStatusKeyboard(lastOrder.id, {
       withRemove: lastOrder.status !== OrderStatus.CALCULATING,
       keyboardMode,
+      withCopies: lastOrder.status === OrderStatus.AWAITING_PAYMENT,
+      copies: lastOrder.copies,
     }),
     batchKeyboard: keyboardMode,
   })
