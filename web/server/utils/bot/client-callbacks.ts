@@ -111,7 +111,11 @@ export async function routeClientCallback(
   const pointSlug = parsePointSelectPayload(data)
   if (pointSlug) {
     const { handlePointSelect } = await import('./point-selection')
-    return { toast: await handlePointSelect(target, user, pointSlug, adapter) }
+    return {
+      toast: await handlePointSelect(target, user, pointSlug, adapter, {
+        callbackMessage: message,
+      }),
+    }
   }
 
   if (data === 'point_list') {

@@ -21,7 +21,13 @@ import type {
   MessengerAdapter,
   MessengerPlatform,
   MessengerReplyTarget,
+  SentMessage,
 } from './types'
+
+export interface PointSelectOptions {
+  /** Message with point list — edit after selection (callback source). */
+  callbackMessage?: SentMessage
+}
 
 async function loadDbUser(user: BotUser) {
   return prisma.user.findFirst({
@@ -78,18 +84,68 @@ async function refreshBatchFileCards(
       copies: order.copies,
     })
     if (order.clientMessageId && order.clientMessageChatId) {
-      await editOrderClientMessageViaAdapter(
-        adapter,
-        target,
-        order,
-        text,
-        { inlineKeyboard, batchKeyboard: keyboardMode },
-      )
+      try {
+        await editOrderClientMessageViaAdapter(
+          adapter,
+          target,
+          order,
+          text,
+          { inlineKeyboard, batchKeyboard: keyboardMode },
+        )
+      } catch (error) {
+        console.error('[bot] refreshBatchFileCards edit failed:', order.id, error)
+      }
     }
   }
 
   const { syncBatchReplyKeyboard } = await import('./core')
-  await syncBatchReplyKeyboard(platform, target, adapter, batchId, keyboardMode, { force: true })
+  try {
+    await syncBatchReplyKeyboard(platform, target, adapter, batchId, keyboardMode, { force: true })
+  } catch (error) {
+    console.error('[bot] syncBatchReplyKeyboard after point refresh failed:', error)
+  }
+}
+
+async function sendMaxBatchPointSelectedConfirmation(
+  batchId: string,
+  pointLabel: string,
+  target: MessengerReplyTarget,
+  adapter: MessengerAdapter,
+): Promise<void> {
+  const keyboardMode = await getBatchKeyboardMode(batchId)
+  const orders = await getActiveBatchOrders(batchId)
+  const lastOrder = orders[orders.length - 1]
+  const toast = messages.MSG_POINT_SELECTED(pointLabel)
+
+  if (!lastOrder) {
+    await adapter.sendText(target, toast)
+    return
+  }
+
+  const batch = await prisma.orderBatch.findUnique({ where: { id: batchId } })
+  const maxFiles = getBatchMaxFiles()
+  const fileText = messages.formatBatchFileReady(
+    lastOrder.fileName,
+    lastOrder.batchIndex ?? 1,
+    maxFiles,
+    lastOrder.pageCount,
+    keyboardMode === 'ready',
+    {
+      pointLabel,
+      totalAmountKopeks: batch?.totalAmountKopeks,
+      copies: lastOrder.copies,
+    },
+  )
+
+  await adapter.sendText(target, `${toast}\n\n${fileText}`, {
+    inlineKeyboard: fileStatusKeyboard(lastOrder.id, {
+      withRemove: lastOrder.status !== OrderStatus.CALCULATING,
+      keyboardMode,
+      withCopies: lastOrder.status === OrderStatus.AWAITING_PAYMENT,
+      copies: lastOrder.copies,
+    }),
+    batchKeyboard: keyboardMode,
+  })
 }
 
 export async function handlePointList(
@@ -127,6 +183,7 @@ export async function handlePointSelect(
   user: BotUser,
   slug: string,
   adapter: MessengerAdapter,
+  options?: PointSelectOptions,
 ): Promise<string> {
   const dbUser = await loadDbUser(user)
   if (!dbUser) {
@@ -138,8 +195,38 @@ export async function handlePointSelect(
 
   if (batch) {
     await bindBatchToPoint(batch.id, point.id, dbUser.id)
-    await refreshBatchFileCards(batch.id, adapter, target, target.platform)
-    return messages.MSG_POINT_SELECTED(formatPointLabel(point))
+    const pointLabel = formatPointLabel(point)
+    const toast = messages.MSG_POINT_SELECTED(pointLabel)
+
+    try {
+      await refreshBatchFileCards(batch.id, adapter, target, target.platform)
+    } catch (error) {
+      console.error('[bot] refreshBatchFileCards after point select failed:', error)
+    }
+
+    if (options?.callbackMessage && adapter.editStatus) {
+      try {
+        await adapter.editStatus(
+          target,
+          options.callbackMessage,
+          toast,
+          { removeInlineKeyboard: true },
+        )
+      } catch (error) {
+        console.error('[bot] edit point list message failed:', error)
+      }
+    }
+
+    if (target.platform === 'max') {
+      try {
+        await sendMaxBatchPointSelectedConfirmation(batch.id, pointLabel, target, adapter)
+      } catch (error) {
+        console.error('[bot] MAX point select confirmation failed:', error)
+        await adapter.sendText(target, toast)
+      }
+    }
+
+    return toast
   }
 
   const { setPointPreference } = await import('./preferences')

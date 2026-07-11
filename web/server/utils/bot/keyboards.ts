@@ -11,6 +11,7 @@ import {
   BTN_CHANGE_POINT,
   BTN_SELECT_OTHER_POINT,
 } from './messages'
+import { isPointAgentOnline } from '../points'
 import type { InlineKeyboardButton } from './types'
 import type { BatchKeyboardMode } from './types'
 
@@ -166,6 +167,14 @@ export interface PointListItem {
   slug: string
   name: string
   displayCode?: string | null
+  lastSeenAt?: Date | null
+}
+
+function formatPointListButtonText(point: PointListItem): string {
+  const online = point.lastSeenAt != null && isPointAgentOnline(point)
+  const status = online ? '🟢 ' : '🔴 '
+  const label = point.displayCode ? `${point.name} (${point.displayCode})` : point.name
+  return `${status}${label}`
 }
 
 export function pointSelectKeyboard(
@@ -175,7 +184,7 @@ export function pointSelectKeyboard(
   const start = page * POINTS_PER_PAGE
   const slice = points.slice(start, start + POINTS_PER_PAGE)
   const rows: InlineKeyboardButton[][] = slice.map((point) => [{
-    text: point.displayCode ? `${point.name} (${point.displayCode})` : point.name,
+    text: formatPointListButtonText(point),
     callbackData: pointSelectPayload(point.slug),
   }])
 

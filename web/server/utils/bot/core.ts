@@ -27,7 +27,7 @@ import {
 } from '../file-types'
 import { prisma } from '../prisma'
 import { resolvePointByDisplayCode, resolvePointBySlug, formatPointLabel, isPointAgentOnline, listActivePoints } from '../points'
-import { DEFAULT_POINT_SLUG } from './constants'
+import { DEFAULT_POINT_SLUG, normalizePointStartPayload } from './constants'
 import * as messages from './messages'
 import { fileStatusKeyboard, formatCopiesButtonLabel, pointOfflineStartKeyboard, removeConfirmKeyboard } from './keyboards'
 import {
@@ -412,7 +412,7 @@ export async function handleStart(
     }
   }
 
-  const slug = trimmed || DEFAULT_POINT_SLUG
+  const slug = trimmed ? normalizePointStartPayload(trimmed) : DEFAULT_POINT_SLUG
   let resolvedPoint: Awaited<ReturnType<typeof resolvePointBySlug>> | null = null
 
   try {
@@ -792,7 +792,7 @@ export async function handleDocument(
       statusOpts,
     )
     if (!edited) {
-      await adapter.sendText(target, statusText, { batchKeyboard: keyboardMode })
+      await adapter.sendText(target, statusText, statusOpts)
     }
 
     await syncBatchReplyKeyboard(platform, target, adapter, batch.id, keyboardMode)
