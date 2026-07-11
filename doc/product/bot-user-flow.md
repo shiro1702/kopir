@@ -55,6 +55,8 @@
 | «Готово!» после печати | 🟡 | 1 | Код частично; UX-10 не закрыт |
 | Блокировка offline-точки | ⬜ | 1 | MON-02 |
 | Повтор печати клиентом | ✅ | 1 | `order_retry:*` при сбое |
+| Запрос возврата клиентом | ✅ | 5 | `order_refund_request:*` / `batch_refund_request:*` при FAILED |
+| Возврат партнёром при сбое | ✅ | 5 | `partner_refund:*` → confirm → Т-Банк Cancel |
 | Staff: подтверждение оплаты | ✅ | 0–1 | `staff_pay:*`, `staff_batch_confirm:*` |
 | Staff: ручная печать при сбое | ✅ | 1 | `staff_manual_print:*` |
 | Mini App / корзина | ⬜ | 4 | WEB-07 |
@@ -153,6 +155,8 @@ MAX: команды — inline `client_cmd:*` и `partner_cmd:*`; пачка —
 | `pay_check_status:{paymentId}` | После онлайн-оплаты (TG) | polling GetState | ✅ |
 | `pay_check_entity:{id}` | Экран выбора способа | если включён онлайн; polling GetState | ✅ |
 | `order_retry:{orderId}` | Ошибка печати | Order в failed-состоянии | ✅ |
+| `order_refund_request:{orderId}` | Ошибка печати (одиночный заказ) | Order FAILED | ✅ |
+| `batch_refund_request:{batchId}` | Ошибка печати (пачка) | Есть FAILED в batch | ✅ |
 
 `{id}` = `orderId` или `batchId`.
 
@@ -182,6 +186,9 @@ Staff callback маршрутизируется только если payload **
 | `partner_toggle_pay:{pointId}:{method}` | Вкл/выкл способ оплаты | ✅ |
 | `partner_phone_hint:{pointId}` | Подсказка `/partner phone …` | ✅ |
 | `partner_balance` | Баланс + последние 10 операций | ✅ |
+| `partner_refund:{orderId}` | Уведомление о сбое печати | FAILED + онлайн-оплата | ✅ |
+| `partner_refund_confirm:{orderId}` | Подтверждение возврата | После `partner_refund` | ✅ |
+| `partner_refund_cancel:{orderId}` | Отмена возврата | После `partner_refund` | ✅ |
 
 Начисление на баланс: только `TBANK_SBP` / `TBANK_ONLINE`, default split **75/25** (`commissionPercent=25`; early bird ≤10 точек — **14%**; пилоты могут иметь 30%), идемпотентно по `batchId`. Tiered — Sprint 6.
 
@@ -238,7 +245,7 @@ stateDiagram-v2
   }
 
   Done --> [*]: Готово! (🟡)
-  PrintFailed --> [*]: сообщение + retry (✅)
+  PrintFailed --> [*]: сообщение + retry + refund request (✅)
 ```
 
 ### Условия переходов (кратко)

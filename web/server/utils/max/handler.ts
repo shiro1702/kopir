@@ -390,14 +390,18 @@ export async function handleMaxUpdate(update: MaxUpdate): Promise<void> {
             BigInt(callback.user.user_id),
             callback.payload,
           )
-          if (message) {
+          const isPartnerRefundAction = callback.payload.startsWith('partner_refund')
+          if (message && !isPartnerRefundAction) {
             await adapter.editStatus(target, message, screen.text, {
               inlineKeyboard: screen.keyboard,
             })
           } else {
             await adapter.sendText(target, screen.text, { inlineKeyboard: screen.keyboard })
           }
-          await client.answerCallback(callback.callback_id, 'Готово')
+          const answerText = callback.payload.startsWith('partner_refund_confirm:')
+            ? screen.text
+            : 'Готово'
+          await client.answerCallback(callback.callback_id, answerText)
         } catch (error) {
           const text = error instanceof Error ? error.message : 'Ошибка'
           await client.answerCallback(callback.callback_id, text)

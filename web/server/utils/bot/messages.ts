@@ -7,6 +7,10 @@ export const BTN_REMOVE_FILE = '🗑 Удалить этот файл'
 export const BTN_REMOVE_CONFIRM = 'Да, удалить'
 export const BTN_REMOVE_CANCEL = 'Нет'
 export const BTN_RETRY_PRINT = '🔄 Попробовать снова'
+export const BTN_REQUEST_REFUND = '💸 Запросить возврат'
+export const BTN_PARTNER_REFUND = '💸 Вернуть оплату'
+export const BTN_PARTNER_REFUND_CONFIRM = '✅ Да, вернуть'
+export const BTN_PARTNER_REFUND_CANCEL = 'Отмена'
 export const BTN_SELECT_POINT = '📋 Выбрать точку'
 export const BTN_CHANGE_POINT = '📍 Изменить точку'
 export const BTN_SELECT_OTHER_POINT = '📍 Выбрать другую точку'
@@ -312,7 +316,7 @@ export function formatBatchPrintPartialFailure(
     `⚠️ #${batchShortId}: печать завершена с ошибками.\n\n`
     + `Не удалось напечатать:\n${failedList}\n\n`
     + `Успешно: ${totalFiles - failedFiles.length} из ${totalFiles}.\n`
-    + `${retryHint} Если не поможет — обратитесь к сотруднику копицентра.`
+    + `${retryHint} Если не поможет — нажмите «Запросить возврат» или обратитесь к сотруднику копицентра.`
   )
 }
 
@@ -385,8 +389,69 @@ export function formatPrintFailed(shortId: string, fileName: string): string {
     `⚠️ Не удалось напечатать заказ #${shortId}.\n`
     + `📄 ${fileName}\n\n`
     + 'Нажмите «Попробовать снова» — печать запустится автоматически. '
-    + 'Если не поможет — обратитесь к сотруднику копицентра.'
+    + 'Если не поможет — нажмите «Запросить возврат» или обратитесь к сотруднику копицентра.'
   )
+}
+
+export const MSG_REFUND_ALREADY_DONE = '💸 Возврат уже выполнен.'
+export const MSG_REFUND_REQUEST_SENT_MANUAL =
+  '✅ Запрос на возврат отправлен.\n'
+  + 'Сотрудник копицентра обработает его в ближайшее время.'
+
+export function formatRefundRequestSent(amountKopeks: number): string {
+  const amountRub = Math.round(amountKopeks / 100)
+  return (
+    '✅ Запрос на возврат отправлен партнёру.\n\n'
+    + `Сумма: ${amountRub} ₽.\n`
+    + 'Обычно возврат на карту занимает до 3 рабочих дней.'
+  )
+}
+
+export function formatRefundCompletedForClient(amountKopeks: number): string {
+  const amountRub = Math.round(amountKopeks / 100)
+  return (
+    `💸 Мы вернули ${amountRub} ₽ на карту или счёт, с которого была оплата.\n`
+    + 'Обычно зачисление занимает до 3 рабочих дней.\n\n'
+    + 'Если нужна печать — отправьте файл снова.'
+  )
+}
+
+export function formatPartnerRefundRequest(order: {
+  id: string
+  fileName: string
+  batchId?: string | null
+  amountKopeks: number
+  point: { name: string }
+  user: { username?: string | null, firstName?: string | null }
+}): string {
+  const shortId = order.id.slice(-6)
+  const batchLine = order.batchId ? `\nПачка #${order.batchId.slice(-6)}` : ''
+  const amountRub = Math.round(order.amountKopeks / 100)
+  const userLabel = order.user.username
+    ? `@${order.user.username}`
+    : order.user.firstName ?? 'клиент'
+
+  return (
+    `💸 Клиент запросил возврат #${shortId}${batchLine}\n`
+    + `📄 ${order.fileName}\n`
+    + `Сумма: ${amountRub} ₽\n`
+    + `Клиент: ${userLabel}\n`
+    + `Точка: ${order.point.name}\n\n`
+    + 'Если оплата была онлайн — нажмите «Вернуть оплату».'
+  )
+}
+
+export function formatPartnerRefundConfirm(shortId: string, amountKopeks: number): string {
+  const amountRub = Math.round(amountKopeks / 100)
+  return (
+    `Вернуть ${amountRub} ₽ клиенту через Т-Банк?\n`
+    + `Заказ #${shortId}`
+  )
+}
+
+export function formatPartnerRefundDone(amountKopeks: number): string {
+  const amountRub = Math.round(amountKopeks / 100)
+  return `💸 Возврат выполнен · ${amountRub} ₽`
 }
 
 export function formatPrintAutoRetry(fileName: string): string {

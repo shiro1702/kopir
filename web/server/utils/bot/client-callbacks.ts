@@ -9,6 +9,8 @@ import {
   parsePayClaimedPayload,
   parsePayMethodPayload,
   parseOrderRetryPayload,
+  parseOrderRefundRequestPayload,
+  parseBatchRefundRequestPayload,
   parseOrderCopiesPayload,
   parsePointListPagePayload,
   parsePointSelectPayload,
@@ -86,6 +88,18 @@ export async function routeClientCallback(
   if (retryOrderId) {
     const { handleClientOrderRetry } = await import('./core')
     return { toast: await handleClientOrderRetry(user, retryOrderId) }
+  }
+
+  const refundOrderId = parseOrderRefundRequestPayload(data)
+  if (refundOrderId) {
+    const { handleClientRefundRequest } = await import('../refund-actions')
+    return { toast: await handleClientRefundRequest(user, refundOrderId) }
+  }
+
+  const refundBatchId = parseBatchRefundRequestPayload(data)
+  if (refundBatchId) {
+    const { handleClientBatchRefundRequest } = await import('../refund-actions')
+    return { toast: await handleClientBatchRefundRequest(user, refundBatchId) }
   }
 
   const copiesChange = parseOrderCopiesPayload(data)

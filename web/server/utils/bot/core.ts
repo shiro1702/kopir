@@ -874,7 +874,7 @@ export async function handleBatchAction(
   }
 }
 
-async function loadOrderForUser(orderId: string, user: BotUser) {
+export async function loadOrderForUser(orderId: string, user: BotUser) {
   const dbUser = await prisma.user.findFirst({
     where: {
       OR: [
@@ -1247,12 +1247,19 @@ export async function notifyBatchPrintPartialFailure(
   failedOrders: Array<{ id: string, fileName: string }>,
   totalFiles: number,
 ): Promise<void> {
-  const { printRetryKeyboard } = await import('./keyboards')
+  const { printFailureClientKeyboard } = await import('./keyboards')
   await sendToUserWithInlineKeyboard(
     user,
     messages.formatBatchPrintPartialFailure(batchId.slice(-6), failedOrders, totalFiles),
-    printRetryKeyboard(failedOrders),
+    printFailureClientKeyboard(failedOrders, batchId),
   )
+}
+
+export async function notifyRefundCompleted(
+  user: Pick<User, 'telegramId' | 'maxUserId'>,
+  amountKopeks: number,
+): Promise<void> {
+  await sendToUser(user, messages.formatRefundCompletedForClient(amountKopeks))
 }
 
 export async function notifyBatchFileCalculated(
@@ -1411,11 +1418,11 @@ export async function notifyPrintFailed(
   user: Pick<User, 'telegramId' | 'maxUserId'>,
   order: Pick<Order, 'id' | 'fileName'>,
 ): Promise<void> {
-  const { printRetryKeyboard } = await import('./keyboards')
+  const { printFailureClientKeyboard } = await import('./keyboards')
   await sendToUserWithInlineKeyboard(
     user,
     messages.formatPrintFailed(order.id.slice(-6), order.fileName),
-    printRetryKeyboard([{ id: order.id, fileName: order.fileName }]),
+    printFailureClientKeyboard([{ id: order.id, fileName: order.fileName }]),
   )
 }
 

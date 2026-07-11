@@ -422,7 +422,8 @@ function createBot(): Bot {
         const { assertPartnerForPayload, handlePartnerCallbackPayload } = await import('../partner-actions')
         await assertPartnerForPayload('telegram', chatId, data)
         const screen = await handlePartnerCallbackPayload('telegram', BigInt(telegramUser.id), data)
-        if (message && callbackCtx.messageId) {
+        const isPartnerRefundAction = data.startsWith('partner_refund')
+        if (message && callbackCtx.messageId && !isPartnerRefundAction) {
           const { editTelegramStatusMessage } = await import('./client')
           await editTelegramStatusMessage(chatId, message, screen.text, {
             inlineKeyboard: screen.keyboard,
@@ -430,7 +431,9 @@ function createBot(): Bot {
         } else {
           await adapter.sendText(target, screen.text, { inlineKeyboard: screen.keyboard })
         }
-        result = { toast: 'Готово' }
+        result = {
+          toast: data.startsWith('partner_refund_confirm:') ? screen.text : 'Готово',
+        }
       } else if (isStaffCallback) {
         result = { toast: await handleStaffCallback(data, chatId) }
       } else {
@@ -438,7 +441,8 @@ function createBot(): Bot {
       }
       const { isStaffPaymentConfirmPayload } = await import('../staff-actions')
       await adapter.answerCallback?.(callbackCtx, result.toast, {
-        showAlert: isStaffCallback && isStaffPaymentConfirmPayload(data),
+        showAlert: (isStaffCallback && isStaffPaymentConfirmPayload(data))
+          || data.startsWith('partner_refund_confirm:'),
         url: result.callbackAnswer?.url,
         ...result.callbackAnswer,
       })

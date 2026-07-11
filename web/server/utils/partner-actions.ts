@@ -97,6 +97,24 @@ export async function handlePartnerCallbackPayload(
     }
   }
 
+  if (data.startsWith('partner_refund_confirm:')) {
+    const orderId = data.slice('partner_refund_confirm:'.length)
+    const { handlePartnerRefundConfirm } = await import('./refund-actions')
+    return handlePartnerRefundConfirm(platform, userId, orderId)
+  }
+
+  if (data.startsWith('partner_refund_cancel:')) {
+    const orderId = data.slice('partner_refund_cancel:'.length)
+    const { handlePartnerRefundCancel } = await import('./refund-actions')
+    return handlePartnerRefundCancel(orderId)
+  }
+
+  if (data.startsWith('partner_refund:')) {
+    const orderId = data.slice('partner_refund:'.length)
+    const { handlePartnerRefundRequest } = await import('./refund-actions')
+    return handlePartnerRefundRequest(platform, userId, orderId)
+  }
+
   const pointId = resolvePointIdFromPartnerPayload(data)
   if (!pointId) {
     throw new Error('Неизвестная команда')
@@ -280,6 +298,22 @@ export async function assertPartnerForPayload(
       throw new Error('Нет доступа')
     }
     return
+  }
+
+  const refundPrefixes = ['partner_refund:', 'partner_refund_confirm:', 'partner_refund_cancel:']
+  for (const prefix of refundPrefixes) {
+    if (payload.startsWith(prefix)) {
+      const orderId = payload.slice(prefix.length)
+      const order = await prisma.order.findUnique({
+        where: { id: orderId },
+        select: { pointId: true },
+      })
+      if (!order) {
+        throw new Error('Заказ не найден')
+      }
+      await assertPartnerOwnsPoint(platform, userId, order.pointId)
+      return
+    }
   }
 
   const pointId = resolvePointIdFromPartnerPayload(payload)

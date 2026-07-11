@@ -7,6 +7,8 @@ import {
   BTN_REMOVE_CONFIRM,
   BTN_REMOVE_FILE,
   BTN_RETRY_PRINT,
+  BTN_REQUEST_REFUND,
+  BTN_PARTNER_REFUND,
   BTN_SELECT_POINT,
   BTN_CHANGE_POINT,
   BTN_SELECT_OTHER_POINT,
@@ -429,6 +431,47 @@ export function parseOrderRetryPayload(payload: string): string | null {
 
 export function isPrintRetryClientCallbackPayload(payload: string): boolean {
   return payload.startsWith('order_retry:')
+    || payload.startsWith('order_refund_request:')
+    || payload.startsWith('batch_refund_request:')
+}
+
+export function orderRefundRequestPayload(orderId: string): string {
+  return `order_refund_request:${orderId}`
+}
+
+export function batchRefundRequestPayload(batchId: string): string {
+  return `batch_refund_request:${batchId}`
+}
+
+export function parseOrderRefundRequestPayload(payload: string): string | null {
+  if (!payload.startsWith('order_refund_request:')) return null
+  return payload.slice('order_refund_request:'.length) || null
+}
+
+export function parseBatchRefundRequestPayload(payload: string): string | null {
+  if (!payload.startsWith('batch_refund_request:')) return null
+  return payload.slice('batch_refund_request:'.length) || null
+}
+
+export function partnerRefundPayload(orderId: string): string {
+  return `partner_refund:${orderId}`
+}
+
+export function printFailureClientKeyboard(
+  failedOrders: Array<{ id: string, fileName: string }>,
+  batchId?: string | null,
+): InlineKeyboardButton[][] {
+  const rows = printRetryKeyboard(failedOrders)
+  if (batchId) {
+    rows.push([{ text: BTN_REQUEST_REFUND, callbackData: batchRefundRequestPayload(batchId) }])
+  } else if (failedOrders.length === 1) {
+    rows.push([{ text: BTN_REQUEST_REFUND, callbackData: orderRefundRequestPayload(failedOrders[0]!.id) }])
+  }
+  return rows
+}
+
+export function partnerPrintFailedKeyboard(orderId: string): InlineKeyboardButton[][] {
+  return [[{ text: BTN_PARTNER_REFUND, callbackData: partnerRefundPayload(orderId) }]]
 }
 
 export function printRetryKeyboard(
