@@ -161,6 +161,27 @@ export function formatPartnerClientLinks(
   return lines.join('\n').trimEnd()
 }
 
+export function formatPartnerPrintFailed(
+  order: {
+    id: string
+    fileName: string
+    batchId?: string | null
+    point: { name: string }
+  },
+  errorMessage?: string | null,
+): string {
+  const shortId = order.id.slice(-6)
+  const batchLine = order.batchId ? `\nПачка #${order.batchId.slice(-6)}` : ''
+  const reason = errorMessage?.trim()
+  return (
+    `⚠️ Не удалось напечатать автоматически #${shortId}${batchLine}\n`
+    + `📄 ${order.fileName}\n`
+    + `Точка: ${order.point.name}`
+    + (reason ? `\n\nПричина: ${reason}` : '')
+    + '\n\nФайл ниже — распечатайте вручную. Сотрудник на точке может отметить заказ «Печать готова» в staff-чате.'
+  )
+}
+
 export function formatPartnerPhoneHint(pointId: string): string {
   return `Отправьте команду:\n/partner phone ${pointId} +79XXXXXXXXX`
 }

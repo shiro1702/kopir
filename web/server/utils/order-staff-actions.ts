@@ -295,14 +295,16 @@ export async function handleOrderPrintFailure(
     },
   })
 
+  const failedOrderPayload = {
+    ...order,
+    errorMessage: updated.errorMessage,
+  }
+
   if (order.batchId) {
     await checkBatchCompletion(order.batchId)
     try {
       const { notifyStaffPrintFailed } = await import('./staff-notify')
-      await notifyStaffPrintFailed({
-        ...order,
-        errorMessage: updated.errorMessage,
-      })
+      await notifyStaffPrintFailed(failedOrderPayload)
     } catch (error) {
       console.error('[print-failure] staff notify error:', order.id, error)
     }
@@ -311,13 +313,17 @@ export async function handleOrderPrintFailure(
       const { notifyPrintFailed } = await import('./bot/core')
       const { notifyStaffPrintFailed } = await import('./staff-notify')
       await notifyPrintFailed(order.user, { ...order, errorMessage: updated.errorMessage })
-      await notifyStaffPrintFailed({
-        ...order,
-        errorMessage: updated.errorMessage,
-      })
+      await notifyStaffPrintFailed(failedOrderPayload)
     } catch (error) {
       console.error('[print-failure] notify error:', order.id, error)
     }
+  }
+
+  try {
+    const { notifyPartnerPrintFailed } = await import('./partner-notify')
+    await notifyPartnerPrintFailed(failedOrderPayload)
+  } catch (error) {
+    console.error('[print-failure] partner notify error:', order.id, error)
   }
 
   return {

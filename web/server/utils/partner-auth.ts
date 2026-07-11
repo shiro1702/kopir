@@ -46,6 +46,42 @@ export async function getPartnerPoints(partnerId: string): Promise<Point[]> {
   })
 }
 
+export type PartnerMessengerTargets = {
+  telegramUserId: number | null
+  maxUserId: number | null
+}
+
+export async function getPartnerMessengerTargetsForPoint(
+  pointId: string,
+): Promise<PartnerMessengerTargets> {
+  const point = await prisma.point.findUnique({
+    where: { id: pointId },
+    select: {
+      partner: {
+        select: { telegramId: true, maxUserId: true },
+      },
+    },
+  })
+
+  if (!point?.partner) {
+    return { telegramUserId: null, maxUserId: null }
+  }
+
+  return {
+    telegramUserId: point.partner.telegramId !== null
+      ? Number(point.partner.telegramId)
+      : null,
+    maxUserId: point.partner.maxUserId !== null
+      ? Number(point.partner.maxUserId)
+      : null,
+  }
+}
+
+export async function hasPartnerNotifyTargets(pointId: string): Promise<boolean> {
+  const targets = await getPartnerMessengerTargetsForPoint(pointId)
+  return targets.telegramUserId !== null || targets.maxUserId !== null
+}
+
 export async function assertPartnerOwnsPoint(
   platform: MessengerPlatform,
   userId: bigint,
