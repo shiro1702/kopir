@@ -368,7 +368,7 @@ async function openOrderFile(order) {
 
 <template>
   <div class="min-h-screen bg-gray-50 p-6">
-    <div class="mx-auto max-w-5xl">
+    <div class="mx-auto max-w-7xl">
       <div class="mb-6 flex items-center justify-between gap-4">
         <div>
           <h1 class="text-2xl font-bold text-gray-900">
@@ -482,35 +482,35 @@ async function openOrderFile(order) {
         </button>
       </div>
 
-      <div class="overflow-hidden rounded-lg border bg-white">
-        <table class="min-w-full table-fixed text-sm">
+      <div class="overflow-x-auto rounded-lg border bg-white">
+        <table class="w-full text-sm">
           <thead class="bg-gray-100 text-left text-gray-600">
             <tr>
-              <th class="w-24 px-4 py-3">
+              <th class="px-4 py-3 whitespace-nowrap">
                 Заказ
               </th>
-              <th class="w-28 px-4 py-3">
+              <th class="w-[5.5rem] max-w-[5.5rem] px-4 py-3">
                 Файл
               </th>
-              <th class="w-16 px-4 py-3">
+              <th class="px-4 py-3 whitespace-nowrap">
                 Страниц
               </th>
-              <th class="w-16 px-4 py-3">
+              <th class="px-4 py-3 whitespace-nowrap">
                 Сумма
               </th>
-              <th class="w-28 px-4 py-3">
+              <th class="px-4 py-3">
                 Пользователь
               </th>
-              <th class="w-28 px-4 py-3">
+              <th class="px-4 py-3">
                 Точка
               </th>
-              <th class="w-32 px-4 py-3">
+              <th class="px-4 py-3 whitespace-nowrap">
                 Дата
               </th>
-              <th class="w-28 px-4 py-3">
+              <th class="px-4 py-3">
                 Статус
               </th>
-              <th class="w-28 px-4 py-3" />
+              <th class="w-[1%] px-4 py-3 whitespace-nowrap" />
             </tr>
           </thead>
           <tbody>
@@ -550,7 +550,7 @@ async function openOrderFile(order) {
                   <td class="px-4 py-3">
                     Ждёт оплату
                   </td>
-                  <td class="px-4 py-3">
+                  <td class="w-[1%] px-4 py-3 whitespace-nowrap">
                     <button
                       class="rounded bg-green-600 px-3 py-1 text-white hover:bg-green-700 disabled:opacity-50"
                       :disabled="confirmingBatchId === group.batchId"
@@ -568,7 +568,7 @@ async function openOrderFile(order) {
                   <td class="px-4 py-2 pl-8 font-mono text-xs">
                     {{ order.batchIndex }}.
                   </td>
-                  <td class="px-4 py-2 break-words">
+                  <td class="w-[5.5rem] max-w-[5.5rem] px-4 py-2 break-words">
                     <a
                       v-if="order.hasFile"
                       href="#"
@@ -600,7 +600,7 @@ async function openOrderFile(order) {
                   <td class="px-4 py-3 font-mono">
                     #{{ group.order.shortId }}
                   </td>
-                  <td class="px-4 py-3 break-words">
+                  <td class="w-[5.5rem] max-w-[5.5rem] px-4 py-3 break-words">
                     <a
                       v-if="group.order.hasFile"
                       href="#"
@@ -633,7 +633,7 @@ async function openOrderFile(order) {
                   <td class="px-4 py-3">
                     {{ orderStatusLabel(group.order) }}
                   </td>
-                  <td class="px-4 py-3">
+                  <td class="w-[1%] px-4 py-3 whitespace-nowrap">
                     <div class="flex flex-col gap-1 sm:flex-row">
                       <button
                         v-if="isTerminalMode && !group.order.paymentConfirmedAt"
@@ -666,7 +666,7 @@ async function openOrderFile(order) {
                 <td class="px-4 py-3 font-mono text-xs">
                   {{ formatOrderRef(order) }}
                 </td>
-                <td class="px-4 py-3 break-words">
+                <td class="w-[5.5rem] max-w-[5.5rem] px-4 py-3 break-words">
                   <a
                     v-if="order.hasFile"
                     href="#"
@@ -711,10 +711,10 @@ async function openOrderFile(order) {
                     {{ order.errorMessage }}
                   </span>
                 </td>
-                <td class="px-4 py-3 whitespace-nowrap">
+                <td class="w-[1%] px-4 py-3 whitespace-nowrap">
                   <button
                     v-if="order.canRefund"
-                    class="rounded bg-rose-600 px-3 py-1 text-white hover:bg-rose-700 disabled:opacity-50"
+                    class="shrink-0 rounded bg-rose-600 px-3 py-1 text-white hover:bg-rose-700 disabled:opacity-50"
                     :disabled="refundingId === order.id"
                     @click="refundPayment(order)"
                   >
