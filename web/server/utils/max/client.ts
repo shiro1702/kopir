@@ -12,6 +12,23 @@ const MAX_UPDATE_TYPES = [
   'bot_started',
 ] as const
 
+const MAX_FILE_SEND_MAX_ATTEMPTS = 6
+const MAX_FILE_SEND_INITIAL_DELAY_MS = 500
+const MAX_FILE_SEND_MAX_DELAY_MS = 5000
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+export function isMaxAttachmentNotReadyError(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false
+  }
+  const message = error.message
+  return message.includes('attachment.not.ready')
+    || message.includes('file.not.processed')
+}
+
 export function getMaxBotToken(): string {
   const config = useRuntimeConfig()
   const token = config.maxBotToken
@@ -181,7 +198,24 @@ export class MaxClient {
     const token = await this.uploadFile(data, fileName)
     const fileAttachment = { type: 'file', payload: { token } }
     const attachments = [fileAttachment, ...(extraAttachments ?? [])]
-    await this.sendMessage(target, text, attachments)
+
+    let delayMs = MAX_FILE_SEND_INITIAL_DELAY_MS
+    for (let attempt = 1; attempt <= MAX_FILE_SEND_MAX_ATTEMPTS; attempt++) {
+      try {
+        await this.sendMessage(target, text, attachments)
+        return
+      } catch (error) {
+        const err = error instanceof Error ? error : new Error(String(error))
+        if (!isMaxAttachmentNotReadyError(err) || attempt === MAX_FILE_SEND_MAX_ATTEMPTS) {
+          throw err
+        }
+        console.warn(
+          `[max] attachment not ready for ${fileName}, retry ${attempt}/${MAX_FILE_SEND_MAX_ATTEMPTS} in ${delayMs}ms`,
+        )
+        await sleep(delayMs)
+        delayMs = Math.min(delayMs * 2, MAX_FILE_SEND_MAX_DELAY_MS)
+      }
+    }
   }
 }
 

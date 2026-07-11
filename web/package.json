@@ -12,7 +12,7 @@
     "db:deploy": "prisma migrate deploy",
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio",
-    "test": "tsx --test server/utils/payments/tbank-client.test.ts server/utils/payments/tbank-acquiring.test.ts server/utils/payments/tbank-receipt.test.ts server/utils/payments/tbank-receipt-link.test.ts server/utils/partner-balance.test.ts server/utils/payout-registry.test.ts server/utils/partner-requisites.test.ts server/utils/partner-notify.test.ts server/utils/refund-keyboards.test.ts server/utils/commission.test.ts server/utils/point-links.test.ts server/utils/point-links-qr.test.ts server/utils/public-offer.test.ts server/utils/order-pricing.test.ts"
+    "test": "tsx --test server/utils/payments/tbank-client.test.ts server/utils/payments/tbank-acquiring.test.ts server/utils/payments/tbank-receipt.test.ts server/utils/payments/tbank-receipt-link.test.ts server/utils/partner-balance.test.ts server/utils/payout-registry.test.ts server/utils/partner-requisites.test.ts server/utils/partner-notify.test.ts server/utils/refund-keyboards.test.ts server/utils/commission.test.ts server/utils/point-links.test.ts server/utils/point-links-qr.test.ts server/utils/public-offer.test.ts server/utils/order-pricing.test.ts server/utils/max/client.test.ts"
   },
   "dependencies": {
     "@pdf-lib/fontkit": "^1.1.1",
