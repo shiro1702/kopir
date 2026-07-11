@@ -30,6 +30,7 @@ const confirmingId = ref(null)
 const printingId = ref(null)
 const confirmingBatchId = ref(null)
 const refundingId = ref(null)
+const openingFileId = ref(null)
 const activeTab = ref('payment')
 
 useHead({
@@ -336,6 +337,33 @@ function formatPointCell(point) {
   return `${pointAgentIndicator(point)} ${point.name}`
 }
 
+async function openOrderFile(order) {
+  if (!adminSecret.value || openingFileId.value || !order.hasFile) return
+  openingFileId.value = order.id
+  error.value = ''
+  try {
+    const blob = await $fetch(`/api/admin/orders/${order.id}/file`, {
+      headers: authHeaders(),
+      responseType: 'blob',
+    })
+    const url = URL.createObjectURL(blob)
+    const isPdf = order.fileName.toLowerCase().endsWith('.pdf')
+    if (isPdf) {
+      window.open(url, '_blank', 'noopener')
+    } else {
+      const anchor = document.createElement('a')
+      anchor.href = url
+      anchor.download = order.fileName
+      anchor.click()
+    }
+    setTimeout(() => URL.revokeObjectURL(url), 60_000)
+  } catch (e) {
+    error.value = e?.data?.error ?? 'Не удалось открыть файл'
+  } finally {
+    openingFileId.value = null
+  }
+}
+
 </script>
 
 <template>
@@ -455,34 +483,34 @@ function formatPointCell(point) {
       </div>
 
       <div class="overflow-hidden rounded-lg border bg-white">
-        <table class="min-w-full text-sm">
+        <table class="min-w-full table-fixed text-sm">
           <thead class="bg-gray-100 text-left text-gray-600">
             <tr>
-              <th class="px-4 py-3">
+              <th class="w-24 px-4 py-3">
                 Заказ
               </th>
-              <th class="px-4 py-3">
+              <th class="w-28 px-4 py-3">
                 Файл
               </th>
-              <th class="px-4 py-3">
+              <th class="w-16 px-4 py-3">
                 Страниц
               </th>
-              <th class="px-4 py-3">
+              <th class="w-16 px-4 py-3">
                 Сумма
               </th>
-              <th class="px-4 py-3">
+              <th class="w-28 px-4 py-3">
                 Пользователь
               </th>
-              <th class="px-4 py-3">
+              <th class="w-28 px-4 py-3">
                 Точка
               </th>
-              <th class="px-4 py-3">
+              <th class="w-32 px-4 py-3">
                 Дата
               </th>
-              <th class="px-4 py-3">
+              <th class="w-28 px-4 py-3">
                 Статус
               </th>
-              <th class="px-4 py-3" />
+              <th class="w-28 px-4 py-3" />
             </tr>
           </thead>
           <tbody>
@@ -540,8 +568,17 @@ function formatPointCell(point) {
                   <td class="px-4 py-2 pl-8 font-mono text-xs">
                     {{ order.batchIndex }}.
                   </td>
-                  <td class="px-4 py-2">
-                    {{ order.fileName }}
+                  <td class="px-4 py-2 break-words">
+                    <a
+                      v-if="order.hasFile"
+                      href="#"
+                      class="text-blue-600 hover:underline"
+                      :class="{ 'opacity-50 pointer-events-none': openingFileId === order.id }"
+                      @click.prevent="openOrderFile(order)"
+                    >
+                      {{ order.fileName }}
+                    </a>
+                    <span v-else>{{ order.fileName }}</span>
                   </td>
                   <td class="px-4 py-2">
                     {{ formatPages(order.pageCount, order.copies) }}
@@ -563,8 +600,17 @@ function formatPointCell(point) {
                   <td class="px-4 py-3 font-mono">
                     #{{ group.order.shortId }}
                   </td>
-                  <td class="px-4 py-3">
-                    {{ group.order.fileName }}
+                  <td class="px-4 py-3 break-words">
+                    <a
+                      v-if="group.order.hasFile"
+                      href="#"
+                      class="text-blue-600 hover:underline"
+                      :class="{ 'opacity-50 pointer-events-none': openingFileId === group.order.id }"
+                      @click.prevent="openOrderFile(group.order)"
+                    >
+                      {{ group.order.fileName }}
+                    </a>
+                    <span v-else>{{ group.order.fileName }}</span>
                   </td>
                   <td class="px-4 py-3">
                     {{ formatPages(group.order.pageCount, group.order.copies) }}
@@ -620,8 +666,17 @@ function formatPointCell(point) {
                 <td class="px-4 py-3 font-mono text-xs">
                   {{ formatOrderRef(order) }}
                 </td>
-                <td class="px-4 py-3">
-                  {{ order.fileName }}
+                <td class="px-4 py-3 break-words">
+                  <a
+                    v-if="order.hasFile"
+                    href="#"
+                    class="text-blue-600 hover:underline"
+                    :class="{ 'opacity-50 pointer-events-none': openingFileId === order.id }"
+                    @click.prevent="openOrderFile(order)"
+                  >
+                    {{ order.fileName }}
+                  </a>
+                  <span v-else>{{ order.fileName }}</span>
                 </td>
                 <td class="px-4 py-3">
                   {{ formatPages(order.pageCount, order.copies) }}
@@ -656,7 +711,7 @@ function formatPointCell(point) {
                     {{ order.errorMessage }}
                   </span>
                 </td>
-                <td class="px-4 py-3">
+                <td class="px-4 py-3 whitespace-nowrap">
                   <button
                     v-if="order.canRefund"
                     class="rounded bg-rose-600 px-3 py-1 text-white hover:bg-rose-700 disabled:opacity-50"

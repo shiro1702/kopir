@@ -88,6 +88,7 @@ export default defineEventHandler(async (event) => {
         id: order.id,
         shortId: order.id.slice(-6),
         fileName: order.fileName,
+        hasFile: Boolean(order.filePath?.trim()),
         pageCount: order.pageCount,
         copies: order.copies,
         amountKopeks: order.amountKopeks,
