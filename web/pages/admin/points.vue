@@ -18,6 +18,9 @@ const saving = ref(false)
 const tokenResult = ref(null)
 const clientLinks = ref(null)
 const clientLinksLoading = ref(false)
+const bindingsPanel = ref(null)
+const unbindingStaffId = ref(null)
+const unbindingPartner = ref(false)
 const posterDownloading = ref(false)
 const tbankConfigured = ref(false)
 const adminConfig = ref(null)
@@ -70,6 +73,91 @@ function closeClientLinks() {
   clientLinks.value = null
 }
 
+function closeBindingsPanel() {
+  bindingsPanel.value = null
+}
+
+function openBindings(point) {
+  tokenResult.value = null
+  closeClientLinks()
+  bindingsPanel.value = {
+    point,
+    staffChannels: point.staffChannels ?? [],
+    partner: point.partner ?? null,
+  }
+}
+
+function bindingsSummary(point) {
+  const staffCount = point.staffChannels?.length ?? 0
+  const hasPartner = Boolean(point.partner)
+  const parts = []
+  if (staffCount > 0) {
+    parts.push(`${staffCount} сотр.`)
+  }
+  if (hasPartner) {
+    parts.push('партнёр')
+  }
+  return parts.length > 0 ? parts.join(', ') : '—'
+}
+
+async function unbindStaffChannel(channel) {
+  if (!bindingsPanel.value || unbindingStaffId.value) return
+  const point = bindingsPanel.value.point
+  const label = channel.label || channel.platform
+  if (!confirm(`Отвязать ${label} от точки «${point.name}»?`)) return
+
+  unbindingStaffId.value = channel.id
+  error.value = ''
+  success.value = ''
+  try {
+    await $fetch(`/api/admin/points/${point.id}/staff/${channel.id}`, {
+      method: 'DELETE',
+      headers: authHeaders(),
+    })
+    bindingsPanel.value.staffChannels = bindingsPanel.value.staffChannels.filter(
+      (item) => item.id !== channel.id,
+    )
+    const listPoint = points.value.find((item) => item.id === point.id)
+    if (listPoint) {
+      listPoint.staffChannels = bindingsPanel.value.staffChannels
+    }
+    success.value = 'Сотрудник отвязан'
+    setTimeout(() => { success.value = '' }, 2000)
+  } catch (e) {
+    error.value = e?.data?.error ?? 'Не удалось отвязать сотрудника'
+  } finally {
+    unbindingStaffId.value = null
+  }
+}
+
+async function unbindPartner() {
+  if (!bindingsPanel.value?.partner || unbindingPartner.value) return
+  const point = bindingsPanel.value.point
+  const partnerName = bindingsPanel.value.partner.displayName
+  if (!confirm(`Отвязать партнёра «${partnerName}» от точки «${point.name}»?`)) return
+
+  unbindingPartner.value = true
+  error.value = ''
+  success.value = ''
+  try {
+    await $fetch(`/api/admin/points/${point.id}/partner`, {
+      method: 'DELETE',
+      headers: authHeaders(),
+    })
+    bindingsPanel.value.partner = null
+    const listPoint = points.value.find((item) => item.id === point.id)
+    if (listPoint) {
+      listPoint.partner = null
+    }
+    success.value = 'Партнёр отвязан'
+    setTimeout(() => { success.value = '' }, 2000)
+  } catch (e) {
+    error.value = e?.data?.error ?? 'Не удалось отвязать партнёра'
+  } finally {
+    unbindingPartner.value = false
+  }
+}
+
 function saveSecret() {
   const validationError = persistAdminSecret()
   if (validationError) {
@@ -100,6 +188,7 @@ function openCreate() {
   showForm.value = true
   tokenResult.value = null
   closeClientLinks()
+  closeBindingsPanel()
 }
 
 function openEdit(point) {
@@ -118,6 +207,7 @@ function openEdit(point) {
   showForm.value = true
   tokenResult.value = null
   closeClientLinks()
+  closeBindingsPanel()
 }
 
 function closeForm() {
@@ -133,6 +223,16 @@ async function fetchPoints() {
     const data = await $fetch('/api/admin/points', { headers: authHeaders() })
     rememberOnSuccess()
     points.value = data.points
+    if (bindingsPanel.value) {
+      const fresh = data.points.find((item) => item.id === bindingsPanel.value.point.id)
+      if (fresh) {
+        bindingsPanel.value = {
+          point: fresh,
+          staffChannels: fresh.staffChannels ?? [],
+          partner: fresh.partner ?? null,
+        }
+      }
+    }
     try {
       const config = await $fetch('/api/admin/config', { headers: authHeaders() })
       adminConfig.value = config
@@ -206,6 +306,7 @@ function toggleMethod(methodId) {
 async function generatePartnerToken(point) {
   tokenResult.value = null
   closeClientLinks()
+  closeBindingsPanel()
   error.value = ''
   try {
     const data = await $fetch(`/api/admin/points/${point.id}/partner-token`, {
@@ -221,6 +322,7 @@ async function generatePartnerToken(point) {
 async function generateBindToken(point) {
   tokenResult.value = null
   closeClientLinks()
+  closeBindingsPanel()
   error.value = ''
   try {
     const data = await $fetch(`/api/admin/points/${point.id}/bind-token`, {
@@ -236,6 +338,7 @@ async function generateBindToken(point) {
 async function generateAgentToken(point) {
   tokenResult.value = null
   closeClientLinks()
+  closeBindingsPanel()
   error.value = ''
   try {
     const data = await $fetch(`/api/admin/points/${point.id}/agent-token`, {
@@ -284,6 +387,7 @@ async function openClientLinks(point) {
   if (!adminSecret.value || clientLinksLoading.value) return
   tokenResult.value = null
   closeClientLinks()
+  closeBindingsPanel()
   clientLinksLoading.value = true
   error.value = ''
   try {
@@ -436,6 +540,110 @@ function telegramBotLabel() {
         @close="closeClientLinks"
         @download-poster="downloadPoster"
       />
+
+      <div
+        v-if="bindingsPanel"
+        class="mb-4 rounded-lg border border-gray-200 bg-white p-4 text-sm"
+      >
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <p class="font-semibold text-gray-900">
+              Привязки бота — {{ bindingsPanel.point.name }}
+            </p>
+            <p class="mt-1 text-xs text-gray-500">
+              Сотрудники получают уведомления о заказах; партнёр — доступ к кабинету точки
+            </p>
+          </div>
+          <button
+            class="text-xs text-gray-500 underline hover:text-gray-700"
+            @click="closeBindingsPanel"
+          >
+            Закрыть
+          </button>
+        </div>
+
+        <div class="mt-4">
+          <p class="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500">
+            Сотрудники
+          </p>
+          <div
+            v-if="bindingsPanel.staffChannels.length"
+            class="space-y-2"
+          >
+            <div
+              v-for="channel in bindingsPanel.staffChannels"
+              :key="channel.id"
+              class="flex flex-wrap items-center justify-between gap-2 rounded-md border bg-gray-50 px-3 py-2"
+            >
+              <div>
+                <p class="font-medium text-gray-900">
+                  {{ channel.label }}
+                </p>
+                <p class="font-mono text-xs text-gray-600">
+                  ID: {{ channel.identifier }}
+                </p>
+                <p class="text-xs text-gray-500">
+                  Привязан {{ formatDateTime(channel.boundAt) }}
+                </p>
+              </div>
+              <button
+                class="rounded border border-red-200 bg-white px-3 py-1 text-xs text-red-700 hover:bg-red-50 disabled:opacity-50"
+                :disabled="unbindingStaffId === channel.id"
+                @click="unbindStaffChannel(channel)"
+              >
+                {{ unbindingStaffId === channel.id ? 'Отвязка…' : 'Отвязать' }}
+              </button>
+            </div>
+          </div>
+          <p
+            v-else
+            class="rounded-md border border-dashed px-3 py-2 text-xs text-gray-500"
+          >
+            Нет привязанных сотрудников. Нажмите «Сотрудники» в таблице, чтобы выдать ссылку.
+          </p>
+        </div>
+
+        <div class="mt-4">
+          <p class="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500">
+            Партнёр
+          </p>
+          <div
+            v-if="bindingsPanel.partner"
+            class="flex flex-wrap items-center justify-between gap-2 rounded-md border bg-amber-50 px-3 py-2"
+          >
+            <div>
+              <p class="font-medium text-gray-900">
+                {{ bindingsPanel.partner.displayName }}
+              </p>
+              <p
+                v-if="bindingsPanel.partner.telegramId"
+                class="font-mono text-xs text-gray-600"
+              >
+                Telegram ID: {{ bindingsPanel.partner.telegramId }}
+              </p>
+              <p
+                v-else-if="bindingsPanel.partner.maxUserId"
+                class="font-mono text-xs text-gray-600"
+              >
+                MAX ID: {{ bindingsPanel.partner.maxUserId }}
+              </p>
+            </div>
+            <button
+              class="rounded border border-red-200 bg-white px-3 py-1 text-xs text-red-700 hover:bg-red-50 disabled:opacity-50"
+              :disabled="unbindingPartner"
+              @click="unbindPartner"
+            >
+              {{ unbindingPartner ? 'Отвязка…' : 'Отвязать' }}
+            </button>
+          </div>
+          <p
+            v-else
+            class="rounded-md border border-dashed px-3 py-2 text-xs text-gray-500"
+          >
+            Партнёр не привязан. Нажмите «Партнёр» в таблице, чтобы выдать ссылку.
+          </p>
+        </div>
+      </div>
 
       <div
         v-if="tokenResult?.type === 'staff'"
@@ -840,6 +1048,9 @@ function telegramBotLabel() {
                 Статус
               </th>
               <th class="px-4 py-3">
+                Бот
+              </th>
+              <th class="px-4 py-3">
                 Действия
               </th>
             </tr>
@@ -879,6 +1090,9 @@ function telegramBotLabel() {
                   {{ point.isActive ? 'активна' : 'выкл' }}
                 </span>
               </td>
+              <td class="px-4 py-3 text-xs text-gray-600">
+                {{ bindingsSummary(point) }}
+              </td>
               <td class="px-4 py-3">
                 <div class="flex flex-wrap gap-1">
                   <button
@@ -886,6 +1100,13 @@ function telegramBotLabel() {
                     @click="openEdit(point)"
                   >
                     Изменить
+                  </button>
+                  <button
+                    class="rounded bg-gray-100 px-2 py-1 text-xs hover:bg-gray-200"
+                    title="Просмотр и отвязка сотрудников и партнёра"
+                    @click="openBindings(point)"
+                  >
+                    Привязки
                   </button>
                   <button
                     class="rounded bg-emerald-50 px-2 py-1 text-xs text-emerald-800 hover:bg-emerald-100"
@@ -921,7 +1142,7 @@ function telegramBotLabel() {
             </tr>
             <tr v-if="!loading && !points.length">
               <td
-                colspan="7"
+                colspan="8"
                 class="px-4 py-8 text-center text-gray-500"
               >
                 Нет точек. Создайте первую.
@@ -929,7 +1150,7 @@ function telegramBotLabel() {
             </tr>
             <tr v-if="loading">
               <td
-                colspan="7"
+                colspan="8"
                 class="px-4 py-8 text-center text-gray-500"
               >
                 Загрузка...

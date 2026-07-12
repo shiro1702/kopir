@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto'
-import type { BindTokenPurpose, PaymentMethod, Point } from '@prisma/client'
+import type { BindTokenPurpose, MessengerPlatform, PaymentMethod, Point, StaffChannel } from '@prisma/client'
 import { pointAgentStatusPayload } from './points'
 import { prisma } from './prisma'
 
@@ -174,6 +174,58 @@ export async function getTelegramBindDeepLinkAsync(token: string): Promise<strin
   return `https://t.me/${botUsername}?start=${token}`
 }
 
+export function formatStaffChannelLabel(channel: Pick<StaffChannel, 'platform' | 'chatId' | 'userId'>): string {
+  if (channel.platform === 'telegram') {
+    if (channel.chatId !== null && channel.chatId < BigInt(0)) {
+      return 'Telegram (группа)'
+    }
+    return 'Telegram (личный чат)'
+  }
+  return 'MAX'
+}
+
+export function serializeStaffChannelForAdmin(channel: StaffChannel) {
+  const chatId = channel.chatId?.toString() ?? null
+  const userId = channel.userId?.toString() ?? null
+  return {
+    id: channel.id,
+    platform: channel.platform,
+    chatId,
+    userId,
+    label: formatStaffChannelLabel(channel),
+    identifier: channel.platform === 'telegram' ? chatId : userId,
+    isGroup: channel.platform === 'telegram' && channel.chatId !== null && channel.chatId < BigInt(0),
+    boundAt: channel.boundAt.toISOString(),
+  }
+}
+
+export function serializePartnerBindingForAdmin(partner: {
+  id: string
+  name: string | null
+  telegramId: bigint | null
+  maxUserId: bigint | null
+} | null) {
+  if (!partner) {
+    return null
+  }
+  const platform: MessengerPlatform | null = partner.telegramId
+    ? 'telegram'
+    : partner.maxUserId
+      ? 'max'
+      : null
+  return {
+    id: partner.id,
+    name: partner.name,
+    platform,
+    telegramId: partner.telegramId?.toString() ?? null,
+    maxUserId: partner.maxUserId?.toString() ?? null,
+    displayName: partner.name
+      ?? (partner.telegramId ? `Telegram ${partner.telegramId}` : null)
+      ?? (partner.maxUserId ? `MAX ${partner.maxUserId}` : null)
+      ?? `Партнёр ${partner.id.slice(-6)}`,
+  }
+}
+
 export function serializePointForAdmin(point: {
   id: string
   slug: string
@@ -187,6 +239,13 @@ export function serializePointForAdmin(point: {
   transferBankLabel: string | null
   lastSeenAt: Date | null
   createdAt: Date
+  staffChannels?: StaffChannel[]
+  partner?: {
+    id: string
+    name: string | null
+    telegramId: bigint | null
+    maxUserId: bigint | null
+  } | null
 }) {
   const status = pointAgentStatusPayload(point)
   return {
@@ -200,6 +259,8 @@ export function serializePointForAdmin(point: {
     transferPhone: point.transferPhone,
     transferBankLabel: point.transferBankLabel,
     createdAt: point.createdAt.toISOString(),
+    staffChannels: point.staffChannels?.map(serializeStaffChannelForAdmin) ?? [],
+    partner: serializePartnerBindingForAdmin(point.partner ?? null),
     ...status,
   }
 }
