@@ -18,6 +18,7 @@ export default defineEventHandler(async (event) => {
           name: true,
           telegramId: true,
           maxUserId: true,
+          requisites: true,
         },
       },
     },

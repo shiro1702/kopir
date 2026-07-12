@@ -3,6 +3,17 @@ import type { Point } from '@prisma/client'
 import type { InlineKeyboardButton } from './types'
 import type { PartnerOrdersPeriod } from '../partner-stats'
 
+/** Payment methods partners may enable/disable in the bot. Manual methods are admin-only. */
+export const PARTNER_MANAGEABLE_PAYMENT_METHODS: PaymentMethod[] = [
+  PaymentMethod.TBANK_SBP,
+  PaymentMethod.TBANK_ONLINE,
+]
+
+export const PARTNER_RESTRICTED_PAYMENT_METHODS: PaymentMethod[] = [
+  PaymentMethod.SBP_TRANSFER,
+  PaymentMethod.ON_SITE,
+]
+
 export function partnerMainMenuKeyboard(points: Point[]): InlineKeyboardButton[][] {
   if (points.length === 1) {
     const pointId = points[0].id
@@ -69,18 +80,21 @@ export function partnerSettingsKeyboard(point: Point): InlineKeyboardButton[][] 
       { text: '＋1 ₽', callbackData: `partner_price_adj:${pointId}:100` },
     ],
     ...partnerPaymentToggleRows(point),
-    [{ text: '📱 Телефон СБП', callbackData: `partner_phone_hint:${pointId}` }],
     [{ text: '◀️ Назад', callbackData: `partner_point:${pointId}` }],
   ]
 }
 
 function partnerPaymentToggleRows(point: Point): InlineKeyboardButton[][] {
-  const methods: Array<{ id: PaymentMethod, label: string }> = [
-    { id: PaymentMethod.SBP_TRANSFER, label: 'Перевод' },
-    { id: PaymentMethod.TBANK_SBP, label: 'СБП' },
-    { id: PaymentMethod.TBANK_ONLINE, label: 'Карта' },
-    { id: PaymentMethod.ON_SITE, label: 'На месте' },
-  ]
+  const labels: Record<PaymentMethod, string> = {
+    [PaymentMethod.TBANK_SBP]: 'СБП',
+    [PaymentMethod.TBANK_ONLINE]: 'Карта',
+    [PaymentMethod.SBP_TRANSFER]: 'Перевод',
+    [PaymentMethod.ON_SITE]: 'На месте',
+  }
+  const methods = PARTNER_MANAGEABLE_PAYMENT_METHODS.map((id) => ({
+    id,
+    label: labels[id],
+  }))
 
   return [
     methods.map((m) => ({

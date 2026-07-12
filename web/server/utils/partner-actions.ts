@@ -19,6 +19,7 @@ import { buildPointClientLinksForSlug } from './point-links'
 import { prisma } from './prisma'
 import * as messages from './bot/partner-messages'
 import {
+  PARTNER_RESTRICTED_PAYMENT_METHODS,
   partnerBackMenuKeyboard,
   partnerMainMenuKeyboard,
   partnerOrdersPeriodKeyboard,
@@ -194,6 +195,9 @@ export async function handlePartnerCallbackPayload(
     if (!Object.values(PaymentMethod).includes(method)) {
       throw new Error('Некорректный способ оплаты')
     }
+    if (PARTNER_RESTRICTED_PAYMENT_METHODS.includes(method)) {
+      throw new Error('Перевод и оплата на месте настраиваются администратором Kopir')
+    }
     const enabled = [...point.paymentMethodsEnabled]
     const idx = enabled.indexOf(method)
     if (idx >= 0) {
@@ -213,7 +217,7 @@ export async function handlePartnerCallbackPayload(
 
   if (data.startsWith('partner_phone_hint:')) {
     return {
-      text: messages.formatPartnerPhoneHint(pointId),
+      text: messages.formatPartnerManualPaymentAdminOnly(),
       keyboard: [[{ text: '◀️ Назад', callbackData: `partner_settings:${pointId}` }]],
     }
   }
@@ -233,15 +237,10 @@ export async function handlePartnerPhoneCommand(
   platform: MessengerPlatform,
   userId: bigint,
   pointId: string,
-  phone: string,
+  _phone: string,
 ): Promise<string> {
   await assertPartnerOwnsPoint(platform, userId, pointId)
-  const normalized = phone.trim()
-  if (!normalized || normalized.length < 10) {
-    throw new Error('Укажите корректный номер телефона')
-  }
-  await updatePointSettings(pointId, { transferPhone: normalized })
-  return messages.formatPartnerPhoneUpdated(normalized)
+  throw new Error('Телефон для перевода настраивается администратором Kopir')
 }
 
 export async function handlePartnerRequisitesCommand(

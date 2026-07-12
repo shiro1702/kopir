@@ -21,6 +21,8 @@ const clientLinksLoading = ref(false)
 const bindingsPanel = ref(null)
 const unbindingStaffId = ref(null)
 const unbindingPartner = ref(false)
+const partnerRequisitesForm = ref({ legalName: '', inn: '', accountNumber: '', bik: '' })
+const savingPartnerRequisites = ref(false)
 const posterDownloading = ref(false)
 const tbankConfigured = ref(false)
 const adminConfig = ref(null)
@@ -84,6 +86,47 @@ function openBindings(point) {
     point,
     staffChannels: point.staffChannels ?? [],
     partner: point.partner ?? null,
+  }
+  populatePartnerRequisitesForm(point.partner)
+}
+
+function populatePartnerRequisitesForm(partner) {
+  const r = partner?.requisites ?? {}
+  partnerRequisitesForm.value = {
+    legalName: r.legalName ?? '',
+    inn: r.inn ?? '',
+    accountNumber: r.accountNumber ?? '',
+    bik: r.bik ?? '',
+  }
+}
+
+async function savePartnerRequisites() {
+  if (!bindingsPanel.value?.partner || savingPartnerRequisites.value) return
+  savingPartnerRequisites.value = true
+  error.value = ''
+  success.value = ''
+  try {
+    const data = await $fetch(`/api/admin/partners/${bindingsPanel.value.partner.id}`, {
+      method: 'PATCH',
+      headers: authHeaders(),
+      body: { requisites: { ...partnerRequisitesForm.value } },
+    })
+    const updatedPartner = {
+      ...bindingsPanel.value.partner,
+      requisites: data.partner.requisites,
+      requisitesComplete: data.partner.requisitesComplete,
+    }
+    bindingsPanel.value.partner = updatedPartner
+    const listPoint = points.value.find((item) => item.id === bindingsPanel.value.point.id)
+    if (listPoint) {
+      listPoint.partner = updatedPartner
+    }
+    success.value = 'Реквизиты партнёра сохранены'
+    setTimeout(() => { success.value = '' }, 2000)
+  } catch (e) {
+    error.value = e?.data?.error ?? 'Не удалось сохранить реквизиты'
+  } finally {
+    savingPartnerRequisites.value = false
   }
 }
 
@@ -231,6 +274,7 @@ async function fetchPoints() {
           staffChannels: fresh.staffChannels ?? [],
           partner: fresh.partner ?? null,
         }
+        populatePartnerRequisitesForm(fresh.partner)
       }
     }
     try {
@@ -609,32 +653,103 @@ function telegramBotLabel() {
           </p>
           <div
             v-if="bindingsPanel.partner"
-            class="flex flex-wrap items-center justify-between gap-2 rounded-md border bg-amber-50 px-3 py-2"
+            class="space-y-3"
           >
-            <div>
-              <p class="font-medium text-gray-900">
-                {{ bindingsPanel.partner.displayName }}
-              </p>
-              <p
-                v-if="bindingsPanel.partner.telegramId"
-                class="font-mono text-xs text-gray-600"
+            <div class="flex flex-wrap items-center justify-between gap-2 rounded-md border bg-amber-50 px-3 py-2">
+              <div>
+                <p class="font-medium text-gray-900">
+                  {{ bindingsPanel.partner.displayName }}
+                </p>
+                <p
+                  v-if="bindingsPanel.partner.telegramId"
+                  class="font-mono text-xs text-gray-600"
+                >
+                  Telegram ID: {{ bindingsPanel.partner.telegramId }}
+                </p>
+                <p
+                  v-else-if="bindingsPanel.partner.maxUserId"
+                  class="font-mono text-xs text-gray-600"
+                >
+                  MAX ID: {{ bindingsPanel.partner.maxUserId }}
+                </p>
+                <p class="mt-1">
+                  <span
+                    class="inline-flex rounded-full px-2 py-0.5 text-xs"
+                    :class="bindingsPanel.partner.requisitesComplete
+                      ? 'border border-green-200 bg-green-50 text-green-800'
+                      : 'border border-amber-200 bg-amber-50 text-amber-800'"
+                  >
+                    {{ bindingsPanel.partner.requisitesComplete ? 'Реквизиты заполнены' : 'Реквизиты не заполнены' }}
+                  </span>
+                </p>
+              </div>
+              <button
+                class="rounded border border-red-200 bg-white px-3 py-1 text-xs text-red-700 hover:bg-red-50 disabled:opacity-50"
+                :disabled="unbindingPartner"
+                @click="unbindPartner"
               >
-                Telegram ID: {{ bindingsPanel.partner.telegramId }}
-              </p>
-              <p
-                v-else-if="bindingsPanel.partner.maxUserId"
-                class="font-mono text-xs text-gray-600"
-              >
-                MAX ID: {{ bindingsPanel.partner.maxUserId }}
-              </p>
+                {{ unbindingPartner ? 'Отвязка…' : 'Отвязать' }}
+              </button>
             </div>
-            <button
-              class="rounded border border-red-200 bg-white px-3 py-1 text-xs text-red-700 hover:bg-red-50 disabled:opacity-50"
-              :disabled="unbindingPartner"
-              @click="unbindPartner"
-            >
-              {{ unbindingPartner ? 'Отвязка…' : 'Отвязать' }}
-            </button>
+
+            <div class="rounded-md border bg-white p-3">
+              <p class="mb-3 text-xs font-medium text-gray-700">
+                Реквизиты для выплат
+              </p>
+              <div class="grid gap-3 sm:grid-cols-2">
+                <div class="sm:col-span-2">
+                  <label class="mb-1 block text-xs text-gray-600">Название (ИП / ООО)</label>
+                  <input
+                    v-model="partnerRequisitesForm.legalName"
+                    type="text"
+                    class="w-full rounded border px-3 py-2 text-sm"
+                    placeholder="ИП Иванов Иван Иванович"
+                  >
+                </div>
+                <div>
+                  <label class="mb-1 block text-xs text-gray-600">ИНН</label>
+                  <input
+                    v-model="partnerRequisitesForm.inn"
+                    type="text"
+                    inputmode="numeric"
+                    class="w-full rounded border px-3 py-2 text-sm"
+                  >
+                </div>
+                <div>
+                  <label class="mb-1 block text-xs text-gray-600">БИК</label>
+                  <input
+                    v-model="partnerRequisitesForm.bik"
+                    type="text"
+                    inputmode="numeric"
+                    class="w-full rounded border px-3 py-2 text-sm"
+                  >
+                </div>
+                <div class="sm:col-span-2">
+                  <label class="mb-1 block text-xs text-gray-600">Расчётный счёт</label>
+                  <input
+                    v-model="partnerRequisitesForm.accountNumber"
+                    type="text"
+                    inputmode="numeric"
+                    class="w-full rounded border px-3 py-2 text-sm"
+                  >
+                </div>
+              </div>
+              <div class="mt-3 flex flex-wrap gap-2">
+                <button
+                  class="rounded bg-blue-600 px-3 py-1.5 text-xs text-white hover:bg-blue-700 disabled:opacity-50"
+                  :disabled="savingPartnerRequisites"
+                  @click="savePartnerRequisites"
+                >
+                  {{ savingPartnerRequisites ? 'Сохранение…' : 'Сохранить реквизиты' }}
+                </button>
+                <NuxtLink
+                  to="/admin/payouts"
+                  class="rounded border px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50"
+                >
+                  Выплаты →
+                </NuxtLink>
+              </div>
+            </div>
           </div>
           <p
             v-else

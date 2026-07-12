@@ -66,19 +66,21 @@ export function formatPartnerSettings(point: {
   name: string
   pricePerPageKopeks: number
   paymentMethodsEnabled: PaymentMethod[]
-  transferPhone: string | null
-  transferBankLabel: string | null
 }): string {
   const methods = point.paymentMethodsEnabled
     .map((m) => PAYMENT_LABELS[m])
     .join(', ') || '—'
-  const phone = point.transferPhone ?? 'не указан'
-  const bank = point.transferBankLabel ? ` (${point.transferBankLabel})` : ''
 
   return `⚙️ Настройки — ${point.name}\n\n`
     + `Цена за стр.: ${formatRubles(point.pricePerPageKopeks)}\n`
-    + `Способы оплаты: ${methods}\n`
-    + `Телефон для перевода: ${phone}${bank}`
+    + `Способы оплаты: ${methods}\n\n`
+    + 'Можно включать и выключать только СБП и оплату картой.\n'
+    + 'Перевод по номеру и оплата на месте настраиваются администратором.'
+}
+
+export function formatPartnerManualPaymentAdminOnly(): string {
+  return 'Перевод по номеру телефона и оплата на месте настраиваются администратором Kopir.\n\n'
+    + 'В кабинете партнёра доступны только онлайн-способы: СБП и карта.'
 }
 
 export function formatPartnerBalance(

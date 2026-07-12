@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto'
 import type { BindTokenPurpose, MessengerPlatform, PaymentMethod, Point, StaffChannel } from '@prisma/client'
+import { isRequisitesComplete, parsePartnerRequisites } from './partner-requisites'
 import { pointAgentStatusPayload } from './points'
 import { prisma } from './prisma'
 
@@ -204,6 +205,7 @@ export function serializePartnerBindingForAdmin(partner: {
   name: string | null
   telegramId: bigint | null
   maxUserId: bigint | null
+  requisites?: unknown
 } | null) {
   if (!partner) {
     return null
@@ -213,12 +215,15 @@ export function serializePartnerBindingForAdmin(partner: {
     : partner.maxUserId
       ? 'max'
       : null
+  const requisites = parsePartnerRequisites(partner.requisites as never)
   return {
     id: partner.id,
     name: partner.name,
     platform,
     telegramId: partner.telegramId?.toString() ?? null,
     maxUserId: partner.maxUserId?.toString() ?? null,
+    requisites,
+    requisitesComplete: isRequisitesComplete(requisites),
     displayName: partner.name
       ?? (partner.telegramId ? `Telegram ${partner.telegramId}` : null)
       ?? (partner.maxUserId ? `MAX ${partner.maxUserId}` : null)

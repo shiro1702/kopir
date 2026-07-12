@@ -1,5 +1,5 @@
 import { assertAdminAuth } from '../../../utils/admin-auth'
-import { validatePartnerRequisites } from '../../../utils/partner-requisites'
+import { isRequisitesComplete, parsePartnerRequisites, validatePartnerRequisites } from '../../../utils/partner-requisites'
 import { prisma } from '../../../utils/prisma'
 
 export default defineEventHandler(async (event) => {
@@ -37,11 +37,14 @@ export default defineEventHandler(async (event) => {
     data,
   })
 
+  const requisites = parsePartnerRequisites(partner.requisites)
+
   return {
     partner: {
       id: partner.id,
       name: partner.name,
-      requisites: partner.requisites,
+      requisites,
+      requisitesComplete: isRequisitesComplete(requisites),
     },
   }
 })

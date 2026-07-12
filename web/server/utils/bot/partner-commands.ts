@@ -95,8 +95,7 @@ export function formatPartnerHelp(): string {
     '/partner_requisites - текущие реквизиты',
     '/partner_help - эта справка',
     '',
-    'Служебные команды:',
-    '/partner phone <id_точки> <номер>',
+    'Реквизиты для выплат:',
     '/partner req Название | ИНН | Расчетный счет | БИК',
   ].join('\n')
 }
