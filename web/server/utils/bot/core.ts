@@ -676,17 +676,6 @@ export async function handleDocument(
     ? batch.point ?? await prisma.point.findUnique({ where: { id: batch.pointId } })
     : null
 
-  if (boundPoint && !isPointAgentOnline(boundPoint)) {
-    const hasOtherPoints = (await listActivePoints()).length > 1
-    const keyboard = pointOfflineStartKeyboard(hasOtherPoints)
-    await adapter.sendText(
-      target,
-      messages.MSG_POINT_OFFLINE_NO_FILES,
-      keyboard.length > 0 ? { inlineKeyboard: keyboard } : undefined,
-    )
-    return
-  }
-
   const mimeType = document.mimeType || mimeTypeForKind(kind, fileName)
   const isWord = kind === 'word'
   const maxFiles = getBatchMaxFiles()

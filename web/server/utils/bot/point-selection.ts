@@ -1,4 +1,4 @@
-import { OrderStatus } from '@prisma/client'
+import { OrderStatus, type Order } from '@prisma/client'
 import {
   bindBatchToPoint,
   getActiveBatchOrders,
@@ -106,20 +106,15 @@ async function refreshBatchFileCards(
   }
 }
 
-async function sendMaxBatchPointSelectedConfirmation(
+async function buildLastOrderFileReadyText(
   batchId: string,
   pointLabel: string,
-  target: MessengerReplyTarget,
-  adapter: MessengerAdapter,
-): Promise<void> {
+): Promise<{ text: string, lastOrder: Order, keyboardMode: Awaited<ReturnType<typeof getBatchKeyboardMode>> } | null> {
   const keyboardMode = await getBatchKeyboardMode(batchId)
   const orders = await getActiveBatchOrders(batchId)
   const lastOrder = orders[orders.length - 1]
-  const toast = messages.MSG_POINT_SELECTED(pointLabel)
-
   if (!lastOrder) {
-    await adapter.sendText(target, toast)
-    return
+    return null
   }
 
   const batch = await prisma.orderBatch.findUnique({ where: { id: batchId } })
@@ -137,7 +132,31 @@ async function sendMaxBatchPointSelectedConfirmation(
     },
   )
 
-  await adapter.sendText(target, `${toast}\n\n${fileText}`, {
+  return { text: fileText, lastOrder, keyboardMode }
+}
+
+async function sendBatchPointSelectedConfirmation(
+  batchId: string,
+  pointLabel: string,
+  target: MessengerReplyTarget,
+  adapter: MessengerAdapter,
+  options?: PointSelectOptions,
+): Promise<void> {
+  const toast = messages.MSG_POINT_SELECTED(pointLabel)
+  const fileReady = await buildLastOrderFileReadyText(batchId, pointLabel)
+
+  if (!fileReady) {
+    const text = `${toast}\n\n${messages.MSG_POINT_SELECTED_SEND_FILES}`
+    if (options?.callbackMessage && adapter.editStatus) {
+      await adapter.editStatus(target, options.callbackMessage, text, { removeInlineKeyboard: true })
+    } else {
+      await adapter.sendText(target, text, { clientMenu: true })
+    }
+    return
+  }
+
+  const { text: fileText, lastOrder, keyboardMode } = fileReady
+  const statusOpts = {
     inlineKeyboard: fileStatusKeyboard(lastOrder.id, {
       withRemove: lastOrder.status !== OrderStatus.CALCULATING,
       keyboardMode,
@@ -145,7 +164,21 @@ async function sendMaxBatchPointSelectedConfirmation(
       copies: lastOrder.copies,
     }),
     batchKeyboard: keyboardMode,
-  })
+  }
+
+  if (target.platform === 'max' || !options?.callbackMessage) {
+    await adapter.sendText(target, `${toast}\n\n${fileText}`, statusOpts)
+    return
+  }
+
+  if (adapter.editStatus) {
+    await adapter.editStatus(
+      target,
+      options.callbackMessage,
+      `${toast}\n\n${messages.MSG_POINT_SELECTED_FILE_UPDATED}`,
+      { removeInlineKeyboard: true },
+    )
+  }
 }
 
 export async function handlePointList(
@@ -204,26 +237,11 @@ export async function handlePointSelect(
       console.error('[bot] refreshBatchFileCards after point select failed:', error)
     }
 
-    if (options?.callbackMessage && adapter.editStatus) {
-      try {
-        await adapter.editStatus(
-          target,
-          options.callbackMessage,
-          toast,
-          { removeInlineKeyboard: true },
-        )
-      } catch (error) {
-        console.error('[bot] edit point list message failed:', error)
-      }
-    }
-
-    if (target.platform === 'max') {
-      try {
-        await sendMaxBatchPointSelectedConfirmation(batch.id, pointLabel, target, adapter)
-      } catch (error) {
-        console.error('[bot] MAX point select confirmation failed:', error)
-        await adapter.sendText(target, toast)
-      }
+    try {
+      await sendBatchPointSelectedConfirmation(batch.id, pointLabel, target, adapter, options)
+    } catch (error) {
+      console.error('[bot] point select confirmation failed:', error)
+      await adapter.sendText(target, toast)
     }
 
     return toast

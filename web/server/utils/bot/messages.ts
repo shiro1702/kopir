@@ -28,6 +28,10 @@ export const MSG_POINT_OFFLINE_PAYMENT =
   '❌ Принтер сейчас не подключён к системе. Оплата недоступна — '
   + 'дождитесь подключения или выберите другую точку.'
 export const MSG_POINT_SELECTED = (label: string) => `📍 Выбрана точка: ${label}`
+export const MSG_POINT_SELECTED_SEND_FILES =
+  'Отправьте файлы — бот примет их на эту точку.'
+export const MSG_POINT_SELECTED_FILE_UPDATED =
+  'Карточка файла обновлена выше — там кнопки оплаты и удаления.'
 
 export const MSG_FILE_RECEIVING = '📥 Принимаю'
 export const MSG_BATCH_FINALIZING = '⏳ Готовим к оплате…'
