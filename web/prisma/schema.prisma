@@ -81,7 +81,7 @@ model Partner {
   requisites     Json?
   createdAt      DateTime              @default(now())
   points         Point[]
-  balanceEntries PartnerBalanceEntry[]
+  balanceEntries PartnerBalanceEntry[] @relation("PartnerBalanceEntries")
 }
 
 model Point {
@@ -103,21 +103,26 @@ model Point {
   batches                OrderBatch[]
   staffChannels          StaffChannel[]
   bindTokens             BindToken[]
-  lastPointUsers         User[]           @relation("UserLastPoint")
+  lastPointUsers         User[]                @relation("UserLastPoint")
+  balanceEntries         PartnerBalanceEntry[]
 
   @@index([partnerId])
 }
 
 model PartnerBalanceEntry {
   id           String                  @id @default(cuid())
-  partnerId    String
-  partner      Partner                 @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  pointId      String?
+  point        Point?                  @relation(fields: [pointId], references: [id], onDelete: Cascade)
+  partnerId    String?
+  partner      Partner?                @relation("PartnerBalanceEntries", fields: [partnerId], references: [id], onDelete: Cascade)
   amountKopeks Int
   type         PartnerBalanceEntryType
   batchId      String?                 @unique
+  batch        OrderBatch?             @relation(fields: [batchId], references: [id], onDelete: SetNull)
   createdAt    DateTime                @default(now())
 
   @@index([partnerId, createdAt])
+  @@index([pointId, createdAt])
 }
 
 model StaffChannel {
@@ -165,6 +170,7 @@ model OrderBatch {
   updatedAt         DateTime         @updatedAt
   orders            Order[]
   payments          Payment[]
+  balanceEntry      PartnerBalanceEntry?
 
   @@index([status, pointId, createdAt])
   @@index([userId, status])

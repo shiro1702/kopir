@@ -62,8 +62,8 @@ export async function getPartnerAgentReport(partnerId: string, month: string): P
 
   const credits = await prisma.partnerBalanceEntry.findMany({
     where: {
-      partnerId,
       type: PartnerBalanceEntryType.CREDIT,
+      point: { partnerId },
       createdAt: { gte: start, lt: end },
       batchId: { not: null },
     },

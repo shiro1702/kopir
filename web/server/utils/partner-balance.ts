@@ -1,4 +1,4 @@
-import type { PaymentMethod, Prisma } from '@prisma/client'
+import type { OrderBatchStatus, PaymentMethod, Prisma } from '@prisma/client'
 import { PartnerBalanceEntryType } from '@prisma/client'
 import { DEFAULT_COMMISSION_PERCENT } from './commission'
 import { isTbankPaymentMethod } from './payments/methods'
@@ -48,6 +48,16 @@ export type AccrueBatchInput = {
   } | null
 }
 
+const PAID_BATCH_STATUSES: OrderBatchStatus[] = [
+  'PAID',
+  'COMPLETED',
+  'PARTIALLY_FAILED',
+]
+
+/**
+ * Credits the point ledger for an online payment. Partner may be linked later;
+ * balance is resolved via Point.partnerId at payout time.
+ */
 export async function accruePartnerBalanceForBatch(
   batch: AccrueBatchInput,
   tx?: Prisma.TransactionClient,
@@ -77,14 +87,6 @@ export async function accruePartnerBalanceForBatch(
     }
   }
 
-  if (!partnerId) {
-    console.warn('[partner-balance] skip accrual: point has no partner', {
-      batchId: batch.id,
-      pointId: batch.pointId,
-    })
-    return { credited: false }
-  }
-
   const existing = await db.partnerBalanceEntry.findUnique({
     where: { batchId: batch.id },
   })
@@ -105,7 +107,8 @@ export async function accruePartnerBalanceForBatch(
   try {
     await db.partnerBalanceEntry.create({
       data: {
-        partnerId,
+        pointId: batch.pointId,
+        partnerId: partnerId ?? null,
         amountKopeks: partnerKopeks,
         type: PartnerBalanceEntryType.CREDIT,
         batchId: batch.id,
@@ -131,34 +134,50 @@ export async function creditPartnerBalanceForBatch(batch: AccrueBatchInput): Pro
   await accruePartnerBalanceForBatch(batch)
 }
 
+/** Partner balance = credits on owned points minus payout debits. */
 export async function getPartnerBalanceKopeks(
   partnerId: string,
   tx?: Prisma.TransactionClient,
 ): Promise<number> {
   const db = tx ?? prisma
-  const entries = await db.partnerBalanceEntry.groupBy({
-    by: ['type'],
-    where: { partnerId },
-    _sum: { amountKopeks: true },
-  })
 
-  let balance = 0
-  for (const row of entries) {
-    const sum = row._sum.amountKopeks ?? 0
-    if (row.type === PartnerBalanceEntryType.CREDIT) {
-      balance += sum
-    } else {
-      balance -= sum
-    }
-  }
-  return balance
+  const [credits, payouts] = await Promise.all([
+    db.partnerBalanceEntry.aggregate({
+      where: {
+        type: PartnerBalanceEntryType.CREDIT,
+        point: { partnerId },
+      },
+      _sum: { amountKopeks: true },
+    }),
+    db.partnerBalanceEntry.aggregate({
+      where: {
+        type: PartnerBalanceEntryType.PAYOUT,
+        partnerId,
+      },
+      _sum: { amountKopeks: true },
+    }),
+  ])
+
+  return (credits._sum.amountKopeks ?? 0) - (payouts._sum.amountKopeks ?? 0)
 }
 
 export async function getPartnerBalanceEntries(partnerId: string, limit = 10) {
   return prisma.partnerBalanceEntry.findMany({
-    where: { partnerId },
+    where: {
+      OR: [
+        {
+          type: PartnerBalanceEntryType.CREDIT,
+          point: { partnerId },
+        },
+        {
+          type: PartnerBalanceEntryType.PAYOUT,
+          partnerId,
+        },
+      ],
+    },
     orderBy: { createdAt: 'desc' },
     take: limit,
+    include: { point: { select: { name: true } } },
   })
 }
 
@@ -179,19 +198,18 @@ export type PartnerPayoutRow = {
   points: Array<{ id: string, name: string }>
 }
 
-/** Current balance (kopeks) per partner, computed from the ledger. */
+/** Current balance (kopeks) per partner from point credits and payout debits. */
 async function getPartnerBalancesMap(): Promise<Map<string, number>> {
-  const grouped = await prisma.partnerBalanceEntry.groupBy({
-    by: ['partnerId', 'type'],
-    _sum: { amountKopeks: true },
-  })
-
+  const partners = await prisma.partner.findMany({ select: { id: true } })
   const map = new Map<string, number>()
-  for (const row of grouped) {
-    const sum = row._sum.amountKopeks ?? 0
-    const signed = row.type === PartnerBalanceEntryType.CREDIT ? sum : -sum
-    map.set(row.partnerId, (map.get(row.partnerId) ?? 0) + signed)
-  }
+
+  await Promise.all(partners.map(async (partner) => {
+    const balance = await getPartnerBalanceKopeks(partner.id)
+    if (balance !== 0) {
+      map.set(partner.id, balance)
+    }
+  }))
+
   return map
 }
 
@@ -273,4 +291,77 @@ export async function recordPartnerPayouts(partnerIds: string[]): Promise<Partne
     }
     return results
   })
+}
+
+export type BackfillBalanceResult = {
+  scanned: number
+  credited: number
+  skipped: number
+  totalPartnerKopeks: number
+}
+
+/** Creates missing point credits for settled T-Bank batches (idempotent via batchId unique). */
+export async function backfillPointBalanceCredits(options?: {
+  limit?: number
+}): Promise<BackfillBalanceResult> {
+  const limit = options?.limit ?? 50
+
+  const batches = await prisma.orderBatch.findMany({
+    where: {
+      pointId: { not: null },
+      paidAt: { not: null },
+      totalAmountKopeks: { gt: 0 },
+      paymentMethod: { in: ['TBANK_SBP', 'TBANK_ONLINE'] },
+      status: { in: PAID_BATCH_STATUSES },
+      balanceEntry: { is: null },
+    },
+    select: {
+      id: true,
+      pointId: true,
+      totalAmountKopeks: true,
+      paymentMethod: true,
+      point: { select: { partnerId: true, commissionPercent: true } },
+    },
+    orderBy: { paidAt: 'asc' },
+    take: limit,
+  })
+
+  let credited = 0
+  let skipped = 0
+  let totalPartnerKopeks = 0
+
+  for (const batch of batches) {
+    try {
+      const result = await accruePartnerBalanceForBatch({
+        id: batch.id,
+        pointId: batch.pointId,
+        totalAmountKopeks: batch.totalAmountKopeks,
+        paymentMethod: batch.paymentMethod,
+        point: batch.point,
+      })
+      if (result.credited) {
+        credited += 1
+        totalPartnerKopeks += result.partnerKopeks ?? 0
+      } else {
+        skipped += 1
+      }
+    } catch (error) {
+      if (
+        error
+        && typeof error === 'object'
+        && 'code' in error
+        && (error as { code?: string }).code === 'P1017'
+      ) {
+        break
+      }
+      throw error
+    }
+  }
+
+  return {
+    scanned: batches.length,
+    credited,
+    skipped,
+    totalPartnerKopeks,
+  }
 }
