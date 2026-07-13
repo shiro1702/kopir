@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { buildPointClientLinks, type PointClientLinksConfig } from './point-links.ts'
+import { buildPointClientLinks, resolveMaxBotDisplayLabel, type PointClientLinksConfig } from './point-links.ts'
 
 const baseConfig: PointClientLinksConfig = {
   telegramBotUsername: 'kopir_bot',
@@ -66,5 +66,22 @@ describe('point-links', () => {
       siteUrl: '',
     })
     assert.equal(links.goLink, null)
+  })
+
+  it('resolves max bot display label from link or username', () => {
+    assert.equal(
+      resolveMaxBotDisplayLabel({
+        maxBotLink: 'https://max.ru/kopir_bot',
+        maxBotUsername: '',
+      }),
+      'kopir_bot',
+    )
+    assert.equal(
+      resolveMaxBotDisplayLabel({
+        maxBotLink: '',
+        maxBotUsername: '@kopir_bot',
+      }),
+      'kopir_bot',
+    )
   })
 })

@@ -9,6 +9,7 @@ import {
   BTN_RETRY_PRINT,
   BTN_REQUEST_REFUND,
   BTN_PARTNER_REFUND,
+  BTN_PARTNER_MANUAL_PRINT,
   BTN_SELECT_POINT,
   BTN_CHANGE_POINT,
   BTN_SELECT_OTHER_POINT,
@@ -457,6 +458,14 @@ export function partnerRefundPayload(orderId: string): string {
   return `partner_refund:${orderId}`
 }
 
+export function partnerRetryPrintPayload(orderId: string): string {
+  return `partner_retry_print:${orderId}`
+}
+
+export function partnerManualPrintPayload(orderId: string): string {
+  return `partner_manual_print:${orderId}`
+}
+
 export function printFailureClientKeyboard(
   failedOrders: Array<{ id: string, fileName: string }>,
   batchId?: string | null,
@@ -470,8 +479,18 @@ export function printFailureClientKeyboard(
   return rows
 }
 
-export function partnerPrintFailedKeyboard(orderId: string): InlineKeyboardButton[][] {
-  return [[{ text: BTN_PARTNER_REFUND, callbackData: partnerRefundPayload(orderId) }]]
+export function partnerPrintFailedKeyboard(
+  orderId: string,
+  options?: { showRefund?: boolean },
+): InlineKeyboardButton[][] {
+  const rows: InlineKeyboardButton[][] = [
+    [{ text: BTN_RETRY_PRINT, callbackData: partnerRetryPrintPayload(orderId) }],
+    [{ text: BTN_PARTNER_MANUAL_PRINT, callbackData: partnerManualPrintPayload(orderId) }],
+  ]
+  if (options?.showRefund) {
+    rows.push([{ text: BTN_PARTNER_REFUND, callbackData: partnerRefundPayload(orderId) }])
+  }
+  return rows
 }
 
 export function printRetryKeyboard(

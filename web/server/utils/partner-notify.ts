@@ -1,8 +1,9 @@
 import type { Order } from '@prisma/client'
 import { InputFile, InlineKeyboard } from 'grammy'
 import { formatPartnerPrintFailed } from './bot/partner-messages'
-import { formatPartnerRefundRequest } from './bot/messages'
-import { partnerRefundPayload } from './bot/keyboards'
+import { BTN_PARTNER_REFUND, formatPartnerRefundRequest } from './bot/messages'
+import { partnerPrintFailedKeyboard, partnerRefundPayload } from './bot/keyboards'
+import type { InlineKeyboardButton } from './bot/types'
 import { downloadOrderFile } from './blob'
 import { getMaxClient } from './max/client'
 import {
@@ -20,22 +21,49 @@ type OrderForPartnerRefundRequest = OrderForPartner & {
   user: { username?: string | null, firstName?: string | null }
 }
 
-function maxPartnerPrintFailedKeyboard(orderId: string) {
+function maxKeyboardFromRows(rows: InlineKeyboardButton[][]) {
   return {
     type: 'inline_keyboard' as const,
     payload: {
-      buttons: [[{
+      buttons: rows.map((row) => row.map((button) => ({
         type: 'callback' as const,
-        text: '💸 Вернуть оплату',
-        payload: partnerRefundPayload(orderId),
+        text: button.text,
+        payload: button.callbackData,
         intent: 'default' as const,
-      }]],
+      }))),
     },
   }
 }
 
-function telegramPartnerPrintFailedKeyboard(orderId: string) {
-  return new InlineKeyboard().text('💸 Вернуть оплату', partnerRefundPayload(orderId))
+function telegramKeyboardFromRows(rows: InlineKeyboardButton[][]) {
+  const keyboard = new InlineKeyboard()
+  rows.forEach((row, index) => {
+    if (index > 0) {
+      keyboard.row()
+    }
+    row.forEach((button) => {
+      keyboard.text(button.text, button.callbackData)
+    })
+  })
+  return keyboard
+}
+
+function buildPartnerRefundOnlyKeyboard(orderId: string) {
+  const rows: InlineKeyboardButton[][] = [[
+    { text: BTN_PARTNER_REFUND, callbackData: partnerRefundPayload(orderId) },
+  ]]
+  return {
+    telegram: telegramKeyboardFromRows(rows),
+    max: maxKeyboardFromRows(rows),
+  }
+}
+
+function buildPartnerPrintFailedKeyboard(orderId: string, showRefund: boolean) {
+  const rows = partnerPrintFailedKeyboard(orderId, { showRefund })
+  return {
+    telegram: telegramKeyboardFromRows(rows),
+    max: maxKeyboardFromRows(rows),
+  }
 }
 
 export async function notifyPartnerPrintFailed(
@@ -48,8 +76,10 @@ export async function notifyPartnerPrintFailed(
   const text = formatPartnerPrintFailed(order, order.errorMessage)
   const targets = await getPartnerMessengerTargetsForPoint(order.pointId)
   const showRefundButton = await canPartnerRefundOrder(order.id)
-  const tgKeyboard = showRefundButton ? telegramPartnerPrintFailedKeyboard(order.id) : undefined
-  const maxKeyboard = showRefundButton ? maxPartnerPrintFailedKeyboard(order.id) : undefined
+  const { telegram: tgKeyboard, max: maxKeyboard } = buildPartnerPrintFailedKeyboard(
+    order.id,
+    showRefundButton,
+  )
 
   let fileBuffer: Buffer | null = null
   if (order.filePath?.trim()) {
@@ -124,8 +154,11 @@ export async function notifyPartnerRefundRequest(
   })
   const targets = await getPartnerMessengerTargetsForPoint(order.pointId)
   const showRefundButton = eligibility?.canRefundOnline === true
-  const tgKeyboard = showRefundButton ? telegramPartnerPrintFailedKeyboard(order.id) : undefined
-  const maxKeyboard = showRefundButton ? maxPartnerPrintFailedKeyboard(order.id) : undefined
+  const keyboards = showRefundButton
+    ? buildPartnerRefundOnlyKeyboard(order.id)
+    : { telegram: undefined, max: undefined }
+  const tgKeyboard = keyboards.telegram
+  const maxKeyboard = keyboards.max
 
   const errors: Error[] = []
 

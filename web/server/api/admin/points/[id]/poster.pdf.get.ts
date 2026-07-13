@@ -1,6 +1,10 @@
 import { assertAdminAuth } from '../../../../utils/admin-auth'
 import { resolveTelegramBotUsernameForAdmin } from '../../../../utils/bind-tokens'
-import { buildPointClientLinksForSlug } from '../../../../utils/point-links'
+import {
+  buildPointClientLinksForSlug,
+  getPointClientLinksConfig,
+  resolveMaxBotDisplayLabel,
+} from '../../../../utils/point-links'
 import { generatePointPosterPdf } from '../../../../utils/point-poster'
 import { prisma } from '../../../../utils/prisma'
 
@@ -25,11 +29,13 @@ export default defineEventHandler(async (event) => {
 
   const links = await buildPointClientLinksForSlug(point.slug)
   const telegramBotUsername = await resolveTelegramBotUsernameForAdmin()
+  const linksConfig = getPointClientLinksConfig()
   const pdfBytes = await generatePointPosterPdf({
     pointName: point.name,
     pricePerPageKopeks: point.pricePerPageKopeks,
     links,
     telegramBotUsername,
+    maxBotLabel: resolveMaxBotDisplayLabel(linksConfig),
   })
 
   const safeSlug = point.slug.replace(/[^a-z0-9_-]+/gi, '_')

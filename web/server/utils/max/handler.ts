@@ -9,7 +9,7 @@ import {
 } from '../bot/keyboards'
 import { isClientCommandCallback, parseClientCommandText } from '../bot/client-commands'
 import { isPartnerCommandCallback, parsePartnerCommandText } from '../bot/partner-commands'
-import { isPartnerCallbackPayload } from '../bot/partner-keyboards'
+import { isPartnerCallbackPayload, isPartnerPrintFailureAction } from '../bot/partner-keyboards'
 import type {
   BatchKeyboardMode,
   CallbackContext,
@@ -390,15 +390,18 @@ export async function handleMaxUpdate(update: MaxUpdate): Promise<void> {
             BigInt(callback.user.user_id),
             callback.payload,
           )
-          const isPartnerRefundAction = callback.payload.startsWith('partner_refund')
-          if (message && !isPartnerRefundAction) {
+          const isPartnerFailureAction = isPartnerPrintFailureAction(callback.payload)
+          const isPartnerToastOnlyAction = callback.payload.startsWith('partner_retry_print:')
+            || callback.payload.startsWith('partner_manual_print:')
+          if (message && !isPartnerFailureAction) {
             await adapter.editStatus(target, message, screen.text, {
               inlineKeyboard: screen.keyboard,
             })
-          } else {
+          } else if (!isPartnerToastOnlyAction) {
             await adapter.sendText(target, screen.text, { inlineKeyboard: screen.keyboard })
           }
-          const answerText = callback.payload.startsWith('partner_refund_confirm:')
+          const answerText = isPartnerToastOnlyAction
+            || callback.payload.startsWith('partner_refund_confirm:')
             ? screen.text
             : 'Готово'
           await client.answerCallback(callback.callback_id, answerText)

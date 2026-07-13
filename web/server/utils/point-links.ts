@@ -95,6 +95,15 @@ export function getPointClientDeepLink(
   return platform === 'telegram' ? links.telegramDeepLink : links.maxDeepLink
 }
 
+export function resolveMaxBotDisplayLabel(config: Pick<PointClientLinksConfig, 'maxBotLink' | 'maxBotUsername'>): string | null {
+  const username = config.maxBotUsername.replace(/^@/, '').trim()
+  if (username) {
+    return username
+  }
+  const match = config.maxBotLink.match(/max\.ru\/([^/?]+)/i)
+  return match?.[1] ?? null
+}
+
 export async function buildPointClientLinksPayloadForPoint(point: {
   id: string
   slug: string

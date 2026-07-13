@@ -199,7 +199,7 @@ function maxStartFallback(slug) {
     >
       <button
         class="rounded bg-sky-600 px-4 py-2 text-sm text-white hover:bg-sky-700 disabled:opacity-50"
-        :disabled="posterDownloading || !links.telegramDeepLink"
+        :disabled="posterDownloading || (!links.telegramDeepLink && !links.maxDeepLink)"
         @click="emit('download-poster')"
       >
         {{ posterDownloading ? 'Генерация…' : 'Скачать плакат' }}

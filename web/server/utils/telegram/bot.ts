@@ -36,7 +36,7 @@ import {
   isPointClientCallbackPayload,
   isPrintRetryClientCallbackPayload,
 } from '../bot/keyboards'
-import { isPartnerCallbackPayload } from '../bot/partner-keyboards'
+import { isPartnerCallbackPayload, isPartnerPrintFailureAction } from '../bot/partner-keyboards'
 import { getPartnerByMessenger } from '../partner-auth'
 import { assertStaffForPayload } from '../staff-auth'
 import {
@@ -422,17 +422,19 @@ function createBot(): Bot {
         const { assertPartnerForPayload, handlePartnerCallbackPayload } = await import('../partner-actions')
         await assertPartnerForPayload('telegram', chatId, data)
         const screen = await handlePartnerCallbackPayload('telegram', BigInt(telegramUser.id), data)
-        const isPartnerRefundAction = data.startsWith('partner_refund')
-        if (message && callbackCtx.messageId && !isPartnerRefundAction) {
+        const isPartnerFailureAction = isPartnerPrintFailureAction(data)
+        const isPartnerToastOnlyAction = data.startsWith('partner_retry_print:')
+          || data.startsWith('partner_manual_print:')
+        if (message && callbackCtx.messageId && !isPartnerFailureAction) {
           const { editTelegramStatusMessage } = await import('./client')
           await editTelegramStatusMessage(chatId, message, screen.text, {
             inlineKeyboard: screen.keyboard,
           })
-        } else {
+        } else if (!isPartnerToastOnlyAction) {
           await adapter.sendText(target, screen.text, { inlineKeyboard: screen.keyboard })
         }
         result = {
-          toast: data.startsWith('partner_refund_confirm:') ? screen.text : 'Готово',
+          toast: isPartnerToastOnlyAction || data.startsWith('partner_refund_confirm:') ? screen.text : 'Готово',
         }
       } else if (isStaffCallback) {
         result = { toast: await handleStaffCallback(data, chatId) }

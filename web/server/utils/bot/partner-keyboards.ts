@@ -111,3 +111,9 @@ export function partnerBackMenuKeyboard(): InlineKeyboardButton[][] {
 export function isPartnerCallbackPayload(data: string): boolean {
   return data.startsWith('partner_')
 }
+
+export function isPartnerPrintFailureAction(data: string): boolean {
+  return data.startsWith('partner_retry_print:')
+    || data.startsWith('partner_manual_print:')
+    || data.startsWith('partner_refund')
+}

@@ -116,6 +116,30 @@ export async function handlePartnerCallbackPayload(
     return handlePartnerRefundRequest(platform, userId, orderId)
   }
 
+  if (data.startsWith('partner_retry_print:')) {
+    const orderId = data.slice('partner_retry_print:'.length)
+    const { retryOrderPrint } = await import('./order-staff-actions')
+    const pointId = await resolvePartnerOrderPointId(orderId)
+    await assertPartnerOwnsPoint(platform, userId, pointId)
+    const result = await retryOrderPrint(orderId)
+    return {
+      text: result.alreadyQueued ? 'Печать уже в очереди' : '🔄 Повторная печать запущена',
+      keyboard: [],
+    }
+  }
+
+  if (data.startsWith('partner_manual_print:')) {
+    const orderId = data.slice('partner_manual_print:'.length)
+    const { confirmManualPrint } = await import('./order-staff-actions')
+    const pointId = await resolvePartnerOrderPointId(orderId)
+    await assertPartnerOwnsPoint(platform, userId, pointId)
+    await confirmManualPrint(orderId)
+    return {
+      text: '✅ Клиент уведомлён — документы готовы',
+      keyboard: [],
+    }
+  }
+
   const pointId = resolvePointIdFromPartnerPayload(data)
   if (!pointId) {
     throw new Error('Неизвестная команда')
@@ -299,18 +323,18 @@ export async function assertPartnerForPayload(
     return
   }
 
-  const refundPrefixes = ['partner_refund:', 'partner_refund_confirm:', 'partner_refund_cancel:']
+  const refundPrefixes = [
+    'partner_refund:',
+    'partner_refund_confirm:',
+    'partner_refund_cancel:',
+    'partner_retry_print:',
+    'partner_manual_print:',
+  ]
   for (const prefix of refundPrefixes) {
     if (payload.startsWith(prefix)) {
       const orderId = payload.slice(prefix.length)
-      const order = await prisma.order.findUnique({
-        where: { id: orderId },
-        select: { pointId: true },
-      })
-      if (!order) {
-        throw new Error('Заказ не найден')
-      }
-      await assertPartnerOwnsPoint(platform, userId, order.pointId)
+      const pointId = await resolvePartnerOrderPointId(orderId)
+      await assertPartnerOwnsPoint(platform, userId, pointId)
       return
     }
   }
@@ -320,4 +344,15 @@ export async function assertPartnerForPayload(
     throw new Error('Неизвестная команда')
   }
   await assertPartnerOwnsPoint(platform, userId, pointId)
+}
+
+async function resolvePartnerOrderPointId(orderId: string): Promise<string> {
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    select: { pointId: true },
+  })
+  if (!order) {
+    throw new Error('Заказ не найден')
+  }
+  return order.pointId
 }

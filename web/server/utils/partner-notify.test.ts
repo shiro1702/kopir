@@ -15,7 +15,9 @@ describe('formatPartnerPrintFailed', () => {
     assert.match(text, /7890/)
     assert.match(text, /essay\.pdf/)
     assert.match(text, /БГУ Смолина/)
-    assert.match(text, /распечатайте вручную/i)
+    assert.match(text, /скачайте и распечатайте вручную/i)
+    assert.match(text, /Ручная печать/)
+    assert.match(text, /Попробовать снова/)
   })
 
   it('includes batch line and error reason when present', () => {

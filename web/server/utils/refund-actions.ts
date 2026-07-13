@@ -2,7 +2,7 @@ import { OrderStatus } from '@prisma/client'
 import type { MessengerPlatform } from '@prisma/client'
 import * as messages from './bot/messages'
 import { formatPartnerPrintFailed } from './bot/partner-messages'
-import { partnerRefundPayload } from './bot/keyboards'
+import { partnerPrintFailedKeyboard } from './bot/keyboards'
 import { canPartnerRefundOrder } from './refund-eligibility'
 import { loadOrderForUser, notifyRefundCompleted } from './bot/core'
 import type { BotUser } from './bot/types'
@@ -190,9 +190,7 @@ export async function handlePartnerRefundCancel(orderId: string): Promise<{ text
   const canRefund = await canPartnerRefundOrder(orderId)
   return {
     text: formatPartnerPrintFailed(order, order.errorMessage),
-    keyboard: canRefund
-      ? [[{ text: messages.BTN_PARTNER_REFUND, callbackData: partnerRefundPayload(orderId) }]]
-      : [],
+    keyboard: partnerPrintFailedKeyboard(orderId, { showRefund: canRefund }),
   }
 }
 

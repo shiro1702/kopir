@@ -1,4 +1,5 @@
-import { PDFDocument, rgb } from 'pdf-lib'
+import { createError } from 'h3'
+import { PDFDocument, type PDFFont, rgb } from 'pdf-lib'
 import fontkit from '@pdf-lib/fontkit'
 import QRCode from 'qrcode'
 import type { PointClientLinks } from './point-links'
@@ -6,6 +7,7 @@ import { loadReportFontBold, loadReportFontRegular } from './pdf-font'
 
 const A4_WIDTH = 595.28
 const A4_HEIGHT = 841.89
+const MARGIN = 48
 
 async function qrPngBytes(url: string, width: number): Promise<Uint8Array> {
   const buffer = await QRCode.toBuffer(url, {
@@ -21,17 +23,67 @@ function formatRubles(kopeks: number): string {
   return `${(kopeks / 100).toFixed(kopeks % 100 === 0 ? 0 : 2)} ₽`
 }
 
+function centeredTextX(
+  text: string,
+  font: PDFFont,
+  size: number,
+  columnX: number,
+  columnWidth: number,
+): number {
+  const textWidth = font.widthOfTextAtSize(text, size)
+  return columnX + (columnWidth - textWidth) / 2
+}
+
+function drawPosterLabel(
+  page: ReturnType<PDFDocument['addPage']>,
+  text: string,
+  columnX: number,
+  columnWidth: number,
+  y: number,
+  font: PDFFont,
+  color: ReturnType<typeof rgb>,
+) {
+  page.drawText(text, {
+    x: centeredTextX(text, font, 14, columnX, columnWidth),
+    y,
+    size: 14,
+    font,
+    color,
+  })
+}
+
+function buildPosterFooter(
+  telegramBotUsername: string | null,
+  maxBotLabel: string | null,
+  hasTelegram: boolean,
+  hasMax: boolean,
+  pricePerPageKopeks: number,
+): string {
+  const parts: string[] = []
+  if (hasTelegram) {
+    parts.push(telegramBotUsername ? `Telegram: @${telegramBotUsername}` : 'Telegram')
+  }
+  if (hasMax) {
+    parts.push(maxBotLabel ? `MAX: ${maxBotLabel}` : 'MAX')
+  }
+  return `${parts.join(' · ')} · от ${formatRubles(pricePerPageKopeks)}/стр.`
+}
+
 export async function generatePointPosterPdf(options: {
   pointName: string
   pricePerPageKopeks: number
   links: PointClientLinks
   telegramBotUsername: string | null
+  maxBotLabel?: string | null
 }): Promise<Uint8Array> {
-  const { pointName, pricePerPageKopeks, links, telegramBotUsername } = options
-  if (!links.telegramDeepLink) {
+  const { pointName, pricePerPageKopeks, links, telegramBotUsername, maxBotLabel = null } = options
+  const hasTelegram = Boolean(links.telegramDeepLink)
+  const hasMax = Boolean(links.maxDeepLink)
+
+  if (!hasTelegram && !hasMax) {
     throw createError({
       statusCode: 503,
-      data: { error: 'Telegram deep link is not configured', code: 'LINK_NOT_CONFIGURED' },
+      data: { error: 'No client deep links configured', code: 'LINK_NOT_CONFIGURED' },
     })
   }
 
@@ -46,7 +98,7 @@ export async function generatePointPosterPdf(options: {
   let y = A4_HEIGHT - 56
 
   page.drawText('Печать документов — Kopir', {
-    x: 48,
+    x: MARGIN,
     y,
     size: 22,
     font: fontBold,
@@ -55,49 +107,72 @@ export async function generatePointPosterPdf(options: {
   y -= 36
 
   page.drawText(pointName, {
-    x: 48,
+    x: MARGIN,
     y,
     size: 16,
     font: fontBold,
     color: black,
-    maxWidth: A4_WIDTH - 96,
+    maxWidth: A4_WIDTH - MARGIN * 2,
   })
-  y -= 28
+  y -= 32
 
-  const tgQrBytes = await qrPngBytes(links.telegramDeepLink, 400)
-  const tgQrImage = await pdf.embedPng(tgQrBytes)
-  const tgQrSize = 220
-  const tgQrX = (A4_WIDTH - tgQrSize) / 2
-  page.drawImage(tgQrImage, {
-    x: tgQrX,
-    y: y - tgQrSize,
-    width: tgQrSize,
-    height: tgQrSize,
-  })
+  const dualLayout = hasTelegram && hasMax
+  const qrSize = dualLayout ? 190 : 220
+  const gap = 40
+  const labelGap = 10
 
-  if (links.maxDeepLink) {
-    const maxQrBytes = await qrPngBytes(links.maxDeepLink, 160)
+  if (dualLayout) {
+    const totalWidth = qrSize * 2 + gap
+    const startX = (A4_WIDTH - totalWidth) / 2
+    const tgColumnX = startX
+    const maxColumnX = startX + qrSize + gap
+
+    drawPosterLabel(page, 'Telegram', tgColumnX, qrSize, y, fontBold, black)
+    drawPosterLabel(page, 'MAX', maxColumnX, qrSize, y, fontBold, black)
+    y -= 14 + labelGap
+
+    const tgQrBytes = await qrPngBytes(links.telegramDeepLink!, 400)
+    const maxQrBytes = await qrPngBytes(links.maxDeepLink!, 400)
+    const tgQrImage = await pdf.embedPng(tgQrBytes)
     const maxQrImage = await pdf.embedPng(maxQrBytes)
-    const maxQrSize = 72
+
+    page.drawImage(tgQrImage, {
+      x: tgColumnX,
+      y: y - qrSize,
+      width: qrSize,
+      height: qrSize,
+    })
     page.drawImage(maxQrImage, {
-      x: A4_WIDTH - 48 - maxQrSize,
-      y: 48,
-      width: maxQrSize,
-      height: maxQrSize,
+      x: maxColumnX,
+      y: y - qrSize,
+      width: qrSize,
+      height: qrSize,
     })
-    page.drawText('MAX', {
-      x: A4_WIDTH - 48 - maxQrSize,
-      y: 40,
-      size: 8,
-      font,
-      color: gray,
+    y -= qrSize + 24
+  } else {
+    const deepLink = hasTelegram ? links.telegramDeepLink! : links.maxDeepLink!
+    const label = hasTelegram ? 'Telegram' : 'MAX'
+    const columnX = (A4_WIDTH - qrSize) / 2
+
+    drawPosterLabel(page, label, columnX, qrSize, y, fontBold, black)
+    y -= 14 + labelGap
+
+    const qrBytes = await qrPngBytes(deepLink, 400)
+    const qrImage = await pdf.embedPng(qrBytes)
+    page.drawImage(qrImage, {
+      x: columnX,
+      y: y - qrSize,
+      width: qrSize,
+      height: qrSize,
     })
+    y -= qrSize + 24
   }
 
-  y -= tgQrSize + 24
-
+  const scanStep = hasTelegram && hasMax
+    ? '1. Отсканируйте QR-код (Telegram или MAX)'
+    : '1. Отсканируйте QR-код'
   const steps = [
-    '1. Отсканируйте QR-код',
+    scanStep,
     '2. Отправьте PDF или Word в чат',
     '3. Оплатите в боте',
     '4. Заберите распечатку у принтера',
@@ -113,14 +188,20 @@ export async function generatePointPosterPdf(options: {
     y -= 22
   }
 
-  const botLabel = telegramBotUsername ? `@${telegramBotUsername}` : 'Telegram-бот Kopir'
-  const footer = `${botLabel} · от ${formatRubles(pricePerPageKopeks)}/стр.`
+  const footer = buildPosterFooter(
+    telegramBotUsername,
+    maxBotLabel,
+    hasTelegram,
+    hasMax,
+    pricePerPageKopeks,
+  )
   page.drawText(footer, {
-    x: 48,
+    x: MARGIN,
     y: 72,
     size: 10,
     font,
     color: gray,
+    maxWidth: A4_WIDTH - MARGIN * 2,
   })
 
   return pdf.save()

@@ -57,6 +57,7 @@
 | Повтор печати клиентом | ✅ | 1 | `order_retry:*` при сбое |
 | Запрос возврата клиентом | ✅ | 5 | `order_refund_request:*` / `batch_refund_request:*` при FAILED |
 | Возврат партнёром при сбое | ✅ | 5 | `partner_refund:*` → confirm → Т-Банк Cancel |
+| Партнёр: повтор / ручная печать при сбое | ✅ | 5 | `partner_retry_print:*`, `partner_manual_print:*` |
 | Staff: подтверждение оплаты | ✅ | 0–1 | `staff_pay:*`, `staff_batch_confirm:*` |
 | Staff: ручная печать при сбое | ✅ | 1 | `staff_manual_print:*` |
 | Mini App / корзина | ⬜ | 4 | WEB-07 |
@@ -189,6 +190,8 @@ Staff callback маршрутизируется только если payload **
 | `partner_refund:{orderId}` | Уведомление о сбое печати | FAILED + онлайн-оплата | ✅ |
 | `partner_refund_confirm:{orderId}` | Подтверждение возврата | После `partner_refund` | ✅ |
 | `partner_refund_cancel:{orderId}` | Отмена возврата | После `partner_refund` | ✅ |
+| `partner_retry_print:{orderId}` | Повтор автопечати | FAILED | ✅ |
+| `partner_manual_print:{orderId}` | Ручная печать → уведомить клиента | FAILED | ✅ |
 
 Начисление на баланс: только `TBANK_SBP` / `TBANK_ONLINE`, default split **75/25** (`commissionPercent=25`; early bird ≤10 точек — **14%**; пилоты могут иметь 30%), идемпотентно по `batchId`. Tiered — Sprint 6.
 
