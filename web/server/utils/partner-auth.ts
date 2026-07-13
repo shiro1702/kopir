@@ -125,7 +125,3 @@ export function resolvePointIdFromPartnerPayload(data: string): string | null {
 
   return null
 }
-
-export function isPartnerCallbackPayload(data: string): boolean {
-  return data.startsWith('partner_')
-}
