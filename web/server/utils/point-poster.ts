@@ -1,21 +1,20 @@
 import { createError } from 'h3'
 import { PDFDocument, type PDFFont, rgb } from 'pdf-lib'
 import fontkit from '@pdf-lib/fontkit'
-import QRCode from 'qrcode'
 import type { PointClientLinks } from './point-links'
+import { generateStyledPointQrPng, type PointQrPlatform } from './point-qr'
 import { loadReportFontBold, loadReportFontRegular } from './pdf-font'
 
 const A4_WIDTH = 595.28
 const A4_HEIGHT = 841.89
 const MARGIN = 48
 
-async function qrPngBytes(url: string, width: number): Promise<Uint8Array> {
-  const buffer = await QRCode.toBuffer(url, {
-    type: 'png',
-    width,
-    errorCorrectionLevel: 'H',
-    margin: 1,
-  })
+async function qrPngBytes(
+  url: string,
+  platform: PointQrPlatform,
+  width: number,
+): Promise<Uint8Array> {
+  const buffer = await generateStyledPointQrPng(url, platform, width)
   return new Uint8Array(buffer)
 }
 
@@ -131,8 +130,8 @@ export async function generatePointPosterPdf(options: {
     drawPosterLabel(page, 'MAX', maxColumnX, qrSize, y, fontBold, black)
     y -= 14 + labelGap
 
-    const tgQrBytes = await qrPngBytes(links.telegramDeepLink!, 400)
-    const maxQrBytes = await qrPngBytes(links.maxDeepLink!, 400)
+    const tgQrBytes = await qrPngBytes(links.telegramDeepLink!, 'telegram', 400)
+    const maxQrBytes = await qrPngBytes(links.maxDeepLink!, 'max', 400)
     const tgQrImage = await pdf.embedPng(tgQrBytes)
     const maxQrImage = await pdf.embedPng(maxQrBytes)
 
@@ -157,7 +156,7 @@ export async function generatePointPosterPdf(options: {
     drawPosterLabel(page, label, columnX, qrSize, y, fontBold, black)
     y -= 14 + labelGap
 
-    const qrBytes = await qrPngBytes(deepLink, 400)
+    const qrBytes = await qrPngBytes(deepLink, hasTelegram ? 'telegram' : 'max', 400)
     const qrImage = await pdf.embedPng(qrBytes)
     page.drawImage(qrImage, {
       x: columnX,

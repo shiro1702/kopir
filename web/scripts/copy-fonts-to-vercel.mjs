@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const fonts = ['DejaVuSans.ttf', 'DejaVuSans-Bold.ttf']
+const qrLogos = ['telegram.png', 'max.png']
 
 const serverDir = join(root, '.vercel/output/functions/__fallback.func')
 const destDir = join(serverDir, 'fonts')
@@ -21,3 +22,19 @@ for (const font of fonts) {
 }
 
 console.log(`[fonts] Copied ${copied} font(s) into Vercel serverless output`)
+
+const qrDestDir = join(serverDir, 'assets', 'qr')
+mkdirSync(qrDestDir, { recursive: true })
+
+let qrCopied = 0
+for (const logo of qrLogos) {
+  const src = join(root, 'assets', 'qr', logo)
+  if (!existsSync(src)) {
+    console.warn(`[qr] ${logo} not found in web/assets/qr/`)
+    continue
+  }
+  copyFileSync(src, join(qrDestDir, logo))
+  qrCopied += 1
+}
+
+console.log(`[qr] Copied ${qrCopied} logo(s) into Vercel serverless output`)

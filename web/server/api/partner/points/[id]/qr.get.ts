@@ -1,4 +1,3 @@
-import QRCode from 'qrcode'
 import type { H3Event } from 'h3'
 import type { MessengerPlatform } from '@prisma/client'
 import { assertPartnerOwnsPoint } from '../../../../utils/partner-auth'
@@ -6,6 +5,7 @@ import {
   buildPointClientLinksForSlug,
   getPointClientDeepLink,
 } from '../../../../utils/point-links'
+import { generateStyledPointQrPng } from '../../../../utils/point-qr'
 import { prisma } from '../../../../utils/prisma'
 
 const VALID_PLATFORMS = new Set(['telegram', 'max'])
@@ -82,12 +82,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const png = await QRCode.toBuffer(deepLink, {
-    type: 'png',
-    width: 300,
-    errorCorrectionLevel: 'H',
-    margin: 2,
-  })
+  const png = await generateStyledPointQrPng(deepLink, platformQuery as 'telegram' | 'max', 300)
 
   setHeader(event, 'Content-Type', 'image/png')
   setHeader(event, 'Cache-Control', 'private, max-age=300')
