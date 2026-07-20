@@ -14,7 +14,7 @@
 P0: выбор точки в боте (UX-06, last point, список) — 5+ точек
 P0: web ЛК v1, регистрация партнёра на сайте
 P0: реестр выплат PAY-07 фаза 2
-P1: карта точек WEB-10, SEO-страницы точек `/print/[city]/[slug]`
+P1: карта точек WEB-10, SEO-страницы точек, лендинг `/print`, SEO-фундамент
 P1: геолокация UX-07, Windows Service, алерты, VK-бот
 P2: WEB-09 мультиссылка QR, автопереключение offline
 ```
@@ -28,6 +28,8 @@ P2: WEB-09 мультиссылка QR, автопереключение offline
 | 03 | Карта точек + Mini App | ⬜ | WEB-10, WEB-07 | [tasks/03-point-map-miniapp.md](./tasks/03-point-map-miniapp.md) |
 | 06 | SEO-страницы точек (подготовка к web-печати) | ⬜ | WEB-06 partial | [tasks/06-print-point-pages.md](./tasks/06-print-point-pages.md) |
 | 07 | Количество копий в боте | ✅ | UX-04 | [tasks/07-print-copies.md](./tasks/07-print-copies.md) |
+| 08 | Лендинг `/print` (B2C) | ⬜ | WEB-06, MKT | [tasks/08-client-landing-print.md](./tasks/08-client-landing-print.md) |
+| 09 | SEO-фундамент (sitemap, метрика) | ⬜ | WEB-06, MKT | [tasks/09-seo-foundation.md](./tasks/09-seo-foundation.md) |
 | — | Прогрессивная комиссия от оборота | ⬜ | PAY-06b | → [Sprint 6 / 01](../sprint-6/tasks/01-tiered-commission.md) |
 | 04 | Web ЛК партнёра v1 | ⬜ | WEB-13 | _(спека TBD)_ |
 | 05 | Регистрация партнёра на сайте | ⬜ | ONB-01, ONB-02 | _(спека TBD)_ |

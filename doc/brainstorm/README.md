@@ -10,3 +10,4 @@
 | [24.06.2026.md](./24.06.2026.md) | Reels/Instagram, маркетинг B2B/B2C, буккроссинг, SBC, экономика | [24.06.2026-INDEX.md](./24.06.2026-INDEX.md) → [marketing/](../marketing/), [product/](../product/), [business/](../business/), [hardware/](../hardware/) |
 | [28.06.2026.md](./28.06.2026.md) | Сайт, ЛК, мультигород, ценообразование, агент+Т-Банк, финмодели | [28.06.2026-INDEX.md](./28.06.2026-INDEX.md) → [product/](../product/), [business/](../business/) |
 | [30.06.2026.md](./30.06.2026.md) | Выбор точки в боте, гибридный флоу, offline, поддержка, Т-Банк, выплаты | [30.06.2026-INDEX.md](./30.06.2026-INDEX.md) → [product/](../product/), [business/](../business/) |
+| [20.06.2026.md](./20.06.2026.md) | 3 уровня услуг, буклеты, лендинги, SEO под А4 ч/б | [20.06.2026-INDEX.md](./20.06.2026-INDEX.md) → [product/](../product/), [marketing/](../marketing/), [sprints/](../sprints/) |
