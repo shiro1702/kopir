@@ -56,6 +56,7 @@ export default defineEventHandler(async (event) => {
     name?: string
     slug?: string
     isActive?: boolean
+    visibleInList?: boolean
     pricePerPageKopeks?: number
     paymentMethodsEnabled?: PaymentMethod[]
     transferPhone?: string | null
@@ -91,6 +92,10 @@ export default defineEventHandler(async (event) => {
 
   if (body?.isActive !== undefined) {
     data.isActive = Boolean(body.isActive)
+  }
+
+  if (body?.visibleInList !== undefined) {
+    data.visibleInList = Boolean(body.visibleInList)
   }
 
   if (body?.pricePerPageKopeks !== undefined) {

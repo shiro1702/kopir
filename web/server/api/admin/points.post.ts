@@ -51,6 +51,7 @@ export default defineEventHandler(async (event) => {
   const transferPhone = body?.transferPhone ? String(body.transferPhone).trim() : null
   const transferBankLabel = body?.transferBankLabel ? String(body.transferBankLabel).trim() : null
   const displayCode = body?.displayCode ? String(body.displayCode).trim() : null
+  const visibleInList = body?.visibleInList !== undefined ? Boolean(body.visibleInList) : false
   const commissionPercent = body?.commissionPercent !== undefined
     ? parseCommissionPercent(body.commissionPercent)
     : undefined
@@ -89,6 +90,7 @@ export default defineEventHandler(async (event) => {
       paymentMethodsEnabled,
       transferPhone: transferPhone || null,
       transferBankLabel: transferBankLabel || null,
+      visibleInList,
       ...(commissionPercent !== undefined ? { commissionPercent } : {}),
     },
   })

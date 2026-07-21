@@ -90,6 +90,7 @@ model Point {
   name                   String
   displayCode            String?          @unique
   isActive               Boolean          @default(true)
+  visibleInList          Boolean          @default(true)
   pricePerPageKopeks     Int              @default(1000)
   paymentMethodsEnabled  PaymentMethod[]
   transferPhone          String?

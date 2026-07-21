@@ -111,7 +111,7 @@ web/
 - [ ] Header: навигация + CTA; footer: ИНН/ОГРНИП при заполненных env
 - [ ] FAQ на странице, mobile-first
 - [ ] Блок «Для копицентров» со ссылкой на `/partners`
-- [ ] `NUXT_PUBLIC_TELEGRAM_BOT_USERNAME` на prod
+- [ ] `TELEGRAM_BOT_USERNAME` на prod
 
 ## Чеклист приёмки
 

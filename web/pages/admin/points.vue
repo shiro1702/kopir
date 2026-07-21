@@ -37,6 +37,7 @@ const form = ref({
   transferBankLabel: '',
   paymentMethodsEnabled: ['SBP_TRANSFER', 'ON_SITE'],
   isActive: true,
+  visibleInList: false,
 })
 
 useHead({
@@ -223,6 +224,7 @@ function resetForm() {
     transferBankLabel: '',
     paymentMethodsEnabled: ['SBP_TRANSFER', 'ON_SITE'],
     isActive: true,
+    visibleInList: false,
   }
 }
 
@@ -246,6 +248,7 @@ function openEdit(point) {
     transferBankLabel: point.transferBankLabel ?? '',
     paymentMethodsEnabled: [...point.paymentMethodsEnabled],
     isActive: point.isActive,
+    visibleInList: point.visibleInList ?? true,
   }
   showForm.value = true
   tokenResult.value = null
@@ -293,6 +296,35 @@ async function fetchPoints() {
   }
 }
 
+async function toggleVisibleInList(point) {
+  if (!adminSecret.value || saving.value) return
+  const next = !(point.visibleInList ?? true)
+  saving.value = true
+  error.value = ''
+  success.value = ''
+  try {
+    const data = await $fetch(`/api/admin/points/${point.id}`, {
+      method: 'PATCH',
+      headers: authHeaders(),
+      body: { visibleInList: next },
+    })
+    const updated = data.point
+    const listPoint = points.value.find((item) => item.id === point.id)
+    if (listPoint) {
+      listPoint.visibleInList = updated.visibleInList
+    }
+    if (bindingsPanel.value?.point.id === point.id) {
+      bindingsPanel.value.point = { ...bindingsPanel.value.point, visibleInList: updated.visibleInList }
+    }
+    success.value = next ? 'Точка показывается в списке' : 'Точка скрыта из списка'
+    setTimeout(() => { success.value = '' }, 2000)
+  } catch (e) {
+    error.value = e?.data?.error ?? 'Не удалось обновить видимость точки'
+  } finally {
+    saving.value = false
+  }
+}
+
 async function savePoint() {
   if (!adminSecret.value || saving.value) return
   saving.value = true
@@ -309,6 +341,7 @@ async function savePoint() {
       transferBankLabel: form.value.transferBankLabel.trim() || null,
       paymentMethodsEnabled: form.value.paymentMethodsEnabled,
       isActive: form.value.isActive,
+      visibleInList: form.value.visibleInList,
     }
     if (editingPoint.value) {
       await $fetch(`/api/admin/points/${editingPoint.value.id}`, {
@@ -1107,6 +1140,18 @@ function telegramBotLabel() {
               </label>
             </div>
           </div>
+          <div class="sm:col-span-2">
+            <label class="flex items-center gap-2 text-sm">
+              <input
+                v-model="form.visibleInList"
+                type="checkbox"
+              >
+              Показывать в списке выбора в боте
+            </label>
+            <p class="mt-1 text-xs text-gray-500">
+              Если выключено — точка доступна только по QR-коду, ссылке или коду (например, /start 102)
+            </p>
+          </div>
           <div
             v-if="editingPoint"
             class="sm:col-span-2"
@@ -1198,12 +1243,29 @@ function telegramBotLabel() {
                 {{ formatCommissionSplit(point.commissionPercent) }}
               </td>
               <td class="px-4 py-3">
-                <span
-                  class="rounded-full px-2 py-0.5 text-xs"
-                  :class="point.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'"
-                >
-                  {{ point.isActive ? 'активна' : 'выкл' }}
-                </span>
+                <div class="flex flex-col gap-1">
+                  <span
+                    class="inline-flex w-fit rounded-full px-2 py-0.5 text-xs"
+                    :class="point.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'"
+                  >
+                    {{ point.isActive ? 'активна' : 'выкл' }}
+                  </span>
+                  <label
+                    class="flex items-center gap-1.5 text-xs text-gray-600"
+                    :title="point.visibleInList !== false
+                      ? 'Точка видна в списке выбора'
+                      : 'Только QR, ссылка или код'"
+                  >
+                    <input
+                      type="checkbox"
+                      class="rounded"
+                      :checked="point.visibleInList !== false"
+                      :disabled="saving || !point.isActive"
+                      @change="toggleVisibleInList(point)"
+                    >
+                    {{ point.visibleInList !== false ? 'в списке' : 'скрыта' }}
+                  </label>
+                </div>
               </td>
               <td class="px-4 py-3 text-xs text-gray-600">
                 {{ bindingsSummary(point) }}

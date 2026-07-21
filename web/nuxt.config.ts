@@ -80,6 +80,8 @@ export default defineNuxtConfig({
     public: {
       appVersion: '0.0.1',
       siteUrl: process.env.NUXT_PUBLIC_SITE_URL ?? '',
+      telegramBotUsername: process.env.TELEGRAM_BOT_USERNAME ?? '',
+      maxBotLink: process.env.MAX_BOT_LINK ?? '',
       legalEntityName: process.env.NUXT_PUBLIC_LEGAL_ENTITY_NAME ?? '',
       legalInn: process.env.NUXT_PUBLIC_LEGAL_INN ?? '',
       legalOgrnip: process.env.NUXT_PUBLIC_LEGAL_OGRNIP ?? '',

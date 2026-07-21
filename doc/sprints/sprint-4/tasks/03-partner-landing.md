@@ -61,26 +61,21 @@ web/
 ├── pages/partners.vue              # страница
 ├── composables/usePartnerBotLinks.ts  # deep link TG / MAX
 ├── utils/marketing/partner-landing.ts # тексты блоков (версионируемо)
-└── nuxt.config.ts                  # NUXT_PUBLIC_TELEGRAM_BOT_USERNAME
+└── nuxt.config.ts                  # TELEGRAM_BOT_USERNAME / MAX_BOT_LINK → public
 ```
 
 **Почему не server route:** deep link — только публичный username + payload `partner`; секреты не нужны.
 
 ### Шаг 1 — Env и composable (≈30 мин)
 
-**`nuxt.config.ts`** — добавить в `runtimeConfig.public`:
+**`nuxt.config.ts`** — в `runtimeConfig.public` (те же env, что для bind/QR):
 
 ```ts
-telegramBotUsername: process.env.NUXT_PUBLIC_TELEGRAM_BOT_USERNAME ?? '',
-maxBotLink: process.env.NUXT_PUBLIC_MAX_BOT_LINK ?? '',
+telegramBotUsername: process.env.TELEGRAM_BOT_USERNAME ?? '',
+maxBotLink: process.env.MAX_BOT_LINK ?? '',
 ```
 
-**`web/.env.example`:**
-
-```env
-NUXT_PUBLIC_TELEGRAM_BOT_USERNAME=""   # без @, для CTA на лендинге
-NUXT_PUBLIC_MAX_BOT_LINK=""            # опционально, base URL MAX-бота
-```
+**`web/.env.example`:** уже есть `TELEGRAM_BOT_USERNAME` и `MAX_BOT_LINK` рядом с токенами ботов.
 
 **`composables/usePartnerBotLinks.ts`:**
 
@@ -90,7 +85,7 @@ NUXT_PUBLIC_MAX_BOT_LINK=""            # опционально, base URL MAX-б
 // hasTelegram: boolean — для disabled-состояния CTA
 ```
 
-Логика payload — как в [`point-links.ts`](../../../../web/server/utils/point-links.ts) (`encodeURIComponent('partner')`). На prod обязательно заполнить `NUXT_PUBLIC_TELEGRAM_BOT_USERNAME` (сейчас username только server-side).
+Логика payload — как в [`point-links.ts`](../../../../web/server/utils/point-links.ts) (`encodeURIComponent('partner')`). На prod обязательно заполнить `TELEGRAM_BOT_USERNAME` (используется и server-side, и CTA на лендинге).
 
 ### Шаг 2 — Тексты (`utils/marketing/partner-landing.ts`) (≈30 мин)
 
@@ -153,7 +148,7 @@ useSeoMeta({
 
 ### Шаг 5 — Деплой и prod (≈30 мин)
 
-1. Vercel: `NUXT_PUBLIC_TELEGRAM_BOT_USERNAME`, `NUXT_PUBLIC_SITE_URL`
+1. Vercel: `TELEGRAM_BOT_USERNAME`, `MAX_BOT_LINK` (если нужен MAX CTA), `NUXT_PUBLIC_SITE_URL`
 2. Открыть `https://{site}/partners` с телефона
 3. CTA → Telegram → `/start partner` → ожидаемый экран бота
 4. Lighthouse: readable font sizes, tap targets ≥ 44px
@@ -172,5 +167,5 @@ useSeoMeta({
 - [ ] CTA открывает `t.me/...?start=partner`
 - [ ] Упомянуты 75% (или актуальный % из `partner-landing.ts`)
 - [ ] Ссылка на оферту в тексте страницы
-- [ ] `NUXT_PUBLIC_TELEGRAM_BOT_USERNAME` задан на prod
+- [ ] `TELEGRAM_BOT_USERNAME` задан на prod
 - [ ] Оферта §5.1 ссылается на `/partners` — уже в [`agent-offer.ts`](../../../../web/utils/legal/agent-offer.ts) ✅

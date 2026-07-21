@@ -71,7 +71,7 @@ export async function resolvePointByDisplayCode(code: string) {
 
 export async function listActivePoints() {
   return prisma.point.findMany({
-    where: { isActive: true },
+    where: { isActive: true, visibleInList: true },
     orderBy: { name: 'asc' },
     select: {
       id: true,
@@ -80,13 +80,14 @@ export async function listActivePoints() {
       displayCode: true,
       pricePerPageKopeks: true,
       isActive: true,
+      visibleInList: true,
       lastSeenAt: true,
     },
   })
 }
 
 export async function countActivePoints(): Promise<number> {
-  return prisma.point.count({ where: { isActive: true } })
+  return prisma.point.count({ where: { isActive: true, visibleInList: true } })
 }
 
 export function formatPointLabel(point: { name: string, displayCode?: string | null }): string {

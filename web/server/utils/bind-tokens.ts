@@ -237,6 +237,7 @@ export function serializePointForAdmin(point: {
   name: string
   displayCode?: string | null
   isActive: boolean
+  visibleInList: boolean
   pricePerPageKopeks: number
   commissionPercent: number
   paymentMethodsEnabled: PaymentMethod[]
@@ -257,6 +258,7 @@ export function serializePointForAdmin(point: {
     id: point.id,
     displayCode: point.displayCode ?? null,
     isActive: point.isActive,
+    visibleInList: point.visibleInList,
     pricePerPageKopeks: point.pricePerPageKopeks,
     commissionPercent: point.commissionPercent,
     partnerSharePercent: 100 - point.commissionPercent,
