@@ -14,6 +14,8 @@
 P0: Mini App для печати файлов (TG + MAX) — WEB-07
 P0: Сайт `/print` без логина (guest session) — WEB-06
 P0: Mass Payments API (PAY-08)
+P1: Масштаб выбора точки: фильтры, поиск, кластеры (брейншторм 21.07 этап 3)
+P1: Админка контента точки: фото, услуги
 P1: Прогрессивная комиссия от оборота точки
 P1: Принт-бокс / Linux agent
 P2: Реферальная программа, динамическое ценообразование
@@ -26,6 +28,8 @@ P2: Реферальная программа, динамическое цено
 | 01 | Комиссия от оборота точки (tiered) | ⬜ | PAY-06b | [tasks/01-tiered-commission.md](./tasks/01-tiered-commission.md) |
 | 02 | Mini App: загрузка файлов и оплата (TG + MAX) | ⬜ | WEB-07, FILE-04 | [tasks/02-print-miniapp.md](./tasks/02-print-miniapp.md) |
 | 03 | Сайт: печать без логина (guest session) | ⬜ | WEB-06 | [tasks/03-web-print-guest.md](./tasks/03-web-print-guest.md) |
+| 05 | Масштаб выбора точки (фильтры, поиск, кластеры) | ⬜ | WEB-10, WEB-11 | [tasks/05-point-picker-scale.md](./tasks/05-point-picker-scale.md) |
+| 06 | Админка: фото, услуги, контент точки | ⬜ | WEB-12 | [tasks/06-point-admin-content.md](./tasks/06-point-admin-content.md) |
 | — | Mass Payments «Вывести» | ⬜ | PAY-08 | см. [SPRINTS.md](../SPRINTS.md) |
 | — | Принт-бокс | ⬜ | BOX-01 | — |
 | — | Реферальная программа | ⬜ | MKT-01 | — |

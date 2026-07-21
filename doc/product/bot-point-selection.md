@@ -1,6 +1,6 @@
 # Выбор точки в боте: UX и гибридный флоу
 
-Источник: [брейншторм 30.06.2026](../brainstorm/30.06.2026.md)
+Источник: [брейншторм 30.06.2026](../brainstorm/30.06.2026.md) · Карта/список на сайте и Mini App: [point-picker-ux.md](./point-picker-ux.md) · [брейншторм 21.07](../brainstorm/21.07.2026-INDEX.md)
 
 **Связанные документы:** [multi-city-and-deeplinks.md](./multi-city-and-deeplinks.md) · [bot-user-flow.md](./bot-user-flow.md) · [point-availability.md](./point-availability.md)
 
