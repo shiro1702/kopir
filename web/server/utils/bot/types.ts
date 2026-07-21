@@ -28,6 +28,7 @@ export interface InlineKeyboardButton {
   text: string
   callbackData?: string
   url?: string
+  webAppUrl?: string
 }
 
 export interface SentMessage {

@@ -2,7 +2,9 @@ import {
   BTN_CANCEL_BATCH,
   BTN_FINALIZE_BATCH,
   BTN_POINT_BACK,
+  BTN_POINT_GEO,
   BTN_POINT_LIST,
+  BTN_POINT_MAP,
   BTN_REMOVE_CANCEL,
   BTN_REMOVE_CONFIRM,
   BTN_REMOVE_FILE,
@@ -162,6 +164,7 @@ export function isPointClientCallbackPayload(payload: string): boolean {
   return payload.startsWith(POINT_SELECT_PREFIX)
     || payload === 'point_change'
     || payload === 'point_list'
+    || payload === 'point_geo'
     || payload.startsWith(POINT_LIST_PAGE_PREFIX)
     || payload === 'point_back'
 }
@@ -171,13 +174,16 @@ export interface PointListItem {
   name: string
   displayCode?: string | null
   lastSeenAt?: Date | null
+  statusText?: string
+  canSelect?: boolean
 }
 
 function formatPointListButtonText(point: PointListItem): string {
   const online = point.lastSeenAt != null && isPointAgentOnline(point)
   const status = online ? '🟢 ' : '🔴 '
   const label = point.displayCode ? `${point.name} (${point.displayCode})` : point.name
-  return `${status}${label}`
+  const schedule = point.statusText ? ` · ${point.statusText}` : ''
+  return `${status}${label}${schedule}`
 }
 
 export function pointSelectKeyboard(
@@ -188,7 +194,7 @@ export function pointSelectKeyboard(
   const slice = points.slice(start, start + POINTS_PER_PAGE)
   const rows: InlineKeyboardButton[][] = slice.map((point) => [{
     text: formatPointListButtonText(point),
-    callbackData: pointSelectPayload(point.slug),
+    callbackData: point.canSelect === false ? `point_select_blocked:${point.slug}` : pointSelectPayload(point.slug),
   }])
 
   const nav: InlineKeyboardButton[] = []
@@ -205,11 +211,16 @@ export function pointSelectKeyboard(
   return rows
 }
 
-export function pointChangeMenuKeyboard(): InlineKeyboardButton[][] {
-  return [[
+export function pointChangeMenuKeyboard(options?: { miniAppUrl?: string | null }): InlineKeyboardButton[][] {
+  const rows: InlineKeyboardButton[][] = [[
     { text: BTN_POINT_LIST, callbackData: 'point_list' },
-    { text: BTN_POINT_BACK, callbackData: 'point_back' },
+    { text: BTN_POINT_GEO, callbackData: 'point_geo' },
   ]]
+  if (options?.miniAppUrl) {
+    rows.unshift([{ text: BTN_POINT_MAP, webAppUrl: options.miniAppUrl }])
+  }
+  rows.push([{ text: BTN_POINT_BACK, callbackData: 'point_back' }])
+  return rows
 }
 
 export function pointOfflineStartKeyboard(hasOtherPoints: boolean): InlineKeyboardButton[][] {

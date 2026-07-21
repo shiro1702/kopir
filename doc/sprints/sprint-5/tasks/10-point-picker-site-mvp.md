@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Спринт** | 5 |
-| **Статус** | ⬜ |
+| **Статус** | ✅ |
 | **Приоритет** | P1 |
 | **Feature** | WEB-10, WEB-06 partial |
 | **Спека** | [point-picker-ux.md](../../../product/point-picker-ux.md) · [21.07.2026-INDEX.md](../../../brainstorm/21.07.2026-INDEX.md) |

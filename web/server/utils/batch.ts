@@ -4,7 +4,8 @@ import { getPricePerPageKopeks } from './calculation'
 import { billablePages, clampCopies, computeOrderAmountKopeks, ORDER_COPIES_MAX, ORDER_COPIES_MIN } from './order-pricing'
 import { PAYMENT_TX_OPTIONS, prisma } from './prisma'
 import { assertReadyForStaffPaymentConfirm } from './payments/service'
-import { assertPointAgentOnline, isPointAgentOnline } from './points'
+import { assertPointAcceptsOrders } from './point-availability'
+import { isPointAgentOnline } from './points'
 import type { BatchKeyboardMode } from './bot/types'
 import {
   MSG_BATCH_CALCULATION_FAILED,
@@ -561,7 +562,7 @@ export async function finalizeBatch(batchId: string): Promise<FinalizeBatchResul
     })
   }
 
-  assertPointAgentOnline(batch.point)
+  assertPointAcceptsOrders(batch.point)
 
   const calculating = activeOrders.filter((o) => o.status === OrderStatus.CALCULATING)
   if (calculating.length > 0) {

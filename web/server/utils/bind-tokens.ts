@@ -2,6 +2,7 @@ import { randomBytes } from 'node:crypto'
 import type { BindTokenPurpose, MessengerPlatform, PaymentMethod, Point, StaffChannel } from '@prisma/client'
 import { isRequisitesComplete, parsePartnerRequisites } from './partner-requisites'
 import { pointAgentStatusPayload } from './points'
+import { serializePointContentForAdmin } from './point-admin-fields'
 import { prisma } from './prisma'
 
 const SLUG_PATTERN = /^[a-z0-9_]+$/
@@ -236,6 +237,16 @@ export function serializePointForAdmin(point: {
   slug: string
   name: string
   displayCode?: string | null
+  citySlug: string
+  address?: string | null
+  lat?: number | null
+  lng?: number | null
+  timezone: string
+  openingHours?: unknown
+  acceptsOnlineOrders: boolean
+  pickupInstructions?: string | null
+  estimatedReadyMinutes?: string | null
+  entryPhotoUrl?: string | null
   isActive: boolean
   visibleInList: boolean
   pricePerPageKopeks: number
@@ -256,6 +267,8 @@ export function serializePointForAdmin(point: {
   const status = pointAgentStatusPayload(point)
   return {
     id: point.id,
+    slug: point.slug,
+    name: point.name,
     displayCode: point.displayCode ?? null,
     isActive: point.isActive,
     visibleInList: point.visibleInList,
@@ -268,6 +281,18 @@ export function serializePointForAdmin(point: {
     createdAt: point.createdAt.toISOString(),
     staffChannels: point.staffChannels?.map(serializeStaffChannelForAdmin) ?? [],
     partner: serializePartnerBindingForAdmin(point.partner ?? null),
+    ...serializePointContentForAdmin({
+      citySlug: point.citySlug,
+      address: point.address ?? null,
+      lat: point.lat ?? null,
+      lng: point.lng ?? null,
+      timezone: point.timezone,
+      openingHours: point.openingHours,
+      acceptsOnlineOrders: point.acceptsOnlineOrders,
+      pickupInstructions: point.pickupInstructions ?? null,
+      estimatedReadyMinutes: point.estimatedReadyMinutes ?? null,
+      entryPhotoUrl: point.entryPhotoUrl ?? null,
+    }),
     ...status,
   }
 }

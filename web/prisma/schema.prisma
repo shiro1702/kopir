@@ -89,6 +89,16 @@ model Point {
   slug                   String           @unique
   name                   String
   displayCode            String?          @unique
+  citySlug               String           @default("ulan-ude")
+  address                String?
+  lat                    Float?
+  lng                    Float?
+  timezone               String           @default("Asia/Irkutsk")
+  openingHours           Json?
+  acceptsOnlineOrders    Boolean          @default(true)
+  pickupInstructions     String?
+  estimatedReadyMinutes  String?
+  entryPhotoUrl          String?
   isActive               Boolean          @default(true)
   visibleInList          Boolean          @default(true)
   pricePerPageKopeks     Int              @default(1000)
@@ -108,6 +118,7 @@ model Point {
   balanceEntries         PartnerBalanceEntry[]
 
   @@index([partnerId])
+  @@index([citySlug, isActive])
 }
 
 model PartnerBalanceEntry {

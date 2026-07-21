@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Спринт** | 5 |
-| **Статус** | ⬜ |
+| **Статус** | ✅ |
 | **Приоритет** | P1 |
 | **Feature** | UX-07, WEB-10 |
 | **Спека** | [point-picker-ux.md](../../../product/point-picker-ux.md) · [bot-point-selection.md](../../../product/bot-point-selection.md) |

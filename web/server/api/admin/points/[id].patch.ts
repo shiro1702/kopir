@@ -2,6 +2,7 @@ import { PaymentMethod } from '@prisma/client'
 import { assertAdminAuth } from '../../../utils/admin-auth'
 import { parseCommissionPercent } from '../../../utils/commission'
 import { serializePointForAdmin, validatePointSlug } from '../../../utils/bind-tokens'
+import { parsePointContentFields } from '../../../utils/point-admin-fields'
 import { prisma } from '../../../utils/prisma'
 
 const VALID_METHODS = new Set<string>(Object.values(PaymentMethod))
@@ -63,6 +64,16 @@ export default defineEventHandler(async (event) => {
     transferBankLabel?: string | null
     displayCode?: string | null
     commissionPercent?: number
+    citySlug?: string
+    address?: string | null
+    lat?: number | null
+    lng?: number | null
+    timezone?: string
+    openingHours?: object | null
+    acceptsOnlineOrders?: boolean
+    pickupInstructions?: string | null
+    estimatedReadyMinutes?: string | null
+    entryPhotoUrl?: string | null
   } = {}
 
   if (body?.name !== undefined) {
@@ -141,6 +152,24 @@ export default defineEventHandler(async (event) => {
     }
     data.displayCode = displayCode
   }
+
+  const contentFields = parsePointContentFields(body ?? {})
+  if (contentFields.citySlug !== undefined) data.citySlug = contentFields.citySlug
+  if (contentFields.address !== undefined) data.address = contentFields.address
+  if (contentFields.lat !== undefined) data.lat = contentFields.lat
+  if (contentFields.lng !== undefined) data.lng = contentFields.lng
+  if (contentFields.timezone !== undefined) data.timezone = contentFields.timezone
+  if (contentFields.openingHours !== undefined) data.openingHours = contentFields.openingHours
+  if (contentFields.acceptsOnlineOrders !== undefined) {
+    data.acceptsOnlineOrders = contentFields.acceptsOnlineOrders
+  }
+  if (contentFields.pickupInstructions !== undefined) {
+    data.pickupInstructions = contentFields.pickupInstructions
+  }
+  if (contentFields.estimatedReadyMinutes !== undefined) {
+    data.estimatedReadyMinutes = contentFields.estimatedReadyMinutes
+  }
+  if (contentFields.entryPhotoUrl !== undefined) data.entryPhotoUrl = contentFields.entryPhotoUrl
 
   const isActive = data.isActive ?? existing.isActive
   const methodsFinal = data.paymentMethodsEnabled ?? existing.paymentMethodsEnabled

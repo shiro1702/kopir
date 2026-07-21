@@ -16,7 +16,10 @@ export const BTN_SELECT_POINT = '📋 Выбрать точку'
 export const BTN_CHANGE_POINT = '📍 Изменить точку'
 export const BTN_SELECT_OTHER_POINT = '📍 Выбрать другую точку'
 export const BTN_POINT_LIST = '📋 Выбрать из списка'
+export const BTN_POINT_GEO = '📍 Найти ближайшую'
+export const BTN_POINT_MAP = '🗺 Выбрать на карте'
 export const BTN_POINT_BACK = '⬅️ Назад'
+export const BTN_POINT_SEND_LOCATION = '📍 Отправить геолокацию'
 
 export const MSG_POINT_NOT_FOUND = 'Точка не найдена. Проверьте код или выберите из списка.'
 export const MSG_POINT_OFFLINE =
@@ -33,6 +36,9 @@ export const MSG_POINT_SELECTED_SEND_FILES =
   'Отправьте файлы — бот примет их на эту точку.'
 export const MSG_POINT_SELECTED_FILE_UPDATED =
   'Карточка файла обновлена выше — там кнопки оплаты и удаления.'
+export const MSG_POINT_UNAVAILABLE = 'Точка сейчас не принимает заказы. Выберите другую точку.'
+export const MSG_POINT_GEO_PROMPT =
+  'Нажмите кнопку ниже, чтобы отправить геолокацию. Мы покажем ближайшие точки.'
 
 export const MSG_FILE_RECEIVING = '📥 Принимаю'
 export const MSG_BATCH_FINALIZING = '⏳ Готовим к оплате…'
@@ -148,6 +154,7 @@ export interface BatchFileReadyOptions {
   totalAmountKopeks?: number
   pointOffline?: boolean
   copies?: number
+  routeUrl?: string | null
 }
 
 export function formatBatchFileReady(
@@ -169,6 +176,9 @@ export function formatBatchFileReady(
 
   if (hasPoint) {
     lines.push('', `📍 Точка: ${options!.pointLabel}`)
+    if (options?.routeUrl) {
+      lines.push(`🗺 Маршрут: ${options.routeUrl}`)
+    }
     if (options?.totalAmountKopeks !== undefined && options.totalAmountKopeks > 0) {
       lines.push(`💰 Стоимость: ${Math.round(options.totalAmountKopeks / 100)} ₽`)
     }

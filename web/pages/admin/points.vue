@@ -31,6 +31,17 @@ const form = ref({
   name: '',
   slug: '',
   displayCode: '',
+  citySlug: 'ulan-ude',
+  address: '',
+  lat: '',
+  lng: '',
+  openingHoursWeekdays: '09:00-19:00',
+  openingHoursSaturday: '',
+  openingHoursSunday: '',
+  acceptsOnlineOrders: true,
+  pickupInstructions: 'После оплаты назовите оператору номер заказа.',
+  estimatedReadyMinutes: '1-3',
+  entryPhotoUrl: '',
   pricePerPageKopeks: 1000,
   commissionPercent: 25,
   transferPhone: '',
@@ -219,6 +230,17 @@ function resetForm() {
     name: '',
     slug: '',
     displayCode: '',
+    citySlug: 'ulan-ude',
+    address: '',
+    lat: '',
+    lng: '',
+    openingHoursWeekdays: '09:00-19:00',
+    openingHoursSaturday: '',
+    openingHoursSunday: '',
+    acceptsOnlineOrders: true,
+    pickupInstructions: 'После оплаты назовите оператору номер заказа.',
+    estimatedReadyMinutes: '1-3',
+    entryPhotoUrl: '',
     pricePerPageKopeks: 1000,
     commissionPercent: 25,
     transferPhone: '',
@@ -243,6 +265,17 @@ function openEdit(point) {
     name: point.name,
     slug: point.slug,
     displayCode: point.displayCode ?? '',
+    citySlug: point.citySlug ?? 'ulan-ude',
+    address: point.address ?? '',
+    lat: point.lat != null ? String(point.lat) : '',
+    lng: point.lng != null ? String(point.lng) : '',
+    openingHoursWeekdays: point.openingHoursWeekdays ?? '',
+    openingHoursSaturday: point.openingHoursSaturday ?? '',
+    openingHoursSunday: point.openingHoursSunday ?? '',
+    acceptsOnlineOrders: point.acceptsOnlineOrders ?? true,
+    pickupInstructions: point.pickupInstructions ?? '',
+    estimatedReadyMinutes: point.estimatedReadyMinutes ?? '',
+    entryPhotoUrl: point.entryPhotoUrl ?? '',
     pricePerPageKopeks: point.pricePerPageKopeks,
     commissionPercent: point.commissionPercent ?? 25,
     transferPhone: point.transferPhone ?? '',
@@ -336,6 +369,17 @@ async function savePoint() {
       name: form.value.name.trim(),
       slug: form.value.slug.trim(),
       displayCode: form.value.displayCode.trim() || null,
+      citySlug: form.value.citySlug.trim() || 'ulan-ude',
+      address: form.value.address.trim() || null,
+      lat: form.value.lat.trim() || null,
+      lng: form.value.lng.trim() || null,
+      openingHoursWeekdays: form.value.openingHoursWeekdays.trim() || null,
+      openingHoursSaturday: form.value.openingHoursSaturday.trim() || null,
+      openingHoursSunday: form.value.openingHoursSunday.trim() || null,
+      acceptsOnlineOrders: form.value.acceptsOnlineOrders,
+      pickupInstructions: form.value.pickupInstructions.trim() || null,
+      estimatedReadyMinutes: form.value.estimatedReadyMinutes.trim() || null,
+      entryPhotoUrl: form.value.entryPhotoUrl.trim() || null,
       pricePerPageKopeks: Number(form.value.pricePerPageKopeks),
       commissionPercent: Number(form.value.commissionPercent),
       transferPhone: form.value.transferPhone.trim() || null,
@@ -1086,6 +1130,96 @@ function telegramBotLabel() {
             <p class="mt-1 text-xs text-gray-500">
               Клиент может ввести код в чате или /start 102
             </p>
+          </div>
+          <div>
+            <label class="mb-1 block text-sm text-gray-700">Город (slug)</label>
+            <input
+              v-model="form.citySlug"
+              class="w-full rounded border px-3 py-2 text-sm font-mono"
+              placeholder="ulan-ude"
+            >
+          </div>
+          <div class="sm:col-span-2">
+            <label class="mb-1 block text-sm text-gray-700">Адрес</label>
+            <input
+              v-model="form.address"
+              class="w-full rounded border px-3 py-2 text-sm"
+              placeholder="ул. Ленина, 1"
+            >
+          </div>
+          <div>
+            <label class="mb-1 block text-sm text-gray-700">Широта (lat)</label>
+            <input
+              v-model="form.lat"
+              class="w-full rounded border px-3 py-2 text-sm font-mono"
+              placeholder="51.8335"
+            >
+          </div>
+          <div>
+            <label class="mb-1 block text-sm text-gray-700">Долгота (lng)</label>
+            <input
+              v-model="form.lng"
+              class="w-full rounded border px-3 py-2 text-sm font-mono"
+              placeholder="107.5841"
+            >
+          </div>
+          <div>
+            <label class="mb-1 block text-sm text-gray-700">График будни</label>
+            <input
+              v-model="form.openingHoursWeekdays"
+              class="w-full rounded border px-3 py-2 text-sm font-mono"
+              placeholder="09:00-19:00"
+            >
+          </div>
+          <div>
+            <label class="mb-1 block text-sm text-gray-700">График суббота</label>
+            <input
+              v-model="form.openingHoursSaturday"
+              class="w-full rounded border px-3 py-2 text-sm font-mono"
+              placeholder="10:00-16:00"
+            >
+          </div>
+          <div>
+            <label class="mb-1 block text-sm text-gray-700">График воскресенье</label>
+            <input
+              v-model="form.openingHoursSunday"
+              class="w-full rounded border px-3 py-2 text-sm font-mono"
+              placeholder=""
+            >
+          </div>
+          <div>
+            <label class="mb-1 block text-sm text-gray-700">Готовность (мин)</label>
+            <input
+              v-model="form.estimatedReadyMinutes"
+              class="w-full rounded border px-3 py-2 text-sm"
+              placeholder="1-3"
+            >
+          </div>
+          <div class="sm:col-span-2">
+            <label class="mb-1 block text-sm text-gray-700">Как получить заказ</label>
+            <textarea
+              v-model="form.pickupInstructions"
+              rows="2"
+              class="w-full rounded border px-3 py-2 text-sm"
+            />
+          </div>
+          <div class="sm:col-span-2">
+            <label class="mb-1 block text-sm text-gray-700">URL фото входа</label>
+            <input
+              v-model="form.entryPhotoUrl"
+              class="w-full rounded border px-3 py-2 text-sm"
+              placeholder="https://..."
+            >
+          </div>
+          <div class="sm:col-span-2">
+            <label class="flex items-center gap-2 text-sm text-gray-700">
+              <input
+                v-model="form.acceptsOnlineOrders"
+                type="checkbox"
+                class="rounded"
+              >
+              Принимает онлайн-заказы
+            </label>
           </div>
           <div>
             <label class="mb-1 block text-sm text-gray-700">Цена за страницу (коп.)</label>

@@ -324,6 +324,60 @@ function createBot(): Bot {
     )
   })
 
+  bot.on('message:location', async (ctx) => {
+    const location = ctx.message.location
+    const telegramUser = ctx.from!
+    const target: MessengerReplyTarget = {
+      platform: 'telegram',
+      chatId: String(telegramUser.id),
+    }
+    const user = {
+      externalId: String(telegramUser.id),
+      username: telegramUser.username ?? null,
+      firstName: telegramUser.first_name ?? null,
+    }
+    const { handlePointLocation } = await import('../bot/point-selection')
+    await handlePointLocation(
+      target,
+      user,
+      { lat: location.latitude, lng: location.longitude },
+      adapter,
+    )
+  })
+
+  bot.on('message:web_app_data', async (ctx) => {
+    const raw = ctx.message.web_app_data?.data
+    if (!raw) {
+      return
+    }
+    let payload: { type?: string, slug?: string }
+    try {
+      payload = JSON.parse(raw) as { type?: string, slug?: string }
+    } catch {
+      await ctx.reply('Не удалось обработать выбор точки')
+      return
+    }
+    if (payload.type !== 'point_selected' || !payload.slug) {
+      await ctx.reply('Не удалось обработать выбор точки')
+      return
+    }
+    const telegramUser = ctx.from!
+    const target: MessengerReplyTarget = {
+      platform: 'telegram',
+      chatId: String(telegramUser.id),
+    }
+    const user = {
+      externalId: String(telegramUser.id),
+      username: telegramUser.username ?? null,
+      firstName: telegramUser.first_name ?? null,
+    }
+    const { handleWebAppPointSelect } = await import('../bot/point-selection')
+    const toast = await handleWebAppPointSelect(target, user, payload.slug, adapter)
+    if (toast) {
+      await ctx.reply(toast)
+    }
+  })
+
   bot.on('message:text', async (ctx) => {
     const text = ctx.message.text
     const telegramUser = ctx.from!

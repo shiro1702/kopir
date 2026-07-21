@@ -22,6 +22,9 @@ function buildInlineMarkup(buttons?: InlineKeyboardButton[][]) {
   return {
     inline_keyboard: buttons.map((row) =>
       row.map((btn) => {
+        if (btn.webAppUrl) {
+          return { text: btn.text, web_app: { url: btn.webAppUrl } }
+        }
         if (btn.url) {
           return { text: btn.text, url: btn.url }
         }
@@ -29,6 +32,16 @@ function buildInlineMarkup(buttons?: InlineKeyboardButton[][]) {
       }),
     ),
   }
+}
+
+export async function sendTelegramLocationRequestKeyboard(chatId: number, text: string): Promise<SentMessage> {
+  return sendTelegramMessage(chatId, text, {
+    replyMarkup: {
+      keyboard: [[{ text: '📍 Отправить геолокацию', request_location: true }]],
+      resize_keyboard: true,
+      one_time_keyboard: true,
+    },
+  })
 }
 
 export async function sendTelegramText(chatId: number, text: string): Promise<void> {

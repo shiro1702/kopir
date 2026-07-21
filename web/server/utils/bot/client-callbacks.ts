@@ -143,6 +143,15 @@ export async function routeClientCallback(
     return { toast: await handlePointList(target, user, adapter, listPage) }
   }
 
+  if (data === 'point_geo') {
+    const { handlePointGeoRequest } = await import('./point-selection')
+    return { toast: await handlePointGeoRequest(target, adapter) }
+  }
+
+  if (data.startsWith('point_select_blocked:')) {
+    return { toast: 'Точка сейчас недоступна. Выберите другую.' }
+  }
+
   if (data === 'point_change') {
     const { handlePointChangeMenu } = await import('./point-selection')
     return { toast: await handlePointChangeMenu(target, adapter) }

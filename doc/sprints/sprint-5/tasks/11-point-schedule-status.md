@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Спринт** | 5 |
-| **Статус** | ⬜ |
+| **Статус** | ✅ |
 | **Приоритет** | P1 |
 | **Feature** | WEB-10, MON-02 расширение, UX-06 |
 | **Спека** | [point-picker-ux.md](../../../product/point-picker-ux.md) § Статусы · [point-availability.md](../../../product/point-availability.md) |

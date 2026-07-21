@@ -6,6 +6,9 @@ import {
   getBatchKeyboardMode,
   getBatchMaxFiles,
 } from '../batch'
+import { yandexMapsRoute } from '../navigation-links'
+import { getPointOrderEligibility } from '../point-availability'
+import { toPublicPointPayload } from '../public-point'
 import { prisma } from '../prisma'
 import { formatPointLabel, listActivePoints, resolvePointByDisplayCode, resolvePointBySlug } from '../points'
 import {
@@ -16,6 +19,8 @@ import {
 } from './keyboards'
 import * as messages from './messages'
 import { editOrderClientMessageViaAdapter } from './order-client-message'
+import { getUserGeoCoords, setUserGeoCoords } from './preferences'
+import { getPointClientLinksConfig } from '../point-links'
 import type {
   BotUser,
   MessengerAdapter,
@@ -40,6 +45,47 @@ async function loadDbUser(user: BotUser) {
   })
 }
 
+function miniAppPointsUrl(): string | null {
+  const base = getPointClientLinksConfig().siteUrl.replace(/\/$/, '')
+  if (!base) {
+    return null
+  }
+  return `${base}/miniapp/points`
+}
+
+async function mapPointsForList(
+  target: MessengerReplyTarget,
+  points: Awaited<ReturnType<typeof listActivePoints>>,
+) {
+  const userCoords = getUserGeoCoords(target.platform, target.chatId)
+  const mapped = points.map((point) => {
+    const payload = toPublicPointPayload(point, userCoords
+      ? { userLat: userCoords.lat, userLng: userCoords.lng }
+      : undefined)
+    return {
+      slug: point.slug,
+      name: point.name,
+      displayCode: point.displayCode,
+      lastSeenAt: point.lastSeenAt,
+      statusText: payload.statusText,
+      canSelect: payload.canSelect,
+      distanceKm: payload.distanceKm,
+    }
+  })
+
+  mapped.sort((a, b) => {
+    if (a.canSelect !== b.canSelect) {
+      return a.canSelect ? -1 : 1
+    }
+    if (a.distanceKm != null && b.distanceKm != null) {
+      return a.distanceKm - b.distanceKm
+    }
+    return a.name.localeCompare(b.name, 'ru')
+  })
+
+  return mapped
+}
+
 async function refreshBatchFileCards(
   batchId: string,
   adapter: MessengerAdapter,
@@ -48,7 +94,7 @@ async function refreshBatchFileCards(
 ): Promise<void> {
   const batch = await prisma.orderBatch.findUnique({
     where: { id: batchId },
-    include: { point: { select: { name: true, displayCode: true } } },
+    include: { point: { select: { name: true, displayCode: true, lat: true, lng: true } } },
   })
   if (!batch) {
     return
@@ -64,6 +110,9 @@ async function refreshBatchFileCards(
     if (order.status === OrderStatus.CALCULATING) {
       continue
     }
+    const routeUrl = batch.point?.lat != null && batch.point?.lng != null
+      ? yandexMapsRoute(batch.point.lat, batch.point.lng)
+      : null
     const text = messages.formatBatchFileReady(
       order.fileName,
       order.batchIndex ?? 1,
@@ -74,6 +123,7 @@ async function refreshBatchFileCards(
         pointLabel,
         totalAmountKopeks: batch.totalAmountKopeks,
         copies: order.copies,
+        routeUrl,
       },
     )
     const copiesOpts = order.status === OrderStatus.AWAITING_PAYMENT
@@ -117,8 +167,14 @@ async function buildLastOrderFileReadyText(
     return null
   }
 
-  const batch = await prisma.orderBatch.findUnique({ where: { id: batchId } })
+  const batch = await prisma.orderBatch.findUnique({
+    where: { id: batchId },
+    include: { point: { select: { lat: true, lng: true } } },
+  })
   const maxFiles = getBatchMaxFiles()
+  const routeUrl = batch?.point?.lat != null && batch?.point?.lng != null
+    ? yandexMapsRoute(batch.point.lat, batch.point.lng)
+    : null
   const fileText = messages.formatBatchFileReady(
     lastOrder.fileName,
     lastOrder.batchIndex ?? 1,
@@ -129,6 +185,7 @@ async function buildLastOrderFileReadyText(
       pointLabel,
       totalAmountKopeks: batch?.totalAmountKopeks,
       copies: lastOrder.copies,
+      routeUrl,
     },
   )
 
@@ -192,10 +249,11 @@ export async function handlePointList(
     return 'Нет доступных точек печати.'
   }
 
-  const totalPages = Math.max(1, Math.ceil(points.length / POINTS_PER_PAGE))
+  const mapped = await mapPointsForList(target, points)
+  const totalPages = Math.max(1, Math.ceil(mapped.length / POINTS_PER_PAGE))
   const safePage = Math.min(page, totalPages - 1)
   const text = messages.formatPointListHeader(safePage, totalPages)
-  const keyboard = pointSelectKeyboard(points, safePage)
+  const keyboard = pointSelectKeyboard(mapped, safePage)
 
   await adapter.sendText(target, text, { inlineKeyboard: keyboard })
   return 'Выберите точку…'
@@ -206,9 +264,33 @@ export async function handlePointChangeMenu(
   adapter: MessengerAdapter,
 ): Promise<string> {
   await adapter.sendText(target, messages.formatPointChangeMenu(), {
-    inlineKeyboard: pointChangeMenuKeyboard(),
+    inlineKeyboard: pointChangeMenuKeyboard({ miniAppUrl: miniAppPointsUrl() }),
   })
   return 'Выберите способ…'
+}
+
+export async function handlePointGeoRequest(
+  target: MessengerReplyTarget,
+  adapter: MessengerAdapter,
+): Promise<string> {
+  if (target.platform === 'telegram') {
+    const { sendTelegramLocationRequestKeyboard } = await import('../telegram/client')
+    await sendTelegramLocationRequestKeyboard(Number(target.chatId), messages.MSG_POINT_GEO_PROMPT)
+    return 'Отправьте геолокацию'
+  }
+  await adapter.sendText(target, messages.MSG_POINT_GEO_PROMPT)
+  return 'Геолокация пока доступна в Telegram'
+}
+
+export async function handlePointLocation(
+  target: MessengerReplyTarget,
+  user: BotUser,
+  coords: { lat: number, lng: number },
+  adapter: MessengerAdapter,
+): Promise<string> {
+  setUserGeoCoords(target.platform, target.chatId, coords)
+  await handlePointList(target, user, adapter, 0)
+  return 'Точки отсортированы по расстоянию'
 }
 
 export async function handlePointSelect(
@@ -224,6 +306,14 @@ export async function handlePointSelect(
   }
 
   const point = await resolvePointBySlug(slug)
+  const eligibility = getPointOrderEligibility(point)
+  if (!eligibility.canAccept) {
+    await adapter.sendText(target, eligibility.reason ?? messages.MSG_POINT_UNAVAILABLE, {
+      inlineKeyboard: pointChangeMenuKeyboard({ miniAppUrl: miniAppPointsUrl() }),
+    })
+    return eligibility.reason ?? messages.MSG_POINT_UNAVAILABLE
+  }
+
   const batch = await getActiveCollectingBatch(dbUser.id)
 
   if (batch) {
@@ -255,6 +345,15 @@ export async function handlePointSelect(
   })
   await adapter.sendText(target, messages.formatStartWithPoint(formatPointLabel(point)))
   return messages.MSG_POINT_SELECTED(formatPointLabel(point))
+}
+
+export async function handleWebAppPointSelect(
+  target: MessengerReplyTarget,
+  user: BotUser,
+  slug: string,
+  adapter: MessengerAdapter,
+): Promise<string> {
+  return handlePointSelect(target, user, slug, adapter)
 }
 
 export async function handlePointBack(
@@ -334,7 +433,9 @@ export async function resolveAutoBindPointId(
   if (preferredSlug) {
     try {
       const point = await resolvePointBySlug(preferredSlug)
-      return point.id
+      if (getPointOrderEligibility(point).canAccept) {
+        return point.id
+      }
     } catch {
       // fall through
     }
@@ -342,7 +443,7 @@ export async function resolveAutoBindPointId(
 
   if (lastPointId) {
     const point = await prisma.point.findUnique({ where: { id: lastPointId } })
-    if (point?.isActive) {
+    if (point?.isActive && getPointOrderEligibility(point).canAccept) {
       return point.id
     }
   }

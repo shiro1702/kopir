@@ -16,6 +16,7 @@ import {
   formatHomePricingText,
   formatPriceRub,
 } from '~/utils/marketing/home-landing'
+import { DEFAULT_CITY_SLUG } from '~/types/point-picker'
 
 definePageMeta({ layout: 'marketing' })
 
@@ -23,8 +24,10 @@ type PublicPoint = {
   slug: string
   name: string
   displayCode: string | null
+  address: string | null
   pricePerPageKopeks: number
   agentOnline: boolean
+  statusText?: string
 }
 
 const legal = useLegalEntity()
@@ -216,6 +219,14 @@ useHead({
       id="points"
       :title="HOME_POINTS.title"
     >
+      <div class="mb-6">
+        <NuxtLink
+          :to="`/print/${DEFAULT_CITY_SLUG}`"
+          class="inline-flex min-h-11 items-center rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white"
+        >
+          Все точки на карте
+        </NuxtLink>
+      </div>
       <div
         v-if="points.length === 0"
         class="rounded-2xl border border-dashed border-gray-300 bg-white p-6 sm:p-8"
@@ -247,10 +258,22 @@ useHead({
             </span>
           </div>
           <p
+            v-if="point.address"
+            class="mt-2 text-sm text-gray-600"
+          >
+            {{ point.address }}
+          </p>
+          <p
             v-if="point.displayCode"
             class="mt-2 text-sm text-gray-500"
           >
             Код точки: {{ point.displayCode }}
+          </p>
+          <p
+            v-if="point.statusText"
+            class="mt-2 text-sm text-gray-600"
+          >
+            {{ point.statusText }}
           </p>
           <p class="mt-3 text-sm text-gray-700">
             А4 ч/б — {{ formatPriceRub(point.pricePerPageKopeks) }} ₽/стр.

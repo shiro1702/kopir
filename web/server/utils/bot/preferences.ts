@@ -50,3 +50,27 @@ export function clearLastBatchKeyboardMode(
 ): void {
   lastBatchKeyboardMode.delete(preferenceKey(platform, chatId))
 }
+
+const userGeoCoords = new Map<string, { lat: number, lng: number }>()
+
+export function setUserGeoCoords(
+  platform: MessengerPlatform,
+  chatId: string | number,
+  coords: { lat: number, lng: number },
+): void {
+  userGeoCoords.set(preferenceKey(platform, chatId), coords)
+}
+
+export function getUserGeoCoords(
+  platform: MessengerPlatform,
+  chatId: string | number,
+): { lat: number, lng: number } | undefined {
+  return userGeoCoords.get(preferenceKey(platform, chatId))
+}
+
+export function clearUserGeoCoords(
+  platform: MessengerPlatform,
+  chatId: string | number,
+): void {
+  userGeoCoords.delete(preferenceKey(platform, chatId))
+}

@@ -1,5 +1,5 @@
-import { MSG_POINT_OFFLINE_PAYMENT } from './bot/messages'
 import { prisma } from './prisma'
+import { MSG_POINT_OFFLINE_PAYMENT } from './bot/messages'
 
 export function getPointOfflineThresholdSec(): number {
   const raw = process.env.POINT_OFFLINE_THRESHOLD_SEC ?? '20'
@@ -69,20 +69,43 @@ export async function resolvePointByDisplayCode(code: string) {
   return point
 }
 
-export async function listActivePoints() {
+const publicPointSelect = {
+  id: true,
+  slug: true,
+  name: true,
+  displayCode: true,
+  citySlug: true,
+  address: true,
+  lat: true,
+  lng: true,
+  pricePerPageKopeks: true,
+  timezone: true,
+  openingHours: true,
+  acceptsOnlineOrders: true,
+  pickupInstructions: true,
+  estimatedReadyMinutes: true,
+  entryPhotoUrl: true,
+  lastSeenAt: true,
+  isActive: true,
+  visibleInList: true,
+} as const
+
+export async function listActivePoints(options?: { citySlug?: string }) {
   return prisma.point.findMany({
-    where: { isActive: true, visibleInList: true },
-    orderBy: { name: 'asc' },
-    select: {
-      id: true,
-      slug: true,
-      name: true,
-      displayCode: true,
-      pricePerPageKopeks: true,
+    where: {
       isActive: true,
       visibleInList: true,
-      lastSeenAt: true,
+      ...(options?.citySlug ? { citySlug: options.citySlug } : {}),
     },
+    orderBy: { name: 'asc' },
+    select: publicPointSelect,
+  })
+}
+
+export async function getActivePointBySlug(slug: string) {
+  return prisma.point.findFirst({
+    where: { slug, isActive: true, visibleInList: true },
+    select: publicPointSelect,
   })
 }
 

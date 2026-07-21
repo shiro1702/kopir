@@ -2,6 +2,7 @@ import { PaymentMethod } from '@prisma/client'
 import { assertAdminAuth } from '../../utils/admin-auth'
 import { parseCommissionPercent } from '../../utils/commission'
 import { serializePointForAdmin, validatePointSlug } from '../../utils/bind-tokens'
+import { parsePointContentFields } from '../../utils/point-admin-fields'
 import { prisma } from '../../utils/prisma'
 
 const VALID_METHODS = new Set<string>(Object.values(PaymentMethod))
@@ -81,6 +82,8 @@ export default defineEventHandler(async (event) => {
     }
   }
 
+  const contentFields = parsePointContentFields(body ?? {})
+
   const point = await prisma.point.create({
     data: {
       name,
@@ -92,6 +95,22 @@ export default defineEventHandler(async (event) => {
       transferBankLabel: transferBankLabel || null,
       visibleInList,
       ...(commissionPercent !== undefined ? { commissionPercent } : {}),
+      ...(contentFields.citySlug !== undefined ? { citySlug: contentFields.citySlug } : {}),
+      ...(contentFields.address !== undefined ? { address: contentFields.address } : {}),
+      ...(contentFields.lat !== undefined ? { lat: contentFields.lat } : {}),
+      ...(contentFields.lng !== undefined ? { lng: contentFields.lng } : {}),
+      ...(contentFields.timezone !== undefined ? { timezone: contentFields.timezone } : {}),
+      ...(contentFields.openingHours !== undefined ? { openingHours: contentFields.openingHours } : {}),
+      ...(contentFields.acceptsOnlineOrders !== undefined
+        ? { acceptsOnlineOrders: contentFields.acceptsOnlineOrders }
+        : {}),
+      ...(contentFields.pickupInstructions !== undefined
+        ? { pickupInstructions: contentFields.pickupInstructions }
+        : {}),
+      ...(contentFields.estimatedReadyMinutes !== undefined
+        ? { estimatedReadyMinutes: contentFields.estimatedReadyMinutes }
+        : {}),
+      ...(contentFields.entryPhotoUrl !== undefined ? { entryPhotoUrl: contentFields.entryPhotoUrl } : {}),
     },
   })
 
