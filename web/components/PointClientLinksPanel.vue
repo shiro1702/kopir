@@ -178,19 +178,53 @@ function maxStartFallback(slug) {
         Универсально
       </p>
       <p class="mt-1 text-xs text-gray-600">
-        Единая ссылка для всех мессенджеров — скоро
+        Один QR для всех мессенджеров — выбор Telegram или MAX на сайте. Рекомендуется для iPhone.
       </p>
+      <div
+        v-if="qrUrls.go && links.goLink"
+        class="mt-3 flex flex-col items-start gap-3 sm:flex-row sm:items-center"
+      >
+        <img
+          :src="qrUrls.go"
+          alt="Универсальный QR-код"
+          width="300"
+          height="300"
+          class="rounded border border-gray-200 bg-white"
+        >
+        <div class="min-w-0 flex-1 space-y-2 text-xs">
+          <p class="break-all rounded bg-gray-50 px-2 py-1.5 font-mono">
+            {{ links.goLink }}
+          </p>
+          <div class="flex flex-wrap gap-2">
+            <a
+              :href="links.goLink"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="rounded bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-700"
+            >
+              Открыть страницу
+            </a>
+            <button
+              class="rounded border border-sky-300 bg-white px-3 py-2 text-xs hover:bg-sky-50"
+              @click="emit('copy', links.goLink)"
+            >
+              Скопировать ссылку
+            </button>
+          </div>
+        </div>
+      </div>
       <p
-        v-if="links.goLink"
-        class="mt-2 break-all rounded bg-gray-50 px-2 py-1.5 font-mono text-xs text-gray-400"
+        v-else-if="links.goLink"
+        class="mt-3 break-all rounded bg-gray-50 px-2 py-1.5 font-mono text-xs"
       >
         {{ links.goLink }}
       </p>
-      <span
-        class="mt-2 inline-block rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500"
+      <p
+        v-else
+        class="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900"
       >
-        скоро
-      </span>
+        Задайте <code class="font-mono">NUXT_PUBLIC_SITE_URL</code> в <code class="font-mono">web/.env</code> для универсальной ссылки.
+      </p>
     </div>
 
     <div
@@ -199,7 +233,7 @@ function maxStartFallback(slug) {
     >
       <button
         class="rounded bg-sky-600 px-4 py-2 text-sm text-white hover:bg-sky-700 disabled:opacity-50"
-        :disabled="posterDownloading || (!links.telegramDeepLink && !links.maxDeepLink)"
+        :disabled="posterDownloading || (!links.telegramDeepLink && !links.maxDeepLink && !links.goLink)"
         @click="emit('download-poster')"
       >
         {{ posterDownloading ? 'Генерация…' : 'Скачать плакат' }}

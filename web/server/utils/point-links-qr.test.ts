@@ -28,4 +28,11 @@ describe('point-links QR', () => {
     assert.ok(png.byteLength > 1000)
     assert.equal(links.maxDeepLink, 'https://max.ru/kopir_bot?start=point_bgu_1')
   })
+
+  it('generates PNG buffer for go link', async () => {
+    const links = buildPointClientLinks('point_bgu_1', baseConfig)
+    assert.ok(links.goLink)
+    const png = await generateStyledPointQrPng(links.goLink!, 'go', 300)
+    assert.ok(png.byteLength > 1000)
+  })
 })

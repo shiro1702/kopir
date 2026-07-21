@@ -9,6 +9,12 @@ const A4_WIDTH = 595.28
 const A4_HEIGHT = 841.89
 const MARGIN = 48
 
+type PosterQrItem = {
+  label: string
+  url: string
+  platform: PointQrPlatform
+}
+
 async function qrPngBytes(
   url: string,
   platform: PointQrPlatform,
@@ -41,11 +47,12 @@ function drawPosterLabel(
   y: number,
   font: PDFFont,
   color: ReturnType<typeof rgb>,
+  size = 14,
 ) {
   page.drawText(text, {
-    x: centeredTextX(text, font, 14, columnX, columnWidth),
+    x: centeredTextX(text, font, size, columnX, columnWidth),
     y,
-    size: 14,
+    size,
     font,
     color,
   })
@@ -56,6 +63,7 @@ function buildPosterFooter(
   maxBotLabel: string | null,
   hasTelegram: boolean,
   hasMax: boolean,
+  hasGo: boolean,
   pricePerPageKopeks: number,
 ): string {
   const parts: string[] = []
@@ -65,7 +73,32 @@ function buildPosterFooter(
   if (hasMax) {
     parts.push(maxBotLabel ? `MAX: ${maxBotLabel}` : 'MAX')
   }
+  if (hasGo) {
+    parts.push('Универсальный QR')
+  }
   return `${parts.join(' · ')} · от ${formatRubles(pricePerPageKopeks)}/стр.`
+}
+
+function buildPosterQrItems(links: PointClientLinks): PosterQrItem[] {
+  const items: PosterQrItem[] = []
+  if (links.telegramDeepLink) {
+    items.push({ label: 'Telegram', url: links.telegramDeepLink, platform: 'telegram' })
+  }
+  if (links.maxDeepLink) {
+    items.push({ label: 'MAX', url: links.maxDeepLink, platform: 'max' })
+  }
+  if (links.goLink) {
+    items.push({ label: 'Универсально', url: links.goLink, platform: 'go' })
+  }
+  return items
+}
+
+function buildScanStep(items: PosterQrItem[]): string {
+  if (items.length === 1) {
+    return '1. Отсканируйте QR-код'
+  }
+  const labels = items.map((item) => item.label).join(', ')
+  return `1. Отсканируйте QR (${labels})`
 }
 
 export async function generatePointPosterPdf(options: {
@@ -76,15 +109,18 @@ export async function generatePointPosterPdf(options: {
   maxBotLabel?: string | null
 }): Promise<Uint8Array> {
   const { pointName, pricePerPageKopeks, links, telegramBotUsername, maxBotLabel = null } = options
-  const hasTelegram = Boolean(links.telegramDeepLink)
-  const hasMax = Boolean(links.maxDeepLink)
+  const qrItems = buildPosterQrItems(links)
 
-  if (!hasTelegram && !hasMax) {
+  if (qrItems.length === 0) {
     throw createError({
       statusCode: 503,
       data: { error: 'No client deep links configured', code: 'LINK_NOT_CONFIGURED' },
     })
   }
+
+  const hasTelegram = Boolean(links.telegramDeepLink)
+  const hasMax = Boolean(links.maxDeepLink)
+  const hasGo = Boolean(links.goLink)
 
   const pdf = await PDFDocument.create()
   pdf.registerFontkit(fontkit)
@@ -115,48 +151,24 @@ export async function generatePointPosterPdf(options: {
   })
   y -= 32
 
-  const dualLayout = hasTelegram && hasMax
-  const qrSize = dualLayout ? 190 : 220
-  const gap = 40
+  const qrCount = qrItems.length
+  const gap = qrCount === 3 ? 24 : 40
+  const qrSize = qrCount === 3 ? 150 : qrCount === 2 ? 190 : 220
   const labelGap = 10
+  const totalWidth = qrCount * qrSize + gap * (qrCount - 1)
+  const startX = (A4_WIDTH - totalWidth) / 2
 
-  if (dualLayout) {
-    const totalWidth = qrSize * 2 + gap
-    const startX = (A4_WIDTH - totalWidth) / 2
-    const tgColumnX = startX
-    const maxColumnX = startX + qrSize + gap
+  for (let index = 0; index < qrItems.length; index++) {
+    const item = qrItems[index]
+    const columnX = startX + index * (qrSize + gap)
+    drawPosterLabel(page, item.label, columnX, qrSize, y, fontBold, black, qrCount === 3 ? 12 : 14)
+  }
+  y -= (qrCount === 3 ? 12 : 14) + labelGap
 
-    drawPosterLabel(page, 'Telegram', tgColumnX, qrSize, y, fontBold, black)
-    drawPosterLabel(page, 'MAX', maxColumnX, qrSize, y, fontBold, black)
-    y -= 14 + labelGap
-
-    const tgQrBytes = await qrPngBytes(links.telegramDeepLink!, 'telegram', 400)
-    const maxQrBytes = await qrPngBytes(links.maxDeepLink!, 'max', 400)
-    const tgQrImage = await pdf.embedPng(tgQrBytes)
-    const maxQrImage = await pdf.embedPng(maxQrBytes)
-
-    page.drawImage(tgQrImage, {
-      x: tgColumnX,
-      y: y - qrSize,
-      width: qrSize,
-      height: qrSize,
-    })
-    page.drawImage(maxQrImage, {
-      x: maxColumnX,
-      y: y - qrSize,
-      width: qrSize,
-      height: qrSize,
-    })
-    y -= qrSize + 24
-  } else {
-    const deepLink = hasTelegram ? links.telegramDeepLink! : links.maxDeepLink!
-    const label = hasTelegram ? 'Telegram' : 'MAX'
-    const columnX = (A4_WIDTH - qrSize) / 2
-
-    drawPosterLabel(page, label, columnX, qrSize, y, fontBold, black)
-    y -= 14 + labelGap
-
-    const qrBytes = await qrPngBytes(deepLink, hasTelegram ? 'telegram' : 'max', 400)
+  for (let index = 0; index < qrItems.length; index++) {
+    const item = qrItems[index]
+    const columnX = startX + index * (qrSize + gap)
+    const qrBytes = await qrPngBytes(item.url, item.platform, 400)
     const qrImage = await pdf.embedPng(qrBytes)
     page.drawImage(qrImage, {
       x: columnX,
@@ -164,14 +176,25 @@ export async function generatePointPosterPdf(options: {
       width: qrSize,
       height: qrSize,
     })
-    y -= qrSize + 24
+  }
+  y -= qrSize + 24
+
+  if (hasGo) {
+    drawPosterLabel(
+      page,
+      'Универсальный QR — выбор мессенджера на сайте',
+      MARGIN,
+      A4_WIDTH - MARGIN * 2,
+      y,
+      font,
+      gray,
+      10,
+    )
+    y -= 18
   }
 
-  const scanStep = hasTelegram && hasMax
-    ? '1. Отсканируйте QR-код (Telegram или MAX)'
-    : '1. Отсканируйте QR-код'
   const steps = [
-    scanStep,
+    buildScanStep(qrItems),
     '2. Отправьте PDF или Word в чат',
     '3. Оплатите в боте',
     '4. Заберите распечатку у принтера',
@@ -192,6 +215,7 @@ export async function generatePointPosterPdf(options: {
     maxBotLabel,
     hasTelegram,
     hasMax,
+    hasGo,
     pricePerPageKopeks,
   )
   page.drawText(footer, {

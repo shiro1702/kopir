@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 import QRCode from 'qrcode'
 import sharp from 'sharp'
 
-export type PointQrPlatform = 'telegram' | 'max'
+export type PointQrPlatform = 'telegram' | 'max' | 'go'
 
 const LOGO_FILES: Record<PointQrPlatform, string> = {
   telegram: 'telegram.png',
@@ -132,6 +132,10 @@ export async function generateStyledPointQrPng(
 ): Promise<Buffer> {
   const svg = buildDotQrSvg(text, size)
   const qrPng = await sharp(Buffer.from(svg)).png().toBuffer()
+  if (platform === 'go') {
+    return qrPng
+  }
+
   const badge = await buildCenterBadge(platform, size)
   const offset = Math.round((size - badge.size) / 2)
 

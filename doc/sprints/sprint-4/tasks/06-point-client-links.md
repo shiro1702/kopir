@@ -53,9 +53,9 @@
 
 | Материал | Формат | Назначение |
 |----------|--------|------------|
-| Плакат на стойку | A4 PDF | QR + цена + 3 шага (фаза 2, пункт 6.5) |
+| Плакат на стойку | A4 PDF | QR TG + MAX + **универсальный /go** + цена + 3 шага (фаза 2, пункт 6.5) |
 | **Буклет для партнёра** | A4 PDF, евросложение | Outreach конкретному копицентру: оффер А4 ч/б, пилот, инфо-стенд |
-| **Листовка для клиентов** | A5 PDF | На стойку точки: QR точки, цена, доп. услуги из настроек |
+| **Листовка для клиентов** | A5 PDF | На стойку: **универсальный QR** `/go?point=` (основной) + TG/MAX мелко; цена, доп. услуги |
 
 Тексты: [booklets-and-posters.md](../../../marketing/texts/booklets-and-posters.md)
 
@@ -64,7 +64,7 @@
 - название, адрес, график
 - `pricePerPageKopeks` → «от X ₽/стр.»
 - `additionalServices` (текстовое поле ЛК) → блок «Другие услуги»
-- QR deep link TG (+ MAX мелко на листовке)
+- QR deep link TG (+ MAX мелко на листовке) + **универсальный `/go?point=`** (рекомендуется на плакате и листовке)
 
 **Кнопки в панели:**
 
@@ -75,14 +75,14 @@
 **Блок «Ссылки сайта»:**
 
 - `{siteUrl}/print/{city}/{slug}` — SEO-страница точки (после Sprint 5 / 06)
-- `{siteUrl}/go?point={slug}` — универсальный редиректор (WEB-09, заглушка «скоро»)
+- `{siteUrl}/go?point={slug}` — универсальный редиректор (WEB-09) → [07-go-redirector.md](./07-go-redirector.md) ✅
 
 ### Backend
 
 - [ ] **6.1** `web/server/utils/point-links.ts` — `buildPointClientLinks(slug)`:
   - `telegramDeepLink`, `telegramPayload`, `maxDeepLink`, `maxPayload`, `goLink`
 - [ ] **6.2** `GET /api/admin/points/[id]/links` — JSON ссылок (reuse admin auth)
-- [ ] **6.3** `GET /api/admin/points/[id]/qr?platform=telegram|max` — PNG (`qrcode` npm)
+- [ ] **6.3** `GET /api/admin/points/[id]/qr?platform=telegram|max|go` — PNG (`qrcode` npm)
 - [ ] **6.4** Env: `MAX_BOT_LINK` (или `MAX_BOT_USERNAME`) в `.env.example`, `admin/config.get.ts`
 
 ### Фаза 3 (P2) — буклеты и листовки
@@ -95,23 +95,22 @@
 **Use cases:**
 
 1. **Буклет для партнёра** — менеджер Kopir скачивает перед визитом в копицентр; в шапке — «Копицентр „{name}“» или generic «Для копицентра {city}».
-2. **Листовка для клиентов** — партнёр печатает на своём принтере и кладёт на стойку; QR ведёт в бота с `start={slug}`.
+2. **Листовка для клиентов** — партнёр печатает на своём принтере; **основной QR** — универсальный `/go?point={slug}`; TG/MAX — дополнительно мелко.
 
 ### Фаза 2 (P2, тот же спринт или хвост)
 
-- [ ] **6.5** `GET /api/admin/points/[id]/poster.pdf` — A4 плакат с QR TG (+ MAX мелко), см. [08-qr-poster.md](../../sprint-1/tasks/08-qr-poster.md)
+- [ ] **6.5** `GET /api/admin/points/[id]/poster.pdf` — A4 плакат с QR TG + MAX + **универсальный /go**, см. [08-qr-poster.md](../../sprint-1/tasks/08-qr-poster.md) и [07-go-redirector.md](./07-go-redirector.md)
 - [ ] **6.6** В панели «Ссылка точки»: блок «Материалы для печати» — кнопки плакат / листовка / буклет
 - [ ] **6.7** Тот же блок «QR и ссылки» в **Partner ЛК** (задача 03) — reuse `point-links.ts`
 
 ## Не в scope
 
-- Универсальный редиректор `/go?point=` (WEB-09) → Sprint 5
+- Расширение редиректора VK/Viber (WEB-16) → Sprint 5
 - Выбор точки в боте без QR (UX-06) → [Sprint 5 / 02](../../sprint-5/tasks/02-point-selection-bot.md)
-- VK deep link → Sprint 5
 
 ## DoD
 
-- [ ] Админ открывает «Ссылка точки» → видит TG + MAX ссылки и QR
+- [ ] Админ открывает «Ссылка точки» → видит TG + MAX + **универсальный /go** ссылки и QR
 - [ ] QR TG сканируется с 30–50 см → бот открывается с правильным `start={slug}`
 - [ ] Заказ после скана создаётся на этой точке (`Order.pointId`)
 - [ ] Без `TELEGRAM_BOT_USERNAME` — предупреждение (как у staff bind)

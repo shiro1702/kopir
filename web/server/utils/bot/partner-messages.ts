@@ -157,7 +157,7 @@ export function formatPartnerClientLinks(
     lines.push('MAX:', `/start ${links.maxPayload}`, '')
   }
   if (links.goLink) {
-    lines.push('Универсально (скоро):', links.goLink)
+    lines.push('Универсально:', links.goLink, '')
   }
   lines.push('', 'Плакат A4: /admin/points → «Ссылка точки» → «Скачать плакат»')
   return lines.join('\n').trimEnd()

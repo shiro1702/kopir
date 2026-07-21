@@ -69,6 +69,7 @@ function revokeClientLinkQrUrls() {
   if (!urls) return
   if (urls.telegram) URL.revokeObjectURL(urls.telegram)
   if (urls.max) URL.revokeObjectURL(urls.max)
+  if (urls.go) URL.revokeObjectURL(urls.go)
 }
 
 function closeClientLinks() {
@@ -487,6 +488,14 @@ async function openClientLinks(point) {
         responseType: 'blob',
       })
       qrUrls.max = URL.createObjectURL(blob)
+    }
+    if (data.links.goLink) {
+      const blob = await $fetch(`/api/admin/points/${point.id}/qr`, {
+        headers: authHeaders(),
+        query: { platform: 'go' },
+        responseType: 'blob',
+      })
+      qrUrls.go = URL.createObjectURL(blob)
     }
     clientLinks.value = { ...data, qrUrls }
   } catch (e) {

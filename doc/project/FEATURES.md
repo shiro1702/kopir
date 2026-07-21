@@ -43,7 +43,7 @@
 | ✅ done | WEB-15 | MAX Bot: /start, приём PDF | 1 | platform-api2.max.ru |
 | ⬜ todo | WEB-16 | VK Bot (адаптер на общее ядро) | 3–4 | Callback API; см. BOT_MESSENGERS.md |
 | ⬜ todo | WEB-17 | Viber Bot | 4 | после VK |
-| ⬜ todo | WEB-09 | Мультиссылка QR (TG / MAX / VK / Viber) | 3 | редиректор `/go?point=` |
+| 🟡 partial | WEB-09 | Мультиссылка QR (TG / MAX; VK позже) | 4 | редиректор `/go?point=` ✅ |
 | ⬜ todo | WEB-10 | Страница карты точек (Leaflet) | 2 | статичные пины |
 | ⬜ todo | WEB-11 | Карта: динамическая нагрузка (🟢🟡🔴) | 3 | из очереди принтера |
 | ⬜ todo | WEB-12 | Super-admin дашборд | 3–4 | GMV, комиссии; MVP админки точек — Sprint 2 |

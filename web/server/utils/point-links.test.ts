@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { buildPointClientLinks, resolveMaxBotDisplayLabel, type PointClientLinksConfig } from './point-links.ts'
+import { buildPointClientLinks, getPointClientDeepLink, resolveMaxBotDisplayLabel, type PointClientLinksConfig } from './point-links.ts'
 
 const baseConfig: PointClientLinksConfig = {
   telegramBotUsername: 'kopir_bot',
@@ -66,6 +66,11 @@ describe('point-links', () => {
       siteUrl: '',
     })
     assert.equal(links.goLink, null)
+  })
+
+  it('resolves go deep link from links', () => {
+    const links = buildPointClientLinks('point_bgu_1', baseConfig)
+    assert.equal(getPointClientDeepLink(links, 'go'), links.goLink)
   })
 
   it('resolves max bot display label from link or username', () => {

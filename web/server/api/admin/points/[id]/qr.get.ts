@@ -6,7 +6,7 @@ import {
 import { generateStyledPointQrPng } from '../../../../utils/point-qr'
 import { prisma } from '../../../../utils/prisma'
 
-const VALID_PLATFORMS = new Set(['telegram', 'max'])
+const VALID_PLATFORMS = new Set(['telegram', 'max', 'go'])
 
 export default defineEventHandler(async (event) => {
   assertAdminAuth(event)
@@ -23,7 +23,7 @@ export default defineEventHandler(async (event) => {
   if (!VALID_PLATFORMS.has(platform)) {
     throw createError({
       statusCode: 400,
-      data: { error: 'platform must be telegram or max', code: 'INVALID_PLATFORM' },
+      data: { error: 'platform must be telegram, max, or go', code: 'INVALID_PLATFORM' },
     })
   }
 
@@ -36,7 +36,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const links = await buildPointClientLinksForSlug(point.slug)
-  const deepLink = getPointClientDeepLink(links, platform as 'telegram' | 'max')
+  const deepLink = getPointClientDeepLink(links, platform as 'telegram' | 'max' | 'go')
   if (!deepLink) {
     throw createError({
       statusCode: 503,
@@ -47,7 +47,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const png = await generateStyledPointQrPng(deepLink, platform as 'telegram' | 'max', 300)
+  const png = await generateStyledPointQrPng(deepLink, platform as 'telegram' | 'max' | 'go', 300)
 
   setHeader(event, 'Content-Type', 'image/png')
   setHeader(event, 'Cache-Control', 'private, max-age=300')

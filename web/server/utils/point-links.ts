@@ -90,8 +90,11 @@ export async function buildPointClientLinksForSlug(slug: string): Promise<PointC
 
 export function getPointClientDeepLink(
   links: PointClientLinks,
-  platform: 'telegram' | 'max',
+  platform: 'telegram' | 'max' | 'go',
 ): string | null {
+  if (platform === 'go') {
+    return links.goLink
+  }
   return platform === 'telegram' ? links.telegramDeepLink : links.maxDeepLink
 }
 

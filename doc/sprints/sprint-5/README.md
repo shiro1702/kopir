@@ -18,7 +18,7 @@ P1: блок выбора точки на сайте (карта + список 
 P1: статус точки (график), геолокация UX-07, маршрут, фото входа
 P1: SEO-страницы точек, лендинг `/print`, SEO-фундамент
 P1: Windows Service, алерты, VK-бот
-P2: WEB-09 мультиссылка QR, автопереключение offline
+P2: автопереключение offline
 ```
 
 ## Задачи
@@ -39,7 +39,7 @@ P2: WEB-09 мультиссылка QR, автопереключение offline
 | 04 | Web ЛК партнёра v1 | ⬜ | WEB-13 | _(спека TBD)_ |
 | 05 | Регистрация партнёра на сайте | ⬜ | ONB-01, ONB-02 | _(спека TBD)_ |
 | — | Геолокация «ближайшая точка» | ⬜ | UX-07 | [12](./tasks/12-point-geolocation-routes.md), [02](./tasks/02-point-selection-bot.md) фаза C |
-| — | VK Bot, мультиссылка QR | ⬜ | WEB-16, WEB-09 | — |
+| — | VK Bot | ⬜ | WEB-16 | — |
 | — | Windows Service, алерты | ⬜ | AGT-06, MON-03–06 | — |
 
 > **Выбор точки:** QR — [Sprint 4 / 06](../sprint-4/tasks/06-point-client-links.md). Бот — задача 02. Карта/список на сайте — задачи **10–12** ([point-picker-ux.md](../../product/point-picker-ux.md), брейншторм [21.07](../../brainstorm/21.07.2026-INDEX.md)). Mini App карта — задача 03 (reuse `components/point-picker/`).

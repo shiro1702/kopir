@@ -13,7 +13,7 @@ const baseConfig: PointClientLinksConfig = {
 }
 
 describe('point-poster', () => {
-  it('generates PDF with telegram and max QR codes', async () => {
+  it('generates PDF with telegram, max, and go QR codes', async () => {
     const links = buildPointClientLinks('point_bgu_1', baseConfig)
     const pdfBytes = await generatePointPosterPdf({
       pointName: 'Копицентр на Смолина',

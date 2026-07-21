@@ -138,7 +138,7 @@ model User {
 | Telegram (staff bind) | `https://t.me/BotName?start=bind_xxx` |
 | MAX | `payload` в событии `bot_started` (если настроен в кабинете) |
 | VK | `vk.me/club123?ref=point_bgu_smolina` (план) |
-| Универсальный QR | редиректор `/go?point=...` → выбор мессенджера (WEB-09) |
+| Универсальный QR | редиректор `/go?point=...` → выбор мессенджера (WEB-09) ✅ Sprint 4 |
 
 Пока без QR-редиректора используется дефолтная точка `point_dev_1`.
 
