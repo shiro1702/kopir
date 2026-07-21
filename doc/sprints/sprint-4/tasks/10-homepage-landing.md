@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Статус** | ⬜ |
+| **Статус** | ✅ |
 | **Приоритет** | P1 |
 | **Feature** | WEB-06 partial, MKT |
 | **Спека** | [landing-pages-spec.md](../../../marketing/texts/landing-pages-spec.md) § 4 · [website-structure.md](../../../product/website-structure.md) § «Главная» |

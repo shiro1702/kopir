@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Статус** | ⬜ |
+| **Статус** | ✅ |
 | **Приоритет** | P1 (первая неделя Sprint 4) |
 | **Feature** | UX-05 admin, ONB-05 partial, AGT-11 partial |
 | **Спека** | [bot-point-selection.md](../../../product/bot-point-selection.md) · [BOT_MESSENGERS.md](../../../project/BOT_MESSENGERS.md) § Deep link |

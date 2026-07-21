@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Статус** | ⬜ |
+| **Статус** | ✅ |
 | **Feature** | MKT (новый), ONB-06 partial |
 | **Спека** | [landing-pages-spec.md](../../../marketing/texts/landing-pages-spec.md) · [website-structure.md](../../../product/website-structure.md) § «Партнёрам» |
 

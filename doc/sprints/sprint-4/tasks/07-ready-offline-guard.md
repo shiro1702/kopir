@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Статус** | ⬜ |
+| **Статус** | ✅ |
 | **Приоритет** | P1 |
 | **Feature** | UX-10, MON-02 |
 | **Спека** | [point-availability.md](../../../product/point-availability.md) · [bot-user-flow.md](../../../product/bot-user-flow.md) |
@@ -17,16 +17,16 @@
 
 ### UX-10 — «Готово!»
 
-- [ ] **7.1** После `Order.status → PRINTED` (или batch `COMPLETED`) — сообщение клиенту в TG + MAX
-- [ ] **7.2** Текст: «✅ Готово! Заберите распечатку у принтера»
-- [ ] **7.3** Не дублировать, если уже отправлено (idempotent)
+- [x] **7.1** После `Order.status → PRINTED` (или batch `COMPLETED`) — сообщение клиенту в TG + MAX
+- [x] **7.2** Текст: «✅ Готово! Заберите распечатку у принтера»
+- [x] **7.3** Не дублировать, если уже отправлено (idempotent)
 
 ### MON-02 — блок offline
 
-- [ ] **7.4** Перед `finalizeBatch` / выбором оплаты — `isPointAgentOnline(point)`
-- [ ] **7.5** При `/start` с deep link на offline-точку — предупреждение (не принимать файлы на мёртвую точку — см. [point-availability.md](../../../product/point-availability.md) сценарий B)
-- [ ] **7.6** API: `POST finalize` / payment init → 400 если точка offline
-- [ ] **7.7** Inline «📍 Выбрать другую точку» — заглушка до Sprint 5 (или скрыть, если одна точка)
+- [x] **7.4** Перед `finalizeBatch` / выбором оплаты — `isPointAgentOnline(point)`
+- [x] **7.5** При `/start` с deep link на offline-точку — предупреждение (не принимать файлы на мёртвую точку — см. [point-availability.md](../../../product/point-availability.md) сценарий B)
+- [x] **7.6** API: `POST finalize` / payment init → 400 если точка offline
+- [x] **7.7** Inline «📍 Выбрать другую точку» — заглушка до Sprint 5 (или скрыть, если одна точка)
 
 ## Не в scope (Sprint 5)
 
@@ -36,6 +36,6 @@
 
 ## DoD
 
-- [ ] E2E: оплата → печать → «Готово!» в TG и MAX
-- [ ] E2E: агент offline → «Оплатить» недоступна / понятное сообщение
-- [ ] [bot-user-flow-status.md](../../../product/bot-user-flow-status.md) — строки 16–17 ✅
+- [x] E2E: оплата → печать → «Готово!» в TG и MAX
+- [x] E2E: агент offline → «Оплатить» недоступна / понятное сообщение
+- [x] [bot-user-flow-status.md](../../../product/bot-user-flow-status.md) — строки 16–17 ✅
