@@ -25,6 +25,7 @@ import {
   mimeTypeForKind,
   sniffDocumentKind,
 } from '../file-types'
+import { countPdfPages, PdfPageCountError } from '../pdf-pages'
 import { prisma } from '../prisma'
 import { resolvePointByDisplayCode, resolvePointBySlug, formatPointLabel, isPointAgentOnline, listActivePoints } from '../points'
 import { DEFAULT_POINT_SLUG, normalizePointStartPayload } from './constants'
@@ -689,8 +690,24 @@ export async function handleDocument(
 
   const batchIndex = await getNextBatchIndex(batch.id)
   const pricePerPage = boundPoint ? getPricePerPageKopeks(boundPoint) : 0
-  const pageCount = 1
   const copies = 1
+
+  let pageCount = 1
+  if (!isWord) {
+    try {
+      pageCount = await countPdfPages(buffer)
+    } catch (error) {
+      console.error('[bot] PDF page count failed:', fileName, error)
+      await adapter.sendText(
+        target,
+        error instanceof PdfPageCountError
+          ? messages.MSG_CALCULATION_FAILED
+          : messages.MSG_UPLOAD_FAILED,
+      )
+      return
+    }
+  }
+
   const amountKopeks = isWord || !boundPoint ? 0 : computeOrderAmountKopeks(pageCount, copies, pricePerPage)
 
   const order = await prisma.order.create({

@@ -166,7 +166,7 @@ amountKopeks = pageCount × pricePerPageKopeks
 3. После «Оплачено» в админке → *«Оплата получена, печатаем…»*
 4. `PRINTED` → *«Готово! Заберите документ.»*
 
-PDF по-прежнему: сразу `AWAITING_PAYMENT` с `pageCount` из pdf-parse (или default 1 до FILE-01).
+PDF: сразу `AWAITING_PAYMENT` с `pageCount` из `pdf-lib` (`countPdfPages`).
 
 ---
 

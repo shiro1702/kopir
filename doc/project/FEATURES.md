@@ -55,7 +55,7 @@
 
 | Статус | ID | Фича | Этап | Примечание |
 |--------|-----|------|------|------------|
-| ⬜ todo | FILE-01 | Приём PDF, подсчёт страниц | 1 | pdf-lib / pdf-parse; Sprint 0.1 partial |
+| ✅ done | FILE-01 | Приём PDF, подсчёт страниц | 1 | pdf-lib `countPdfPages` на сервере |
 | ⬜ todo | FILE-02 | DOCX/DOC → PDF (облако) | 2 | **Свой VPS + LibreOffice/Gotenberg** |
 | ✅ done | FILE-10 | DOCX: статусы CALCULATING + API calculation | 1 | Sprint 0.1 |
 | ✅ done | FILE-11 | Бот: приём doc/docx, quote клиенту | 1 | Sprint 0.1 |
