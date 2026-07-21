@@ -78,6 +78,7 @@ export default defineNuxtConfig({
     payoutPayerBik: process.env.PAYOUT_PAYER_BIK ?? '',
     payoutPayerBankName: process.env.PAYOUT_PAYER_BANK_NAME ?? '',
     payoutPayerCorrAccount: process.env.PAYOUT_PAYER_CORR_ACCOUNT ?? '',
+    dadataToken: process.env.DADATA_TOKEN ?? '',
     public: {
       appVersion: '0.0.1',
       siteUrl: process.env.NUXT_PUBLIC_SITE_URL ?? '',

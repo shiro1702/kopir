@@ -1140,28 +1140,13 @@ function telegramBotLabel() {
             >
           </div>
           <div class="sm:col-span-2">
-            <label class="mb-1 block text-sm text-gray-700">Адрес</label>
-            <input
-              v-model="form.address"
-              class="w-full rounded border px-3 py-2 text-sm"
-              placeholder="ул. Ленина, 1"
-            >
-          </div>
-          <div>
-            <label class="mb-1 block text-sm text-gray-700">Широта (lat)</label>
-            <input
-              v-model="form.lat"
-              class="w-full rounded border px-3 py-2 text-sm font-mono"
-              placeholder="51.8335"
-            >
-          </div>
-          <div>
-            <label class="mb-1 block text-sm text-gray-700">Долгота (lng)</label>
-            <input
-              v-model="form.lng"
-              class="w-full rounded border px-3 py-2 text-sm font-mono"
-              placeholder="107.5841"
-            >
+            <AdminAddressSuggestInput
+              v-model:address="form.address"
+              v-model:lat="form.lat"
+              v-model:lng="form.lng"
+              :city-slug="form.citySlug"
+              :auth-headers="authHeaders"
+            />
           </div>
           <div>
             <label class="mb-1 block text-sm text-gray-700">График будни</label>
