@@ -31,6 +31,7 @@ P2: автопереключение offline
 | 10 | Блок выбора точки на сайте (MVP этап 1) | ✅ | WEB-10 | [tasks/10-point-picker-site-mvp.md](./tasks/10-point-picker-site-mvp.md) |
 | 11 | График работы и статус точки | ✅ | WEB-10, MON-02 | [tasks/11-point-schedule-status.md](./tasks/11-point-schedule-status.md) |
 | 12 | Геолокация, маршрут, фото входа | ✅ | UX-07 | [tasks/12-point-geolocation-routes.md](./tasks/12-point-geolocation-routes.md) |
+| 13 | Hotfix: гонка при загрузке 5 файлов скопом | ⬜ | FILE-01, UX-15 | [tasks/13-batch-upload-race-hotfix.md](./tasks/13-batch-upload-race-hotfix.md) |
 | 06 | SEO-страницы точек (подготовка к web-печати) | ⬜ | WEB-06 partial | [tasks/06-print-point-pages.md](./tasks/06-print-point-pages.md) |
 | 07 | Количество копий в боте | ✅ | UX-04 | [tasks/07-print-copies.md](./tasks/07-print-copies.md) |
 | 08 | Лендинг `/print` (B2C) | ⬜ | WEB-06, MKT | [tasks/08-client-landing-print.md](./tasks/08-client-landing-print.md) |
@@ -41,6 +42,8 @@ P2: автопереключение offline
 | — | Геолокация «ближайшая точка» | ⬜ | UX-07 | [12](./tasks/12-point-geolocation-routes.md), [02](./tasks/02-point-selection-bot.md) фаза C |
 | — | VK Bot | ⬜ | WEB-16 | — |
 | — | Windows Service, алерты | ⬜ | AGT-06, MON-03–06 | — |
+
+> **Hotfix Sprint 5:** при пересылке 3–5 документов одним действием бот может словить race condition в batch-flow: дубли `batchIndex`, неверный счётчик `Файлов: N из 5`, пробой лимита и скачущую сумму. Исправление вынесено в [задачу 13](./tasks/13-batch-upload-race-hotfix.md).
 
 > **Выбор точки:** QR — [Sprint 4 / 06](../sprint-4/tasks/06-point-client-links.md). Бот — задача 02. Карта/список на сайте — задачи **10–12** ([point-picker-ux.md](../../product/point-picker-ux.md), брейншторм [21.07](../../brainstorm/21.07.2026-INDEX.md)). Mini App карта — задача 03 (reuse `components/point-picker/`).
 

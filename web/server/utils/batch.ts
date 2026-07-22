@@ -298,6 +298,28 @@ export type CollectingBatchPoint = {
   lastSeenAt: Date | null
 }
 
+export class BatchLimitReachedError extends Error {
+  constructor() {
+    super('Batch file limit reached')
+    this.name = 'BatchLimitReachedError'
+  }
+}
+
+export interface CreateBatchOrderInput {
+  userId: string
+  pointId?: string | null
+  fileName: string
+  mimeType: string
+  pageCount: number
+  copies: number
+  isWord: boolean
+}
+
+export interface CreateBatchOrderResult {
+  batch: OrderBatch & { point: CollectingBatchPoint | null }
+  order: Order
+}
+
 export async function getActiveCollectingBatch(
   userId: string,
 ): Promise<(OrderBatch & { orders: Order[], point: CollectingBatchPoint | null }) | null> {
@@ -355,6 +377,118 @@ export async function getOrCreateCollectingBatch(
   })
   batchLog(batch.id, 'created collecting batch', { pointId: pointId ?? null })
   return batch
+}
+
+export async function createOrderInCollectingBatch(
+  input: CreateBatchOrderInput,
+): Promise<CreateBatchOrderResult> {
+  return prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM "User" WHERE id = ${input.userId} FOR UPDATE`
+
+    const batches = await tx.orderBatch.findMany({
+      where: {
+        userId: input.userId,
+        status: OrderBatchStatus.COLLECTING,
+      },
+      include: {
+        point: { select: collectingBatchPointSelect },
+      },
+      orderBy: { createdAt: 'desc' },
+    })
+
+    let batch = batches[0] ?? null
+    let point = batch?.point ?? null
+
+    if (!batch) {
+      batch = await tx.orderBatch.create({
+        data: {
+          userId: input.userId,
+          pointId: input.pointId ?? null,
+          status: OrderBatchStatus.COLLECTING,
+        },
+        include: {
+          point: { select: collectingBatchPointSelect },
+        },
+      })
+      point = batch.point
+      batchLog(batch.id, 'created collecting batch', { pointId: input.pointId ?? null })
+    } else if (input.pointId && !batch.pointId) {
+      const nextPoint = await tx.point.findUnique({
+        where: { id: input.pointId },
+        select: collectingBatchPointSelect,
+      })
+      if (!nextPoint) {
+        throw createError({
+          statusCode: 404,
+          data: { error: 'Точка не найдена', code: 'POINT_NOT_FOUND' },
+        })
+      }
+
+      await tx.orderBatch.update({
+        where: { id: batch.id },
+        data: { pointId: nextPoint.id },
+      })
+      await tx.user.update({
+        where: { id: input.userId },
+        data: {
+          lastPointId: nextPoint.id,
+          preferredPointSlug: nextPoint.slug,
+        },
+      })
+      batch = {
+        ...batch,
+        pointId: nextPoint.id,
+        point: nextPoint,
+      }
+      point = nextPoint
+    }
+
+    await tx.$queryRaw`SELECT id FROM "OrderBatch" WHERE id = ${batch.id} FOR UPDATE`
+
+    const orders = await tx.order.findMany({
+      where: { batchId: batch.id },
+      orderBy: { batchIndex: 'asc' },
+    })
+    const activeOrders = orders.filter(isActiveBatchOrder)
+    const maxFiles = getBatchMaxFiles()
+    if (activeOrders.length >= maxFiles) {
+      throw new BatchLimitReachedError()
+    }
+
+    const batchIndex = activeOrders.length === 0
+      ? 1
+      : Math.max(...activeOrders.map((order) => order.batchIndex ?? 0)) + 1
+    const pricePerPage = point ? getPricePerPageKopeks(point) : 0
+    const amountKopeks = input.isWord || !batch.pointId
+      ? 0
+      : computeOrderAmountKopeks(input.pageCount, input.copies, pricePerPage)
+
+    const order = await tx.order.create({
+      data: {
+        status: input.isWord ? OrderStatus.CALCULATING : OrderStatus.AWAITING_PAYMENT,
+        fileName: input.fileName,
+        filePath: '',
+        mimeType: input.mimeType,
+        pageCount: input.pageCount,
+        copies: input.copies,
+        amountKopeks,
+        userId: input.userId,
+        pointId: batch.pointId,
+        batchId: batch.id,
+        batchIndex,
+      },
+    })
+
+    await tx.orderBatch.update({
+      where: { id: batch.id },
+      data: { updatedAt: new Date() },
+    })
+
+    return {
+      batch,
+      order,
+    }
+  }, PAYMENT_TX_OPTIONS)
 }
 
 export async function bindBatchToPoint(

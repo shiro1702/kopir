@@ -1,24 +1,21 @@
 import type { Order, User } from '@prisma/client'
 import { OrderBatchStatus, OrderStatus } from '@prisma/client'
 import {
+  BatchLimitReachedError,
   cancelBatch,
-  countActiveBatchOrders,
+  createOrderInCollectingBatch,
   expireStaleCollectingBatches,
   finalizeBatch,
   getActiveBatchOrders,
   getActiveCollectingBatch,
   getBatchKeyboardMode,
   getBatchMaxFiles,
-  getNextBatchIndex,
-  getOrCreateCollectingBatch,
   isActiveBatchOrder,
   recalculateBatchTotals,
   removeOrderFromBatch,
   updateOrderCopies,
 } from '../batch'
 import { uploadOrderFile } from '../blob'
-import { getPricePerPageKopeks } from '../calculation'
-import { computeOrderAmountKopeks } from '../order-pricing'
 import {
   detectDocumentKind,
   ensureFileExtension,
@@ -54,6 +51,34 @@ import {
   setLastBatchKeyboardMode,
   setPointPreference,
 } from './preferences'
+
+const batchUserLocks = new Map<string, Promise<void>>()
+
+async function withUserBatchLock<T>(
+  platform: MessengerPlatform,
+  externalUserId: string,
+  task: () => Promise<T>,
+): Promise<T> {
+  const key = `${platform}:${externalUserId}`
+  const previous = batchUserLocks.get(key) ?? Promise.resolve()
+
+  let release!: () => void
+  const current = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  const next = previous.then(() => current)
+  batchUserLocks.set(key, next)
+
+  await previous
+  try {
+    return await task()
+  } finally {
+    release()
+    if (batchUserLocks.get(key) === next) {
+      batchUserLocks.delete(key)
+    }
+  }
+}
 
 async function refreshBatchKeyboardForChat(
   platform: MessengerPlatform,
@@ -672,24 +697,9 @@ export async function handleDocument(
     dbUser.lastPointId,
   )
 
-  const batch = await getOrCreateCollectingBatch(dbUser.id, autoPointId)
-  const boundPoint = batch.pointId
-    ? batch.point ?? await prisma.point.findUnique({ where: { id: batch.pointId } })
-    : null
-
   const mimeType = document.mimeType || mimeTypeForKind(kind, fileName)
   const isWord = kind === 'word'
   const maxFiles = getBatchMaxFiles()
-
-  const activeCount = await countActiveBatchOrders(batch.id)
-  if (activeCount >= maxFiles) {
-    const keyboardMode = await getBatchKeyboardMode(batch.id)
-    await adapter.sendText(target, messages.MSG_BATCH_LIMIT, { batchKeyboard: keyboardMode })
-    return
-  }
-
-  const batchIndex = await getNextBatchIndex(batch.id)
-  const pricePerPage = boundPoint ? getPricePerPageKopeks(boundPoint) : 0
   const copies = 1
 
   let pageCount = 1
@@ -708,55 +718,65 @@ export async function handleDocument(
     }
   }
 
-  const amountKopeks = isWord || !boundPoint ? 0 : computeOrderAmountKopeks(pageCount, copies, pricePerPage)
-
-  const order = await prisma.order.create({
-    data: {
-      status: isWord ? OrderStatus.CALCULATING : OrderStatus.AWAITING_PAYMENT,
+  let batchId: string
+  let batchIndex: number
+  let orderId: string
+  try {
+    const reserved = await withUserBatchLock(platform, user.externalId, () => createOrderInCollectingBatch({
+      userId: dbUser.id,
+      pointId: autoPointId,
       fileName,
-      filePath: '',
       mimeType,
       pageCount,
       copies,
-      amountKopeks,
-      userId: dbUser.id,
-      pointId: batch.pointId,
-      batchId: batch.id,
-      batchIndex,
-    },
-  })
+      isWord,
+    }))
+    batchId = reserved.batch.id
+    batchIndex = reserved.order.batchIndex ?? 1
+    orderId = reserved.order.id
+  } catch (error) {
+    if (error instanceof BatchLimitReachedError) {
+      const collectingBatch = await getActiveCollectingBatch(dbUser.id)
+      const keyboardMode = collectingBatch
+        ? await getBatchKeyboardMode(collectingBatch.id)
+        : 'needs_point'
+      await adapter.sendText(target, messages.MSG_BATCH_LIMIT, { batchKeyboard: keyboardMode })
+      return
+    }
+    throw error
+  }
 
   const receivingText = messages.formatFileReceiving(fileName)
   const statusMessage = await sendOrderClientMessageViaAdapter(adapter, target, receivingText)
   if (statusMessage) {
-    await saveOrderClientMessage(order.id, statusMessage)
+    await saveOrderClientMessage(orderId, statusMessage)
   }
 
   try {
-    const blob = await uploadOrderFile(order.id, buffer, {
+    const blob = await uploadOrderFile(orderId, buffer, {
       fileName,
       mimeType,
       kind,
     })
     await prisma.order.update({
-      where: { id: order.id },
+      where: { id: orderId },
       data: { filePath: blob.url },
     })
 
     await prisma.orderBatch.update({
-      where: { id: batch.id },
+      where: { id: batchId },
       data: { updatedAt: new Date() },
     })
-    await recalculateBatchTotals(batch.id)
+    await recalculateBatchTotals(batchId)
 
-    const keyboardMode = await getBatchKeyboardMode(batch.id)
-    const freshOrder = await prisma.order.findUnique({ where: { id: order.id } })
+    const keyboardMode = await getBatchKeyboardMode(batchId)
+    const freshOrder = await prisma.order.findUnique({ where: { id: orderId } })
     if (!freshOrder) {
       return
     }
 
     const freshBatch = await prisma.orderBatch.findUnique({
-      where: { id: batch.id },
+      where: { id: batchId },
       include: { point: { select: { name: true, displayCode: true } } },
     })
     const pointLabel = freshBatch?.point ? formatPointLabel(freshBatch.point) : null
@@ -782,7 +802,7 @@ export async function handleDocument(
 
     const copiesOpts = copiesControlsForOrder(freshOrder)
     const statusOpts = orderStatusOptions(
-      order.id,
+      orderId,
       !isWord,
       platform,
       keyboardMode,
@@ -801,18 +821,19 @@ export async function handleDocument(
       await adapter.sendText(target, statusText, statusOpts)
     }
 
-    await syncBatchReplyKeyboard(platform, target, adapter, batch.id, keyboardMode)
+    await syncBatchReplyKeyboard(platform, target, adapter, batchId, keyboardMode)
   } catch (error) {
-    console.error('[bot] document upload failed:', order.id, error)
+    console.error('[bot] document upload failed:', orderId, error)
     await prisma.order.update({
-      where: { id: order.id },
+      where: { id: orderId },
       data: {
         status: OrderStatus.FAILED,
         errorMessage: error instanceof Error ? error.message : 'upload failed',
       },
     })
-    const keyboardMode = await getBatchKeyboardMode(batch.id)
-    const freshOrder = await prisma.order.findUnique({ where: { id: order.id } })
+    await recalculateBatchTotals(batchId)
+    const keyboardMode = await getBatchKeyboardMode(batchId)
+    const freshOrder = await prisma.order.findUnique({ where: { id: orderId } })
     if (freshOrder) {
       const edited = await editOrderClientMessageViaAdapter(
         adapter,
