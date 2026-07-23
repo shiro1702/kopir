@@ -88,18 +88,73 @@ def count_pages(path: str) -> int:
         raise WordError(f"Word failed to count pages: {exc}") from exc
 
 
+def _force_printer_simplex(printer_name: str) -> tuple[str, int] | None:
+    """Temporarily set printer queue duplex to simplex. Returns (name, old_duplex) to restore."""
+    try:
+        import win32print
+    except ImportError:
+        return None
+
+    name = (printer_name or "").strip() or win32print.GetDefaultPrinter()
+    handle = win32print.OpenPrinter(name)
+    try:
+        attrs = win32print.GetPrinter(handle, 2)
+        devmode = attrs.get("pDevMode")
+        if devmode is None:
+            return None
+        old_duplex = int(devmode.Duplex)
+        # DMDUP_SIMPLEX = 1; skip if already simplex or duplex unsupported (0)
+        if old_duplex in (0, 1):
+            return None
+        devmode.Duplex = 1
+        attrs["pDevMode"] = devmode
+        win32print.SetPrinter(handle, 2, attrs, 0)
+        return (name, old_duplex)
+    except Exception:
+        return None
+    finally:
+        win32print.ClosePrinter(handle)
+
+
+def _restore_printer_duplex(state: tuple[str, int] | None) -> None:
+    if not state:
+        return
+    name, old_duplex = state
+    try:
+        import win32print
+
+        handle = win32print.OpenPrinter(name)
+        try:
+            attrs = win32print.GetPrinter(handle, 2)
+            devmode = attrs.get("pDevMode")
+            if devmode is None:
+                return
+            devmode.Duplex = old_duplex
+            attrs["pDevMode"] = devmode
+            win32print.SetPrinter(handle, 2, attrs, 0)
+        finally:
+            win32print.ClosePrinter(handle)
+    except Exception:
+        pass
+
+
 def print_document(path: str, *, printer_name: str = "", copies: int = 1) -> None:
     file_path = str(Path(path).resolve())
     if not Path(file_path).is_file():
         raise WordError(f"File not found: {path}")
 
     safe_copies = max(1, int(copies))
+    duplex_state = _force_printer_simplex(printer_name)
 
     def run(session: _WordSession) -> int:
         session.doc = _open_document(session.word, file_path, read_only=True)
         if printer_name:
             session.word.ActivePrinter = printer_name
-        session.doc.PrintOut(Background=True, Copies=safe_copies)
+        session.doc.PrintOut(
+            Background=True,
+            Copies=safe_copies,
+            ManualDuplexPrint=False,
+        )
         time.sleep(2)
         return 0
 
@@ -109,3 +164,5 @@ def print_document(path: str, *, printer_name: str = "", copies: int = 1) -> Non
         raise
     except Exception as exc:
         raise WordError(f"Word failed to print: {exc}") from exc
+    finally:
+        _restore_printer_duplex(duplex_state)
