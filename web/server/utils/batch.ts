@@ -860,10 +860,14 @@ export async function confirmBatchPayment(batchId: string) {
 
   try {
     const { notifyStaffBatchPaymentConfirmed } = await import('./staff-notify')
-    await notifyStaffBatchPaymentConfirmed({
-      ...batch,
-      orders: batch.orders.filter(isActiveBatchOrder),
-    })
+    if (batch.pointId && batch.point) {
+      await notifyStaffBatchPaymentConfirmed({
+        ...batch,
+        pointId: batch.pointId,
+        point: batch.point,
+        orders: batch.orders.filter(isActiveBatchOrder),
+      })
+    }
   } catch (error) {
     console.error('[staff] batch payment confirmed notify failed:', batchId, error)
   }

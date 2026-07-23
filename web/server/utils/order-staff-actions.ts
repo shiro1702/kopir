@@ -82,14 +82,6 @@ export async function confirmOrderPayment(orderId: string) {
 
   try {
     const printResult = await startOrderPrint(orderId)
-    const fullOrder = await prisma.order.findUnique({
-      where: { id: orderId },
-      include: { user: true, point: true },
-    })
-    if (fullOrder) {
-      const { notifyStaffPaymentConfirmed } = await import('./staff-notify')
-      await notifyStaffPaymentConfirmed(fullOrder)
-    }
     return {
       id: printResult.id,
       status: printResult.status,
@@ -166,6 +158,14 @@ export async function startOrderPrint(orderId: string) {
     const agentOffline = fullOrder?.point ? !isPointAgentOnline(fullOrder.point) : true
     const { notifyPrintStarted } = await import('./bot/core')
     await notifyPrintStarted(order.user, order.id, agentOffline)
+    if (fullOrder?.pointId && fullOrder.point) {
+      const { notifyStaffPaymentConfirmed } = await import('./staff-notify')
+      await notifyStaffPaymentConfirmed({
+        ...fullOrder,
+        pointId: fullOrder.pointId,
+        point: fullOrder.point,
+      })
+    }
   } catch (error) {
     console.error('[staff] print started notify failed:', orderId, error)
   }
@@ -223,6 +223,13 @@ export async function retryOrderPrint(orderId: string) {
   try {
     const { notifyPrintRetryStarted } = await import('./bot/core')
     await notifyPrintRetryStarted(order.user, order.fileName, order.batchId)
+    if (order.pointId) {
+      const { notifyStaffOrderQueuedWithSource } = await import('./staff-notify')
+      await notifyStaffOrderQueuedWithSource({
+        ...order,
+        pointId: order.pointId,
+      })
+    }
   } catch (error) {
     console.error('[staff] print retry notify failed:', orderId, error)
   }

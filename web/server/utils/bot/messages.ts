@@ -813,7 +813,8 @@ export function formatStaffOrderPaymentConfirmed(
   return (
     `✅ Оплата по заказу #${shortId} принята (${amountText})\n`
     + `📄 ${fileName}\n`
-    + '🖨 Печать запущена.'
+    + '🖨 Печать запущена.\n'
+    + '📎 Исходник ниже — на случай сбоя автопечати.'
   )
 }
 
@@ -825,7 +826,28 @@ export function formatStaffBatchPaymentConfirmed(
   const amountText = staffAmountText(totalAmountKopeks)
   return (
     `✅ Оплата пачки #${shortId} принята (${fileCount} файлов, ${amountText})\n`
-    + '🖨 Печать запущена.'
+    + '🖨 Печать запущена.\n'
+    + '📎 Исходники файлов ниже — на случай сбоя автопечати.'
+  )
+}
+
+export function formatStaffOrderSourceCaption(order: {
+  id: string
+  fileName: string
+  pageCount: number
+  copies?: number
+  batchId?: string | null
+  batchIndex?: number | null
+}): string {
+  const shortId = order.id.slice(-6)
+  const batchPart = order.batchId
+    ? ` · пачка #${order.batchId.slice(-6)}${order.batchIndex != null ? ` · файл ${order.batchIndex}` : ''}`
+    : ''
+  return (
+    `📎 Исходник #${shortId}${batchPart}\n`
+    + `📄 ${order.fileName}\n`
+    + `Страниц: ${formatPagesWithCopies(order.pageCount, order.copies ?? 1)}\n`
+    + 'Резерв для ручной печати при сбое сервиса.'
   )
 }
 

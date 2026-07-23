@@ -59,6 +59,7 @@
 | Возврат партнёром при сбое | ✅ | 5 | `partner_refund:*` → confirm → Т-Банк Cancel |
 | Партнёр: повтор / ручная печать при сбое | ✅ | 5 | `partner_retry_print:*`, `partner_manual_print:*` |
 | Staff: подтверждение оплаты | ✅ | 0–1 | `staff_pay:*`, `staff_batch_confirm:*` |
+| Staff: исходник в чат при оплате | ✅ | 5 | файл в staff-канал сразу после PAID (резерв на сбой) |
 | Staff: ручная печать при сбое | ✅ | 1 | `staff_manual_print:*` |
 | Mini App / корзина | ⬜ | 4 | WEB-07 |
 | VK / Viber бот | ⬜ | 5 | WEB-16, WEB-17 |

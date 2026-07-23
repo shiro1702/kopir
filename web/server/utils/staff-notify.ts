@@ -6,6 +6,7 @@ import {
   formatStaffBatchTransferAwaitingConfirm,
   formatStaffOnSiteAwaitingPayment,
   formatStaffOrderPaymentConfirmed,
+  formatStaffOrderSourceCaption,
   formatStaffPrintAutoRetry,
   formatStaffPrintFailed,
   formatStaffTransferAwaitingConfirm,
@@ -21,28 +22,38 @@ import {
   hasStaffNotifyTargets,
 } from './staff-auth'
 
-type OrderForStaff = Pick<Order, 'id' | 'fileName' | 'pageCount' | 'amountKopeks' | 'paymentConfirmedAt' | 'paymentMethod' | 'paymentClaimedAt' | 'batchId' | 'errorMessage' | 'pointId'> & { copies?: number }
-  & {
-    user: {
-      username?: string | null
-      firstName?: string | null
-      telegramId?: bigint | null
-      maxUserId?: bigint | null
-    }
-    point: { name: string, transferPhone?: string | null, transferBankLabel?: string | null, paymentMethodsEnabled?: PaymentMethod[] }
+type OrderForStaff = Pick<Order, 'id' | 'fileName' | 'pageCount' | 'amountKopeks' | 'paymentConfirmedAt' | 'paymentMethod' | 'paymentClaimedAt' | 'batchId' | 'errorMessage'> & {
+  pointId: string
+  copies?: number
+  filePath?: string | null
+  batchIndex?: number | null
+  user: {
+    username?: string | null
+    firstName?: string | null
+    telegramId?: bigint | null
+    maxUserId?: bigint | null
   }
+  point: { name: string, transferPhone?: string | null, transferBankLabel?: string | null, paymentMethodsEnabled?: PaymentMethod[] }
+}
 
-type BatchForStaff = Pick<OrderBatch, 'id' | 'totalPages' | 'totalAmountKopeks' | 'paymentMethod' | 'paymentClaimedAt' | 'pointId'>
-  & {
-    orders: Array<Pick<Order, 'fileName' | 'batchIndex'>>
-    user: {
-      username?: string | null
-      firstName?: string | null
-      telegramId?: bigint | null
-      maxUserId?: bigint | null
-    }
-    point: { name: string, transferPhone?: string | null, transferBankLabel?: string | null, paymentMethodsEnabled?: PaymentMethod[] }
+type BatchForStaff = Pick<OrderBatch, 'id' | 'totalPages' | 'totalAmountKopeks' | 'paymentMethod' | 'paymentClaimedAt'> & {
+  pointId: string
+  orders: Array<Pick<Order, 'id' | 'fileName' | 'filePath' | 'batchIndex' | 'pageCount'> & { copies?: number }>
+  user: {
+    username?: string | null
+    firstName?: string | null
+    telegramId?: bigint | null
+    maxUserId?: bigint | null
   }
+  point: { name: string, transferPhone?: string | null, transferBankLabel?: string | null, paymentMethodsEnabled?: PaymentMethod[] }
+}
+
+type OrderSourceForStaff = Pick<Order, 'id' | 'fileName' | 'filePath' | 'pageCount'> & {
+  pointId: string
+  copies?: number
+  batchId?: string | null
+  batchIndex?: number | null
+}
 
 function telegramStaffKeyboard(order: Pick<Order, 'id' | 'paymentConfirmedAt'>) {
   const keyboard = new InlineKeyboard()
@@ -191,6 +202,98 @@ async function notifyStaffAllForPoint(
   }
 }
 
+async function loadOrderFileBuffer(
+  order: { id: string, filePath?: string | null },
+): Promise<Buffer | null> {
+  if (!order.filePath?.trim()) {
+    return null
+  }
+  try {
+    return await downloadOrderFile(order.filePath)
+  } catch (error) {
+    console.error('[staff] failed to load order file:', order.id, error)
+    return null
+  }
+}
+
+async function sendOrderDocumentToStaff(
+  pointId: string,
+  order: { id: string, fileName: string, filePath?: string | null },
+  caption: string,
+  telegramKeyboard?: InlineKeyboard,
+  maxKeyboard?: MaxInlineKeyboardAttachment,
+): Promise<void> {
+  const fileBuffer = await loadOrderFileBuffer(order)
+  const tgChatIds = await getTelegramStaffChatIds(pointId)
+  const maxUserIds = await getMaxStaffUserIds(pointId)
+
+  if (tgChatIds.length === 0 && maxUserIds.length === 0) {
+    console.warn(
+      `[staff] no staff channels for point ${pointId} — skipping document`,
+    )
+    return
+  }
+
+  const errors: Error[] = []
+
+  if (tgChatIds.length > 0) {
+    try {
+      const { getBot } = await import('./telegram/bot')
+      const bot = getBot()
+      for (const chatId of tgChatIds) {
+        if (fileBuffer) {
+          await bot.api.sendDocument(
+            chatId,
+            new InputFile(fileBuffer, order.fileName),
+            {
+              caption,
+              ...(telegramKeyboard ? { reply_markup: telegramKeyboard } : {}),
+            },
+          )
+        } else {
+          await bot.api.sendMessage(
+            chatId,
+            caption,
+            telegramKeyboard ? { reply_markup: telegramKeyboard } : undefined,
+          )
+        }
+      }
+    } catch (error) {
+      errors.push(error instanceof Error ? error : new Error(String(error)))
+    }
+  }
+
+  if (maxUserIds.length > 0) {
+    try {
+      const client = getMaxClient()
+      for (const userId of maxUserIds) {
+        if (fileBuffer) {
+          await client.sendFileMessage(
+            { userId },
+            caption,
+            order.fileName,
+            fileBuffer,
+            maxKeyboard ? [maxKeyboard] : undefined,
+          )
+        } else {
+          await client.sendMessage(
+            { userId },
+            caption,
+            maxKeyboard ? [maxKeyboard] : undefined,
+          )
+        }
+      }
+    } catch (error) {
+      errors.push(error instanceof Error ? error : new Error(String(error)))
+    }
+  }
+
+  if (errors.length > 0) {
+    console.error('[staff] document notify failed:', errors)
+    throw errors[0]
+  }
+}
+
 export async function notifyStaffOrderPaymentPending(order: OrderForStaff): Promise<void> {
   if (!isTerminalPaymentMode() || order.batchId) {
     return
@@ -268,7 +371,7 @@ export async function notifyStaffBatchAwaitingPayment(batch: BatchForStaff): Pro
 }
 
 export async function notifyStaffPaymentConfirmed(order: OrderForStaff): Promise<void> {
-  if (!isTerminalPaymentMode() || order.batchId) {
+  if (order.batchId) {
     return
   }
   if (!(await hasStaffNotifyTargets(order.pointId))) {
@@ -277,13 +380,10 @@ export async function notifyStaffPaymentConfirmed(order: OrderForStaff): Promise
 
   const shortId = order.id.slice(-6)
   const text = formatStaffOrderPaymentConfirmed(shortId, order.amountKopeks, order.fileName)
-  await notifyStaffAllForPoint(order.pointId, text)
+  await sendOrderDocumentToStaff(order.pointId, order, text)
 }
 
 export async function notifyStaffBatchPaymentConfirmed(batch: BatchForStaff): Promise<void> {
-  if (!isTerminalPaymentMode()) {
-    return
-  }
   if (!(await hasStaffNotifyTargets(batch.pointId))) {
     return
   }
@@ -295,6 +395,30 @@ export async function notifyStaffBatchPaymentConfirmed(batch: BatchForStaff): Pr
     batch.totalAmountKopeks,
   )
   await notifyStaffAllForPoint(batch.pointId, text)
+
+  for (const order of batch.orders) {
+    try {
+      const caption = formatStaffOrderSourceCaption({
+        ...order,
+        batchId: batch.id,
+      })
+      await sendOrderDocumentToStaff(batch.pointId, order, caption)
+    } catch (error) {
+      console.error('[staff] batch source file notify failed:', order.id, error)
+    }
+  }
+}
+
+/** Send source file to staff as soon as print is queued (online + terminal). */
+export async function notifyStaffOrderQueuedWithSource(
+  order: OrderSourceForStaff,
+): Promise<void> {
+  if (!(await hasStaffNotifyTargets(order.pointId))) {
+    return
+  }
+
+  const caption = formatStaffOrderSourceCaption(order)
+  await sendOrderDocumentToStaff(order.pointId, order, caption)
 }
 
 export async function notifyStaffPrintFailed(
@@ -308,67 +432,13 @@ export async function notifyStaffPrintFailed(
   }
 
   const text = formatStaffPrintFailed(order, order.errorMessage)
-  const tgKeyboard = telegramStaffManualPrintKeyboard(order.id)
-  const maxKeyboard = maxStaffManualPrintKeyboard(order.id)
-
-  let fileBuffer: Buffer | null = null
-  if (order.filePath?.trim()) {
-    try {
-      fileBuffer = await downloadOrderFile(order.filePath)
-    } catch (error) {
-      console.error('[staff] failed to load order file for manual print:', order.id, error)
-    }
-  }
-
-  const tgChatIds = await getTelegramStaffChatIds(order.pointId)
-  const maxUserIds = await getMaxStaffUserIds(order.pointId)
-  const errors: Error[] = []
-
-  if (tgChatIds.length > 0) {
-    try {
-      const { getBot } = await import('./telegram/bot')
-      const bot = getBot()
-      for (const chatId of tgChatIds) {
-        if (fileBuffer) {
-          await bot.api.sendDocument(
-            chatId,
-            new InputFile(fileBuffer, order.fileName),
-            { caption: text, reply_markup: tgKeyboard },
-          )
-        } else {
-          await bot.api.sendMessage(chatId, text, { reply_markup: tgKeyboard })
-        }
-      }
-    } catch (error) {
-      errors.push(error instanceof Error ? error : new Error(String(error)))
-    }
-  }
-
-  if (maxUserIds.length > 0) {
-    try {
-      const client = getMaxClient()
-      for (const userId of maxUserIds) {
-        if (fileBuffer) {
-          await client.sendFileMessage(
-            { userId },
-            text,
-            order.fileName,
-            fileBuffer,
-            [maxKeyboard],
-          )
-        } else {
-          await client.sendMessage({ userId }, text, [maxKeyboard])
-        }
-      }
-    } catch (error) {
-      errors.push(error instanceof Error ? error : new Error(String(error)))
-    }
-  }
-
-  if (errors.length > 0) {
-    console.error('[staff] print failure notify failed:', errors)
-    throw errors[0]
-  }
+  await sendOrderDocumentToStaff(
+    order.pointId,
+    order,
+    text,
+    telegramStaffManualPrintKeyboard(order.id),
+    maxStaffManualPrintKeyboard(order.id),
+  )
 }
 
 export async function notifyStaffPrintAutoRetry(
