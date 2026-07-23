@@ -93,7 +93,11 @@ def process_order(client: ApiClient, config, order: dict) -> None:
 
     try:
         client.download_file(order_id, str(temp_path))
-        log(f"Downloaded {order.get('fileName', 'file')} for order {order_id}")
+        copies = int(order.get("copies") or 1)
+        log(
+            f"Downloaded {order.get('fileName', 'file')} for order {order_id}"
+            f" (copies={copies})"
+        )
         print_order(str(temp_path), order, config)
         client.complete(order_id, "PRINTED")
         log(f"Completed PRINTED order {order_id}")

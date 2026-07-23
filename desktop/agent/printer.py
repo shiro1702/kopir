@@ -60,8 +60,10 @@ def print_pdf(pdf_path: str, config: Config, *, copies: int = 1) -> None:
             cmd.extend(["-print-to", config.printer_name])
         else:
             cmd.append("-print-to-default")
+        # Sumatra expects "Nx" (e.g. 2x), not copies=N — unknown tokens are ignored
+        # and the job still exits 0 with a single copy.
         if safe_copies > 1:
-            cmd.extend(["-print-settings", f"copies={safe_copies}"])
+            cmd.extend(["-print-settings", f"{safe_copies}x"])
         cmd.append(str(path))
     elif platform in ("darwin", "linux"):
         cmd = ["lp"]
