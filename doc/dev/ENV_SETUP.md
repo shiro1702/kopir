@@ -171,6 +171,8 @@ ADMIN_SECRET="a1b2c3d4e5f6..."
 
 **Не путать** с паролем от Neon/Vercel — это только внутренний ключ Kopir.
 
+Опционально `PARTNER_SESSION_SECRET` — подпись cookie кабинета партнёра (`/partner`); если пусто, используется `ADMIN_SECRET`. Для Telegram Login Widget в BotFather нужен `/setdomain` на домен сайта.
+
 ---
 
 ## 6. `AGENT_API_KEY` — ключ десктоп-агента

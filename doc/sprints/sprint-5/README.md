@@ -26,7 +26,7 @@ P2: автопереключение offline
 | # | Задача | Статус | Feature | Файл |
 |---|--------|--------|---------|------|
 | 01 | Реестр выплат + ручной СБП | ⬜ | PAY-07 | [tasks/01-partner-payouts.md](./tasks/01-partner-payouts.md) |
-| 02 | Выбор точки в боте (без QR) | ⬜ | UX-06, UX-05b | [tasks/02-point-selection-bot.md](./tasks/02-point-selection-bot.md) |
+| 02 | Выбор точки в боте (без QR) | ✅ | UX-06, UX-05b | [tasks/02-point-selection-bot.md](./tasks/02-point-selection-bot.md) · Phase C (гео/offline) позже |
 | 03 | Карта точек + Mini App | ✅ | WEB-10, WEB-07 | [tasks/03-point-map-miniapp.md](./tasks/03-point-map-miniapp.md) |
 | 10 | Блок выбора точки на сайте (MVP этап 1) | ✅ | WEB-10 | [tasks/10-point-picker-site-mvp.md](./tasks/10-point-picker-site-mvp.md) |
 | 11 | График работы и статус точки | ✅ | WEB-10, MON-02 | [tasks/11-point-schedule-status.md](./tasks/11-point-schedule-status.md) |
@@ -37,8 +37,8 @@ P2: автопереключение offline
 | 08 | Лендинг `/print` (B2C) | ⬜ | WEB-06, MKT | [tasks/08-client-landing-print.md](./tasks/08-client-landing-print.md) |
 | 09 | SEO-фундамент (sitemap, метрика) | ⬜ | WEB-06, MKT | [tasks/09-seo-foundation.md](./tasks/09-seo-foundation.md) |
 | — | Прогрессивная комиссия от оборота | ⬜ | PAY-06b | → [Sprint 6 / 01](../sprint-6/tasks/01-tiered-commission.md) |
-| 04 | Web ЛК партнёра v1 | ⬜ | WEB-13 | _(спека TBD)_ |
-| 05 | Регистрация партнёра на сайте | ⬜ | ONB-01, ONB-02 | _(спека TBD)_ |
+| 04 | Web ЛК партнёра v1 | ✅ | WEB-13 | [tasks/04-partner-web-lk.md](./tasks/04-partner-web-lk.md) |
+| 05 | Регистрация партнёра на сайте | ✅ | ONB-01, ONB-02 partial | [tasks/05-partner-web-register.md](./tasks/05-partner-web-register.md) |
 | — | Геолокация «ближайшая точка» | ⬜ | UX-07 | [12](./tasks/12-point-geolocation-routes.md), [02](./tasks/02-point-selection-bot.md) фаза C |
 | — | VK Bot | ⬜ | WEB-16 | — |
 | — | Windows Service, алерты | ⬜ | AGT-06, MON-03–06 | — |

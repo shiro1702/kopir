@@ -38,35 +38,31 @@ useSeoMeta({
         <p class="mt-5 max-w-2xl text-lg leading-8 text-gray-600">
           {{ PARTNER_HERO.subtitle }}
         </p>
-        <div class="mt-8">
-          <a
-            v-if="partnerLinks.hasTelegram && partnerLinks.telegramPartnerUrl"
-            :href="partnerLinks.telegramPartnerUrl"
-            target="_blank"
-            rel="noopener noreferrer"
+        <div class="mt-8 flex flex-wrap gap-3">
+          <NuxtLink
+            to="/partner/register"
             class="inline-flex min-h-11 items-center justify-center rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
           >
             {{ PARTNER_HERO.cta }}
-          </a>
-          <a
-            v-else
-            :href="`mailto:${legal.email}`"
-            class="inline-flex min-h-11 items-center justify-center rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white"
+          </NuxtLink>
+          <NuxtLink
+            to="/partner/login"
+            class="inline-flex min-h-11 items-center justify-center rounded-xl border border-gray-300 px-6 py-3 text-sm font-semibold text-gray-900 hover:bg-gray-50"
           >
-            Напишите на {{ legal.email }}
-          </a>
+            Войти в кабинет
+          </NuxtLink>
         </div>
         <p class="mt-4 text-sm text-gray-500">
-          {{ PARTNER_HERO.ctaHint }}
+          Регистрация через Telegram Login · привязка точки — менеджер Kopir или бот
         </p>
         <a
-          v-if="partnerLinks.maxPartnerUrl"
-          :href="partnerLinks.maxPartnerUrl"
+          v-if="partnerLinks.telegramPartnerUrl"
+          :href="partnerLinks.telegramPartnerUrl"
           target="_blank"
           rel="noopener noreferrer"
           class="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-blue-600 hover:underline"
         >
-          Стать партнёром в MAX →
+          Или открыть бот партнёра →
         </a>
       </div>
     </section>
