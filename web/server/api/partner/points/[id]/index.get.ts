@@ -1,11 +1,11 @@
 import {
   assertPartnerOwnsPointById,
   requirePartnerSession,
-} from '../../../utils/partner-session'
-import { getPartnerOrdersStats, type PartnerOrdersPeriod } from '../../../utils/partner-stats'
-import { prisma } from '../../../utils/prisma'
-import { isPointAgentOnline } from '../../../utils/points'
-import { buildPointClientLinksForSlug } from '../../../utils/point-links'
+} from '../../../../utils/partner-session'
+import { getPartnerOrdersStats, type PartnerOrdersPeriod } from '../../../../utils/partner-stats'
+import { prisma } from '../../../../utils/prisma'
+import { isPointAgentOnline } from '../../../../utils/points'
+import { buildPointClientLinksForSlug } from '../../../../utils/point-links'
 
 const PERIODS = new Set<PartnerOrdersPeriod>(['day', 'week', 'month'])
 

@@ -1,12 +1,12 @@
-import { getPartnerBalanceSummary } from '../../../utils/partner-balance'
+import { getPartnerBalanceSummary } from '../../utils/partner-balance'
 import {
   isRequisitesComplete,
   parsePartnerRequisites,
-} from '../../../utils/partner-requisites'
-import { requirePartnerSession } from '../../../utils/partner-session'
-import { prisma } from '../../../utils/prisma'
-import { isPointAgentOnline } from '../../../utils/points'
-import { getPartnerOrdersStats } from '../../../utils/partner-stats'
+} from '../../utils/partner-requisites'
+import { requirePartnerSession } from '../../utils/partner-session'
+import { prisma } from '../../utils/prisma'
+import { isPointAgentOnline } from '../../utils/points'
+import { getPartnerOrdersStats } from '../../utils/partner-stats'
 
 export default defineEventHandler(async (event) => {
   const partner = await requirePartnerSession(event)

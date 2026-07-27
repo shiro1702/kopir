@@ -2,9 +2,9 @@ import {
   isRequisitesComplete,
   parsePartnerRequisites,
   validatePartnerRequisites,
-} from '../../../utils/partner-requisites'
-import { requirePartnerSession } from '../../../utils/partner-session'
-import { prisma } from '../../../utils/prisma'
+} from '../../utils/partner-requisites'
+import { requirePartnerSession } from '../../utils/partner-session'
+import { prisma } from '../../utils/prisma'
 
 export default defineEventHandler(async (event) => {
   const partner = await requirePartnerSession(event)
