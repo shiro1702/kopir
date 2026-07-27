@@ -12,7 +12,7 @@ const emit = defineEmits<{
   select: [slug: string]
 }>()
 
-const { telegramPointUrl, maxPointUrl } = useClientBotLinks()
+const { maxPointUrl } = useClientBotLinks()
 
 const priceLabel = computed(() =>
   `${(props.point.pricePerPageKopeks / 100).toLocaleString('ru-RU')} ₽/стр.`,
@@ -34,13 +34,6 @@ function handleSelect() {
     return
   }
   emit('select', props.point.slug)
-  if (props.mode === 'miniapp') {
-    return
-  }
-  const tg = telegramPointUrl(props.point.slug)
-  if (tg && import.meta.client) {
-    window.open(tg, '_blank')
-  }
 }
 </script>
 
@@ -143,7 +136,7 @@ function handleSelect() {
           class="min-h-11 flex-1 rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white"
           @click="handleSelect"
         >
-          {{ mode === 'miniapp' ? 'Выбрать эту точку' : 'Печатать в Telegram' }}
+          {{ mode === 'miniapp' ? 'Выбрать эту точку' : 'Печатать здесь' }}
         </button>
         <a
           v-if="maxPointUrl(point.slug) && mode !== 'miniapp'"
@@ -152,7 +145,7 @@ function handleSelect() {
           rel="noopener noreferrer"
           class="min-h-11 rounded-xl border border-gray-300 px-4 py-3 text-sm font-medium text-gray-800"
         >
-          MAX
+          В MAX
         </a>
       </div>
     </div>

@@ -15,7 +15,6 @@ withDefaults(defineProps<{
 
 const clientLinks = useClientBotLinks()
 const partnerLinks = usePartnerBotLinks()
-const legal = useLegalEntity()
 </script>
 
 <template>
@@ -24,22 +23,12 @@ const legal = useLegalEntity()
     :class="stack ? 'flex-col sm:flex-row' : 'flex-row flex-wrap'"
   >
     <template v-if="variant === 'both' || variant === 'print'">
-      <a
-        v-if="clientLinks.hasTelegram && clientLinks.telegramPrintUrl"
-        :href="clientLinks.telegramPrintUrl"
-        target="_blank"
-        rel="noopener noreferrer"
+      <NuxtLink
+        to="/print"
         class="inline-flex min-h-11 items-center justify-center rounded-xl bg-blue-600 px-5 py-3 text-center text-sm font-semibold text-white transition hover:bg-blue-700"
       >
         {{ printLabel }}
-      </a>
-      <a
-        v-else
-        :href="`mailto:${legal.email}`"
-        class="inline-flex min-h-11 items-center justify-center rounded-xl bg-gray-200 px-5 py-3 text-center text-sm font-semibold text-gray-700"
-      >
-        Напишите на {{ legal.email }}
-      </a>
+      </NuxtLink>
     </template>
 
     <NuxtLink
@@ -51,13 +40,23 @@ const legal = useLegalEntity()
     </NuxtLink>
 
     <a
+      v-if="clientLinks.hasTelegram && clientLinks.telegramPrintUrl && (variant === 'both' || variant === 'print')"
+      :href="clientLinks.telegramPrintUrl"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="inline-flex min-h-11 items-center justify-center rounded-xl border border-gray-300 bg-white px-5 py-3 text-center text-sm font-semibold text-gray-900 transition hover:bg-gray-50"
+    >
+      В Telegram
+    </a>
+
+    <a
       v-if="clientLinks.maxPrintUrl && (variant === 'both' || variant === 'print')"
       :href="clientLinks.maxPrintUrl"
       target="_blank"
       rel="noopener noreferrer"
       class="inline-flex min-h-11 items-center justify-center rounded-xl border border-gray-300 bg-white px-5 py-3 text-center text-sm font-semibold text-gray-900 transition hover:bg-gray-50"
     >
-      Распечатать в MAX
+      В MAX
     </a>
 
     <a

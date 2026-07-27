@@ -39,6 +39,16 @@ export function useClientBotLinks() {
     return `${siteUrl.value}/miniapp/points`
   }
 
+  function miniAppPrintUrl(slug?: string | null): string | null {
+    if (!siteUrl.value) {
+      return null
+    }
+    if (slug?.trim()) {
+      return `${siteUrl.value}/miniapp?point=${encodeURIComponent(slug.trim())}`
+    }
+    return `${siteUrl.value}/miniapp`
+  }
+
   // reactive(): nested computeds unwrap in templates (plain object leaves Ref → href "[object Object]")
   return reactive({
     hasTelegram,
@@ -47,6 +57,7 @@ export function useClientBotLinks() {
     telegramPointUrl,
     maxPointUrl,
     miniAppPointsUrl,
+    miniAppPrintUrl,
     siteUrl,
   })
 }

@@ -53,6 +53,17 @@ function miniAppPointsUrl(): string | null {
   return `${base}/miniapp/points`
 }
 
+export function miniAppPrintUrl(pointSlug?: string | null): string | null {
+  const base = getPointClientLinksConfig().siteUrl.replace(/\/$/, '')
+  if (!base) {
+    return null
+  }
+  if (pointSlug?.trim()) {
+    return `${base}/miniapp?point=${encodeURIComponent(pointSlug.trim())}`
+  }
+  return `${base}/miniapp`
+}
+
 async function mapPointsForList(
   target: MessengerReplyTarget,
   points: Awaited<ReturnType<typeof listActivePoints>>,

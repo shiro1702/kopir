@@ -11,8 +11,6 @@ const emit = defineEmits<{
   details: []
 }>()
 
-const { telegramPointUrl, maxPointUrl } = useClientBotLinks()
-
 const priceLabel = computed(() =>
   `${(props.point.pricePerPageKopeks / 100).toLocaleString('ru-RU')} ₽/стр.`,
 )
@@ -22,10 +20,6 @@ function onSelect() {
     return
   }
   emit('select')
-  const url = telegramPointUrl(props.point.slug)
-  if (url && import.meta.client) {
-    window.open(url, '_blank')
-  }
 }
 </script>
 

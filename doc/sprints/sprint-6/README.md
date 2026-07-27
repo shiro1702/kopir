@@ -42,6 +42,8 @@ P2: Реферальная программа, динамическое цено
 - [ ] Комиссия пересчитывается по обороту без ручного SQL
 - [ ] 10+ активных точек
 
+**MAX Mini App:** auth через MAX SDK пока **blocked by MAX SDK** — endpoint `/api/auth/miniapp` возвращает `501 MAX_MINIAPP_NOT_READY`. Telegram Mini App и web guest — в работе.
+
 ## После спринта
 
 → Backlog: WebSocket hub, Redis, POS, динамическое ценообразование по загрузке

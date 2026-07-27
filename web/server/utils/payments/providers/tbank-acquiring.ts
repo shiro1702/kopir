@@ -494,7 +494,7 @@ export async function handleTbankLegacyWebhook(payload: TbankLegacyWebhookPayloa
   return { ok: true, result }
 }
 
-export async function checkTbankPaymentStatus(paymentId: string, userExternalId: string) {
+async function loadPaymentForStatusCheck(paymentId: string) {
   const payment = await prisma.payment.findUnique({
     where: { id: paymentId },
     include: {
@@ -518,17 +518,32 @@ export async function checkTbankPaymentStatus(paymentId: string, userExternalId:
     })
   }
 
-  const { assertUserOwnsPayment } = await import('../service')
-  await assertUserOwnsPayment(userExternalId, ownerUser.id)
+  return { payment, ownerUser }
+}
 
+async function finalizePaymentStatusCheck(paymentId: string) {
   const reconciled = await reconcileTbankPayment(paymentId)
   if (reconciled.status === 'pending') {
-    return { ok: true, pending: true, status: reconciled.bankStatus ?? null }
+    return { ok: true as const, pending: true, status: reconciled.bankStatus ?? null }
   }
   if (reconciled.alreadyConfirmed) {
-    return { ok: true, alreadyConfirmed: true }
+    return { ok: true as const, alreadyConfirmed: true }
   }
-  return { ok: true, entityId: reconciled.entityId }
+  return { ok: true as const, entityId: reconciled.entityId }
+}
+
+export async function checkTbankPaymentStatus(paymentId: string, userExternalId: string) {
+  const { ownerUser } = await loadPaymentForStatusCheck(paymentId)
+  const { assertUserOwnsPayment } = await import('../service')
+  await assertUserOwnsPayment(userExternalId, ownerUser.id)
+  return finalizePaymentStatusCheck(paymentId)
+}
+
+export async function checkTbankPaymentStatusByUserId(paymentId: string, userId: string) {
+  const { ownerUser } = await loadPaymentForStatusCheck(paymentId)
+  const { assertInternalUserOwns } = await import('../service')
+  assertInternalUserOwns(ownerUser.id, userId)
+  return finalizePaymentStatusCheck(paymentId)
 }
 
 export function verifyTbankWebhookSecret(header: string | undefined): boolean {

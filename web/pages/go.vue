@@ -55,8 +55,8 @@ const priceLabel = computed(() => {
 useSeoMeta({
   title: () => data.value ? `Печать в «${data.value.point.name}» — Kopir` : 'Печать — Kopir',
   description: () => data.value
-    ? `Отправьте файл в бот и заберите распечатку в «${data.value.point.name}». А4 ч/б от ${priceLabel.value}/стр.`
-    : 'Печать документов через Telegram или MAX',
+    ? `Загрузите файл на сайте или в бот и заберите распечатку в «${data.value.point.name}». А4 ч/б от ${priceLabel.value}/стр.`
+    : 'Печать документов на сайте, в Telegram или MAX',
   robots: 'noindex, nofollow',
 })
 
@@ -137,12 +137,21 @@ async function copyStartCommand() {
         </p>
 
         <p class="mt-5 text-sm leading-6 text-gray-600">
-          Выберите мессенджер, отправьте PDF или Word в бот, оплатите и заберите распечатку.
+          Распечатайте на сайте или отправьте файл в бот — оплатите и заберите распечатку.
         </p>
+
+        <div class="mt-6">
+          <NuxtLink
+            :to="`/print?point=${encodeURIComponent(pointSlug)}`"
+            class="flex min-h-12 w-full items-center justify-center rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
+          >
+            Распечатать на сайте
+          </NuxtLink>
+        </div>
 
         <div
           v-if="data.links.telegramDeepLink"
-          class="mt-6"
+          class="mt-4"
         >
           <a
             :href="data.links.telegramDeepLink"

@@ -10,7 +10,7 @@ const props = withDefaults(defineProps<{
   citySlug: 'ulan-ude',
   mode: 'site',
   title: 'Где забрать распечатку',
-  subtitle: 'Выберите точку печати на карте или в списке. После выбора вы сможете отправить файл в Telegram-бот.',
+  subtitle: 'Выберите точку печати на карте или в списке. После выбора откроется страница печати на сайте.',
 })
 
 const emit = defineEmits<{
@@ -35,17 +35,12 @@ const {
 
 const mapRef = ref<{ focusPoint: (point: PublicPoint | null) => void } | null>(null)
 
-const { telegramPointUrl } = useClientBotLinks()
-
 function handleSelect(slug: string) {
   if (props.mode === 'miniapp') {
     emit('select', slug)
     return
   }
-  const url = telegramPointUrl(slug)
-  if (url && import.meta.client) {
-    window.open(url, '_blank')
-  }
+  void navigateTo(`/print?point=${encodeURIComponent(slug)}`)
 }
 
 function handleOpenDetail(slug: string) {

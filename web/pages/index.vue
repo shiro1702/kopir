@@ -2,6 +2,7 @@
 import {
   HOME_ABOUT,
   HOME_BOT_FEATURES,
+  HOME_CHANNELS,
   HOME_DOCUMENT_TYPES,
   HOME_FAQ,
   HOME_FINAL_CTA,
@@ -132,6 +133,27 @@ useHead({
           {{ paragraph }}
         </p>
       </div>
+    </SiteMarketingSection>
+
+    <!-- Print channels -->
+    <SiteMarketingSection
+      id="channels"
+      :title="HOME_CHANNELS.title"
+    >
+      <ul class="grid gap-4 sm:grid-cols-3">
+        <li
+          v-for="channel in HOME_CHANNELS.items"
+          :key="channel.title"
+          class="rounded-2xl border border-gray-200 bg-white p-6"
+        >
+          <h3 class="text-lg font-semibold text-gray-900">
+            {{ channel.title }}
+          </h3>
+          <p class="mt-2 leading-7 text-gray-700">
+            {{ channel.description }}
+          </p>
+        </li>
+      </ul>
     </SiteMarketingSection>
 
     <!-- How it works -->

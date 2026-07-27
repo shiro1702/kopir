@@ -100,6 +100,21 @@ export async function registerTelegramCommands(): Promise<void> {
       description: item.description,
     })),
   )
+
+  const siteUrl = String(useRuntimeConfig().public?.siteUrl ?? '').replace(/\/$/, '')
+  if (siteUrl) {
+    try {
+      await bot.api.setChatMenuButton({
+        menu_button: {
+          type: 'web_app',
+          text: 'Печать',
+          web_app: { url: `${siteUrl}/miniapp` },
+        },
+      })
+    } catch (error) {
+      console.error('[telegram] setChatMenuButton failed:', error)
+    }
+  }
 }
 
 function createTelegramAdapter(): MessengerAdapterWithCallbacks {

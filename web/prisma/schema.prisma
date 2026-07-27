@@ -4,9 +4,7 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DATABASE_URL_UNPOOLED")
+  provider = "postgresql"
 }
 
 enum OrderStatus {
@@ -63,6 +61,7 @@ model User {
   id                 String       @id @default(cuid())
   telegramId         BigInt?      @unique
   maxUserId          BigInt?      @unique
+  guestToken         String?      @unique
   username           String?
   firstName          String?
   lastPointId        String?

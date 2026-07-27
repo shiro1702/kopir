@@ -118,10 +118,45 @@ export async function assertUserOwnsPayment(userExternalId: string, userId: stri
   }
 }
 
+export function assertInternalUserOwns(ownerUserId: string, sessionUserId: string) {
+  if (ownerUserId !== sessionUserId) {
+    throw paymentError('Forbidden', 'FORBIDDEN', 403)
+  }
+}
+
 export async function selectPaymentMethod(
   entityId: string,
   method: PaymentMethod,
   userExternalId: string,
+) {
+  const resolved = await resolvePaymentEntity(entityId)
+  if (resolved.kind === 'batch') {
+    await assertUserOwnsEntity(userExternalId, 'batch', resolved.batch.userId)
+  } else {
+    await assertUserOwnsEntity(userExternalId, 'order', resolved.order.userId)
+  }
+  return applyPaymentMethodSelection(entityId, method, resolved)
+}
+
+/** Select payment method when the caller already authenticated via print session (guest / Mini App). */
+export async function selectPaymentMethodByUserId(
+  entityId: string,
+  method: PaymentMethod,
+  userId: string,
+) {
+  const resolved = await resolvePaymentEntity(entityId)
+  if (resolved.kind === 'batch') {
+    assertInternalUserOwns(resolved.batch.userId, userId)
+  } else {
+    assertInternalUserOwns(resolved.order.userId, userId)
+  }
+  return applyPaymentMethodSelection(entityId, method, resolved)
+}
+
+async function applyPaymentMethodSelection(
+  entityId: string,
+  method: PaymentMethod,
+  resolved: Awaited<ReturnType<typeof resolvePaymentEntity>>,
 ) {
   const isManual = method === PaymentMethod.SBP_TRANSFER || method === PaymentMethod.ON_SITE
   if (isManual && !isTerminalPaymentMode()) {
@@ -133,12 +168,10 @@ export async function selectPaymentMethod(
     }
   }
 
-  const resolved = await resolvePaymentEntity(entityId)
   const now = new Date()
 
   if (resolved.kind === 'batch') {
     const batch = resolved.batch
-    await assertUserOwnsEntity(userExternalId, 'batch', batch.userId)
 
     const enabled = getEnabledPaymentMethods(batch.point)
     if (!enabled.includes(method)) {
@@ -191,7 +224,6 @@ export async function selectPaymentMethod(
   }
 
   const order = resolved.order
-  await assertUserOwnsEntity(userExternalId, 'order', order.userId)
 
   const enabled = getEnabledPaymentMethods(order.point)
   if (!enabled.includes(method)) {
