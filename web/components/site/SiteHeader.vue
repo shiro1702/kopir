@@ -1,7 +1,6 @@
 <script setup lang="ts">
 const route = useRoute()
 const clientLinks = useClientBotLinks()
-const partnerLinks = usePartnerBotLinks()
 const menuOpen = ref(false)
 
 const navLinks = [
@@ -79,15 +78,12 @@ function closeMenu() {
           >
             Распечатать
           </a>
-          <a
-            v-if="partnerLinks.hasTelegram && partnerLinks.telegramPartnerUrl"
-            :href="partnerLinks.telegramPartnerUrl"
-            target="_blank"
-            rel="noopener noreferrer"
+          <NuxtLink
+            to="/partner/register"
             class="inline-flex min-h-11 items-center rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-900 hover:bg-gray-50"
           >
             Подключить точку
-          </a>
+          </NuxtLink>
         </div>
       </div>
 
@@ -130,16 +126,13 @@ function closeMenu() {
           >
             Распечатать в Telegram
           </a>
-          <a
-            v-if="partnerLinks.hasTelegram && partnerLinks.telegramPartnerUrl"
-            :href="partnerLinks.telegramPartnerUrl"
-            target="_blank"
-            rel="noopener noreferrer"
+          <NuxtLink
+            to="/partner/register"
             class="inline-flex min-h-11 items-center justify-center rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900"
             @click="closeMenu"
           >
             Подключить точку
-          </a>
+          </NuxtLink>
         </div>
       </div>
     </div>

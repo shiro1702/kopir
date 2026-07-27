@@ -172,7 +172,7 @@
 | PDF-плакат A4 | ONB-05 | Sprint 4 P2 |
 | Адрес + координаты точки в `/admin/points` (DaData) | WEB-12 | Sprint 5 P0 → [02](../../sprints/sprint-5/tasks/02-point-selection-bot.md) § Admin |
 | Код точки текстом | UX-06 | Sprint 5 P0 → [02](../../sprints/sprint-5/tasks/02-point-selection-bot.md) | 🟡 |
-| `last_point_id` + автовыбор | UX-05b | Sprint 5 P0 | 🟡 |
-| Плоский список по городу | UX-05b | Sprint 5 P0 | 🟡 |
+| `last_point_id` + автовыбор | UX-05b | Sprint 5 P0 | ✅ |
+| Плоский список по городу | UX-05b | Sprint 5 P0 | ✅ |
 | Геолокация | UX-07 | Sprint 5 P1 |
 | Карта Mini App | WEB-10 | Sprint 5 P1 → [03](../../sprints/sprint-5/tasks/03-point-map-miniapp.md) |

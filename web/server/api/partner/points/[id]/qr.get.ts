@@ -1,6 +1,7 @@
-import type { H3Event } from 'h3'
-import type { MessengerPlatform } from '@prisma/client'
-import { assertPartnerOwnsPoint } from '../../../../utils/partner-auth'
+import {
+  assertPartnerOwnsPointById,
+  requirePartnerSession,
+} from '../../../../utils/partner-session'
 import {
   buildPointClientLinksForSlug,
   getPointClientDeepLink,
@@ -10,32 +11,8 @@ import { prisma } from '../../../../utils/prisma'
 
 const VALID_PLATFORMS = new Set(['telegram', 'max', 'go'])
 
-function parsePartnerAuth(event: H3Event): { platform: MessengerPlatform, userId: bigint } {
-  const platform = String(getHeader(event, 'x-partner-platform') ?? '').trim()
-  const userIdRaw = String(getHeader(event, 'x-partner-user-id') ?? '').trim()
-
-  if (platform !== 'telegram' && platform !== 'max') {
-    throw createError({
-      statusCode: 401,
-      data: { error: 'Invalid partner platform', code: 'UNAUTHORIZED' },
-    })
-  }
-
-  if (!/^\d+$/.test(userIdRaw)) {
-    throw createError({
-      statusCode: 401,
-      data: { error: 'Invalid partner user id', code: 'UNAUTHORIZED' },
-    })
-  }
-
-  return {
-    platform,
-    userId: BigInt(userIdRaw),
-  }
-}
-
 export default defineEventHandler(async (event) => {
-  const { platform, userId } = parsePartnerAuth(event)
+  const partner = await requirePartnerSession(event)
 
   const id = getRouterParam(event, 'id')
   if (!id) {
@@ -45,14 +22,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  try {
-    await assertPartnerOwnsPoint(platform, userId, id)
-  } catch {
-    throw createError({
-      statusCode: 403,
-      data: { error: 'Нет доступа', code: 'FORBIDDEN' },
-    })
-  }
+  await assertPartnerOwnsPointById(partner.id, id)
 
   const platformQuery = String(getQuery(event).platform ?? '').trim()
   if (!VALID_PLATFORMS.has(platformQuery)) {

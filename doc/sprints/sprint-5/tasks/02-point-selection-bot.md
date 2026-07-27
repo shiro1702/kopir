@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Спринт** | 5 |
-| **Статус** | 🟡 P0 бот |
+| **Статус** | ✅ Phase A (P0 бот) |
 | **Приоритет** | P0 |
 | **Feature** | UX-06, UX-05b (новый), MON-02 расширение |
 | **Спека** | [bot-point-selection.md](../../../product/bot-point-selection.md) · [multi-city-and-deeplinks.md](../../../product/multi-city-and-deeplinks.md) |
@@ -110,4 +110,4 @@ QR на стойке закрывает ~95% ([multi-city-and-deeplinks.md](../.
 
 - [ ] [bot-user-flow.md](../../../product/bot-user-flow.md), [diagram](../../../product/bot-user-flow-diagram.html), [status](../../../product/bot-user-flow-status.md)
 - [ ] [bot-point-selection.md](../../../product/bot-point-selection.md) — роадмап ✅
-- [ ] [FEATURES.md](../../../project/FEATURES.md) — UX-06, UX-05b
+- [x] [FEATURES.md](../../../project/FEATURES.md) — UX-06, UX-05b (Phase A)

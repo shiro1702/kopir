@@ -53,6 +53,7 @@ export default defineNuxtConfig({
     maxBotUsername: process.env.MAX_BOT_USERNAME ?? '',
     maxWebhookSecret: process.env.MAX_WEBHOOK_SECRET,
     adminSecret: process.env.ADMIN_SECRET,
+    partnerSessionSecret: process.env.PARTNER_SESSION_SECRET ?? '',
     agentApiKey: process.env.AGENT_API_KEY,
     pricePerPageKopeks: process.env.PRICE_PER_PAGE_KOPEKS ?? '1000',
     calculationTimeoutSec: process.env.CALCULATION_TIMEOUT_SEC ?? '300',

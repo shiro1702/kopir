@@ -74,14 +74,15 @@ model User {
 }
 
 model Partner {
-  id             String                @id @default(cuid())
-  telegramId     BigInt?               @unique
-  maxUserId      BigInt?               @unique
-  name           String?
-  requisites     Json?
-  createdAt      DateTime              @default(now())
-  points         Point[]
-  balanceEntries PartnerBalanceEntry[] @relation("PartnerBalanceEntries")
+  id              String                @id @default(cuid())
+  telegramId      BigInt?               @unique
+  maxUserId       BigInt?               @unique
+  name            String?
+  requisites      Json?
+  offerAcceptedAt DateTime?
+  createdAt       DateTime              @default(now())
+  points          Point[]
+  balanceEntries  PartnerBalanceEntry[] @relation("PartnerBalanceEntries")
 }
 
 model Point {
