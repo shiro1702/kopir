@@ -42,24 +42,13 @@ const legal = useLegalEntity()
       </a>
     </template>
 
-    <template v-if="variant === 'both' || variant === 'partner'">
-      <a
-        v-if="partnerLinks.hasTelegram && partnerLinks.telegramPartnerUrl"
-        :href="partnerLinks.telegramPartnerUrl"
-        target="_blank"
-        rel="noopener noreferrer"
-        class="inline-flex min-h-11 items-center justify-center rounded-xl border border-gray-300 bg-white px-5 py-3 text-center text-sm font-semibold text-gray-900 transition hover:bg-gray-50"
-      >
-        {{ partnerLabel }}
-      </a>
-      <a
-        v-else-if="variant === 'partner'"
-        :href="`mailto:${legal.email}`"
-        class="inline-flex min-h-11 items-center justify-center rounded-xl border border-gray-300 bg-white px-5 py-3 text-center text-sm font-semibold text-gray-900"
-      >
-        Напишите на {{ legal.email }}
-      </a>
-    </template>
+    <NuxtLink
+      v-if="variant === 'both' || variant === 'partner'"
+      to="/partner/register"
+      class="inline-flex min-h-11 items-center justify-center rounded-xl border border-gray-300 bg-white px-5 py-3 text-center text-sm font-semibold text-gray-900 transition hover:bg-gray-50"
+    >
+      {{ partnerLabel }}
+    </NuxtLink>
 
     <a
       v-if="clientLinks.maxPrintUrl && (variant === 'both' || variant === 'print')"

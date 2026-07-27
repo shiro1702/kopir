@@ -22,9 +22,10 @@ export function usePartnerBotLinks() {
     buildMaxBotUrl(maxBotLink.value, PARTNER_START_PAYLOAD),
   )
 
-  return {
+  // reactive(): nested computeds unwrap in templates (plain object leaves Ref → href "[object Object]")
+  return reactive({
     hasTelegram,
     telegramPartnerUrl,
     maxPartnerUrl,
-  }
+  })
 }

@@ -1,0 +1,281 @@
+- generic [ref=e3]:
+  - alert [ref=e4]: Печать документов А4 ч/б через Telegram — быстро и без флешки
+  - generic [ref=e5]:
+    - banner [ref=e6]:
+      - generic [ref=e8]:
+        - link "Kopir" [ref=e9] [cursor=pointer]:
+          - /url: /
+        - navigation [ref=e10]:
+          - link "Как работает" [ref=e11] [cursor=pointer]:
+            - /url: /#how
+          - link "Точки печати" [ref=e12] [cursor=pointer]:
+            - /url: /#points
+          - link "Для копицентров" [ref=e13] [cursor=pointer]:
+            - /url: /partners
+          - link "FAQ" [ref=e14] [cursor=pointer]:
+            - /url: /#faq
+        - generic [ref=e15]:
+          - generic [ref=e16]: Распечатать
+          - generic [ref=e17]: Подключить точку
+    - main [ref=e18]:
+      - generic [ref=e19]:
+        - generic [ref=e21]:
+          - generic [ref=e22]:
+            - generic [ref=e23]: А4 ч/б
+            - generic [ref=e24]: без флешки
+            - generic [ref=e25]: цена до оплаты
+            - generic [ref=e26]: получение в точке
+          - heading "Быстрая печать документов А4 ч/б через Telegram" [level=1] [ref=e27]
+          - paragraph [ref=e28]: Загрузите файл в Telegram-бот, выберите количество копий, оплатите заказ и заберите распечатку в точке печати.
+          - generic [ref=e30]:
+            - generic [ref=e31]: Распечатать в Telegram
+            - generic [ref=e32]: Подключить копицентр
+            - generic [ref=e33]: Распечатать в MAX
+            - generic [ref=e34]: Стать партнёром в MAX
+          - paragraph [ref=e35]: Сейчас сервис работает для стандартной печати документов А4 ч/б.
+        - generic [ref=e37]:
+          - heading "Что это за сервис" [level=2] [ref=e39]
+          - generic [ref=e40]:
+            - paragraph [ref=e41]: Мы помогаем быстро распечатать обычные документы А4 ч/б.
+            - paragraph [ref=e42]: "Клиент отправляет файл в Telegram-бот, выбирает количество копий и оформляет заказ. Копицентр получает заказ в понятном виде: файл, количество копий, стоимость и номер заказа."
+            - paragraph [ref=e43]: Сервис не заменяет весь копицентр. На старте мы автоматизируем самую частую задачу — простую печать документов А4 ч/б.
+        - generic [ref=e45]:
+          - heading "Как распечатать документ" [level=2] [ref=e47]
+          - list [ref=e48]:
+            - listitem [ref=e49]:
+              - paragraph [ref=e50]: Шаг 1
+              - heading "Откройте Telegram-бот" [level=3] [ref=e51]
+              - paragraph [ref=e52]: Перейдите по кнопке на сайте или отсканируйте QR-код в точке печати.
+            - listitem [ref=e53]:
+              - paragraph [ref=e54]: Шаг 2
+              - heading "Загрузите файл" [level=3] [ref=e55]
+              - paragraph [ref=e56]: Отправьте документ, который нужно распечатать.
+            - listitem [ref=e57]:
+              - paragraph [ref=e58]: Шаг 3
+              - heading "Выберите количество копий" [level=3] [ref=e59]
+              - paragraph [ref=e60]: Бот рассчитает стоимость заказа.
+            - listitem [ref=e61]:
+              - paragraph [ref=e62]: Шаг 4
+              - heading "Оплатите и заберите" [level=3] [ref=e63]
+              - paragraph [ref=e64]: После оплаты заберите распечатку в выбранной точке.
+          - generic [ref=e66]:
+            - generic [ref=e67]: Распечатать в Telegram
+            - generic [ref=e68]: Распечатать в MAX
+        - generic [ref=e70]:
+          - heading "Что умеет бот" [level=2] [ref=e72]
+          - generic [ref=e73]:
+            - paragraph [ref=e74]: "Бот помогает оформить печать А4 ч/б:"
+            - list [ref=e75]:
+              - listitem [ref=e76]:
+                - generic [ref=e77]: —
+                - generic [ref=e78]: принимает файл от клиента (PDF, DOCX)
+              - listitem [ref=e79]:
+                - generic [ref=e80]: —
+                - generic [ref=e81]: позволяет выбрать количество копий (1–10)
+              - listitem [ref=e82]:
+                - generic [ref=e83]: —
+                - generic [ref=e84]: рассчитывает стоимость до оплаты
+              - listitem [ref=e85]:
+                - generic [ref=e86]: —
+                - generic [ref=e87]: показывает адрес и график точки
+              - listitem [ref=e88]:
+                - generic [ref=e89]: —
+                - generic [ref=e90]: принимает оплату онлайн (СБП / карта)
+              - listitem [ref=e91]:
+                - generic [ref=e92]: —
+                - generic [ref=e93]: отправляет заказ в копицентр
+              - listitem [ref=e94]:
+                - generic [ref=e95]: —
+                - generic [ref=e96]: выдаёт номер заказа для получения распечатки
+            - paragraph [ref=e97]: В следующих версиях планируется добавить выбор диапазона страниц и дополнительные параметры печати.
+        - generic [ref=e99]:
+          - heading "Для каких документов подходит" [level=2] [ref=e101]
+          - generic [ref=e102]:
+            - paragraph [ref=e103]: "Подходит для обычных документов А4:"
+            - list [ref=e104]:
+              - listitem [ref=e105]:
+                - generic [ref=e106]: —
+                - generic [ref=e107]: заявления
+              - listitem [ref=e108]:
+                - generic [ref=e109]: —
+                - generic [ref=e110]: справки
+              - listitem [ref=e111]:
+                - generic [ref=e112]: —
+                - generic [ref=e113]: билеты
+              - listitem [ref=e114]:
+                - generic [ref=e115]: —
+                - generic [ref=e116]: договоры
+              - listitem [ref=e117]:
+                - generic [ref=e118]: —
+                - generic [ref=e119]: рефераты
+              - listitem [ref=e120]:
+                - generic [ref=e121]: —
+                - generic [ref=e122]: курсовые
+              - listitem [ref=e123]:
+                - generic [ref=e124]: —
+                - generic [ref=e125]: лекции
+              - listitem [ref=e126]:
+                - generic [ref=e127]: —
+                - generic [ref=e128]: учебные материалы
+              - listitem [ref=e129]:
+                - generic [ref=e130]: —
+                - generic [ref=e131]: рабочие документы
+        - generic [ref=e133]:
+          - heading "Стоимость" [level=2] [ref=e135]
+          - generic [ref=e136]:
+            - paragraph [ref=e137]: Печать А4 ч/б — от 10 ₽ за страницу.
+            - paragraph [ref=e138]: Итоговая сумма зависит от выбранной точки и количества копий. Стоимость показывается в боте до оплаты.
+        - generic [ref=e140]:
+          - heading "Точки печати" [level=2] [ref=e142]
+          - link "Все точки на карте" [ref=e144] [cursor=pointer]:
+            - /url: /print/ulan-ude
+          - article [ref=e146]:
+            - generic [ref=e147]:
+              - heading "Копир" [level=3] [ref=e148]
+              - generic [ref=e149]: Принимает заказы
+            - paragraph [ref=e150]: г Улан-Удэ, ул Сахьяновой, д 23
+            - paragraph [ref=e151]: Закрыто
+            - paragraph [ref=e152]: А4 ч/б — 10 ₽/стр.
+        - generic [ref=e154]:
+          - heading "Другие услуги точки" [level=2] [ref=e156]
+          - generic [ref=e157]:
+            - paragraph [ref=e158]: "В точках печати могут быть доступны и другие услуги:"
+            - list [ref=e159]:
+              - listitem [ref=e160]:
+                - generic [ref=e161]: —
+                - generic [ref=e162]: цветная печать
+              - listitem [ref=e163]:
+                - generic [ref=e164]: —
+                - generic [ref=e165]: сканирование
+              - listitem [ref=e166]:
+                - generic [ref=e167]: —
+                - generic [ref=e168]: копии документов
+              - listitem [ref=e169]:
+                - generic [ref=e170]: —
+                - generic [ref=e171]: ламинирование
+              - listitem [ref=e172]:
+                - generic [ref=e173]: —
+                - generic [ref=e174]: переплет
+              - listitem [ref=e175]:
+                - generic [ref=e176]: —
+                - generic [ref=e177]: фото
+              - listitem [ref=e178]:
+                - generic [ref=e179]: —
+                - generic [ref=e180]: печать на плотной бумаге
+            - paragraph [ref=e181]: Эти услуги выполняются оператором. Точную стоимость уточняйте в точке.
+        - generic [ref=e183]:
+          - heading "Подключите быструю печать А4 ч/б в вашей точке" [level=2] [ref=e185]
+          - generic [ref=e186]:
+            - paragraph [ref=e187]: Сервис помогает разгрузить оператора от мелких заказов. Клиент сам загружает файл, выбирает количество копий, оплачивает заказ и получает номер для выдачи.
+            - paragraph [ref=e188]: "Для копицентра это:"
+            - list [ref=e189]:
+              - listitem [ref=e190]:
+                - generic [ref=e191]: —
+                - generic [ref=e192]: меньше ручной работы
+              - listitem [ref=e193]:
+                - generic [ref=e194]: —
+                - generic [ref=e195]: оплата до печати
+              - listitem [ref=e196]:
+                - generic [ref=e197]: —
+                - generic [ref=e198]: понятные заказы
+              - listitem [ref=e199]:
+                - generic [ref=e200]: —
+                - generic [ref=e201]: QR-код для стойки или витрины
+              - listitem [ref=e202]:
+                - generic [ref=e203]: —
+                - generic [ref=e204]: информационная страница точки
+              - listitem [ref=e205]:
+                - generic [ref=e206]: —
+                - generic [ref=e207]: список услуг, адрес и график в одном месте
+            - generic [ref=e208]:
+              - generic [ref=e209]:
+                - generic [ref=e210]: Подключить копицентр
+                - generic [ref=e211]: Стать партнёром в MAX
+              - link "Подробнее для партнёров →" [ref=e212] [cursor=pointer]:
+                - /url: /partners
+        - generic [ref=e214]:
+          - heading "Информационный стенд точки" [level=2] [ref=e216]
+          - generic [ref=e217]:
+            - paragraph [ref=e218]: "Для каждой точки можно создать информационную страницу. На ней клиент увидит:"
+            - list [ref=e219]:
+              - listitem [ref=e220]:
+                - generic [ref=e221]: —
+                - generic [ref=e222]: адрес
+              - listitem [ref=e223]:
+                - generic [ref=e224]: —
+                - generic [ref=e225]: график работы
+              - listitem [ref=e226]:
+                - generic [ref=e227]: —
+                - generic [ref=e228]: цену печати А4 ч/б
+              - listitem [ref=e229]:
+                - generic [ref=e230]: —
+                - generic [ref=e231]: кнопку для отправки файла
+              - listitem [ref=e232]:
+                - generic [ref=e233]: —
+                - generic [ref=e234]: список дополнительных услуг
+              - listitem [ref=e235]:
+                - generic [ref=e236]: —
+                - generic [ref=e237]: контакты
+              - listitem [ref=e238]:
+                - generic [ref=e239]: —
+                - generic [ref=e240]: маршрут до точки
+            - paragraph [ref=e241]: Так QR-код становится не только входом в печать, но и цифровым стендом копицентра.
+        - generic [ref=e243]:
+          - heading "Частые вопросы" [level=2] [ref=e245]
+          - generic [ref=e246]:
+            - group [ref=e247]:
+              - generic "Можно ли распечатать одну страницу?" [ref=e248] [cursor=pointer]:
+                - generic [ref=e249]:
+                  - generic [ref=e250]: Можно ли распечатать одну страницу?
+                  - generic [ref=e251]: +
+            - group [ref=e252]:
+              - generic "Какие документы можно печатать?" [ref=e253] [cursor=pointer]:
+                - generic [ref=e254]:
+                  - generic [ref=e255]: Какие документы можно печатать?
+                  - generic [ref=e256]: +
+            - group [ref=e257]:
+              - generic "Можно ли выбрать количество копий?" [ref=e258] [cursor=pointer]:
+                - generic [ref=e259]:
+                  - generic [ref=e260]: Можно ли выбрать количество копий?
+                  - generic [ref=e261]: +
+            - group [ref=e262]:
+              - generic "Можно ли выбрать диапазон страниц?" [ref=e263] [cursor=pointer]:
+                - generic [ref=e264]:
+                  - generic [ref=e265]: Можно ли выбрать диапазон страниц?
+                  - generic [ref=e266]: +
+            - group [ref=e267]:
+              - generic "Можно ли заказать цветную печать?" [ref=e268] [cursor=pointer]:
+                - generic [ref=e269]:
+                  - generic [ref=e270]: Можно ли заказать цветную печать?
+                  - generic [ref=e271]: +
+            - group [ref=e272]:
+              - generic "Где забрать распечатку?" [ref=e273] [cursor=pointer]:
+                - generic [ref=e274]:
+                  - generic [ref=e275]: Где забрать распечатку?
+                  - generic [ref=e276]: +
+            - group [ref=e277]:
+              - generic "Как копицентру подключиться?" [ref=e278] [cursor=pointer]:
+                - generic [ref=e279]:
+                  - generic [ref=e280]: Как копицентру подключиться?
+                  - generic [ref=e281]: +
+        - generic [ref=e283]:
+          - heading "Нужно быстро распечатать документ?" [level=2] [ref=e284]
+          - paragraph [ref=e285]: Откройте Telegram-бот, загрузите файл, оплатите заказ и заберите распечатку в точке печати.
+          - generic [ref=e287]:
+            - generic [ref=e288]: Распечатать в Telegram
+            - generic [ref=e289]: Подключить копицентр
+            - generic [ref=e290]: Распечатать в MAX
+            - generic [ref=e291]: Стать партнёром в MAX
+    - contentinfo [ref=e292]:
+      - generic [ref=e293]:
+        - generic [ref=e294]:
+          - link "Публичная оферта" [ref=e295] [cursor=pointer]:
+            - /url: /offer
+          - link "Партнёрам" [ref=e296] [cursor=pointer]:
+            - /url: /partners
+          - generic [ref=e297]: Политика конфиденциальности (скоро)
+        - generic [ref=e299]:
+          - link "support@kopir.ru" [ref=e300] [cursor=pointer]:
+            - /url: mailto:support@kopir.ru
+          - generic [ref=e301]: Telegram-бот
+        - paragraph [ref=e302]: © 2026 · Оператор платформы Kopir

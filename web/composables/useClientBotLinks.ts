@@ -39,7 +39,8 @@ export function useClientBotLinks() {
     return `${siteUrl.value}/miniapp/points`
   }
 
-  return {
+  // reactive(): nested computeds unwrap in templates (plain object leaves Ref → href "[object Object]")
+  return reactive({
     hasTelegram,
     telegramPrintUrl,
     maxPrintUrl,
@@ -47,5 +48,5 @@ export function useClientBotLinks() {
     maxPointUrl,
     miniAppPointsUrl,
     siteUrl,
-  }
+  })
 }

@@ -16,7 +16,6 @@ import {
 
 definePageMeta({ layout: 'marketing' })
 
-const legal = useLegalEntity()
 const partnerLinks = usePartnerBotLinks()
 
 useSeoMeta({
@@ -235,21 +234,20 @@ useSeoMeta({
           {{ PARTNER_FINAL_CTA.text }}
         </p>
         <div class="mt-8 flex flex-col items-center gap-3">
-          <a
-            v-if="partnerLinks.hasTelegram && partnerLinks.telegramPartnerUrl"
-            :href="partnerLinks.telegramPartnerUrl"
-            target="_blank"
-            rel="noopener noreferrer"
+          <NuxtLink
+            to="/partner/register"
             class="inline-flex min-h-11 items-center justify-center rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
           >
             {{ PARTNER_HERO.cta }}
-          </a>
+          </NuxtLink>
           <a
-            v-else
-            :href="`mailto:${legal.email}`"
-            class="inline-flex min-h-11 items-center justify-center rounded-xl bg-blue-600 px-6 py-3 text-sm font-semibold text-white"
+            v-if="partnerLinks.maxPartnerUrl"
+            :href="partnerLinks.maxPartnerUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-flex min-h-11 items-center justify-center rounded-xl border border-gray-300 bg-white px-6 py-3 text-sm font-semibold text-gray-900 transition hover:bg-gray-50"
           >
-            {{ legal.email }}
+            Стать партнёром в MAX
           </a>
         </div>
       </div>
