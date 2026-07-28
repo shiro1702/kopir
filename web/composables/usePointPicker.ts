@@ -3,7 +3,7 @@ import { DEFAULT_CITY_SLUG } from '~/types/point-picker'
 
 type UserCoords = { lat: number, lng: number }
 
-export function usePointPicker(citySlug = DEFAULT_CITY_SLUG) {
+export function usePointPicker(citySlug?: string | null) {
   const points = ref<PublicPoint[]>([])
   const loading = ref(true)
   const error = ref('')
@@ -49,7 +49,10 @@ export function usePointPicker(citySlug = DEFAULT_CITY_SLUG) {
     loading.value = true
     error.value = ''
     try {
-      const params: Record<string, string> = { city: citySlug }
+      const params: Record<string, string> = {}
+      if (citySlug?.trim()) {
+        params.city = citySlug
+      }
       if (userCoords.value) {
         params.userLat = String(userCoords.value.lat)
         params.userLng = String(userCoords.value.lng)

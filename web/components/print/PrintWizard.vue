@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import QRCode from 'qrcode'
 import type { PrintWizardStep } from '~/types/print'
-import { DEFAULT_CITY_SLUG } from '~/types/point-picker'
 
 const props = withDefaults(defineProps<{
   mode?: 'site' | 'miniapp'
@@ -32,7 +31,7 @@ const dragOver = ref(false)
 const fileInput = ref<HTMLInputElement | null>(null)
 const pollTimer = ref<ReturnType<typeof setInterval> | null>(null)
 
-const citySlug = computed(() => print.batch?.point?.citySlug || DEFAULT_CITY_SLUG)
+const pointPickerCitySlug = computed(() => print.batch?.point?.citySlug ?? null)
 
 watch(step, (value) => emit('step', value))
 
@@ -184,6 +183,16 @@ async function onPointSelected(slug: string) {
   step.value = 'files'
 }
 
+function openPointPicker() {
+  step.value = 'point'
+  showPointPicker.value = true
+}
+
+function closePointPicker() {
+  showPointPicker.value = false
+  step.value = 'files'
+}
+
 async function doCheckout() {
   await print.checkout('sbp')
   step.value = 'payment'
@@ -205,12 +214,18 @@ async function checkPaymentNow() {
   }
 }
 
-const messengerFallbackUrl = computed(() => {
+const messengerLinks = computed(() => {
   const slug = print.pointSlug
   if (slug) {
-    return clientLinks.telegramPointUrl(slug) || clientLinks.maxPointUrl(slug)
+    return [
+      { label: 'Telegram', href: clientLinks.telegramPointUrl(slug) },
+      { label: 'MAX', href: clientLinks.maxPointUrl(slug) },
+    ].filter((link): link is { label: string, href: string } => Boolean(link.href))
   }
-  return clientLinks.telegramPrintUrl || clientLinks.maxPrintUrl
+  return [
+    { label: 'Telegram', href: clientLinks.telegramPrintUrl },
+    { label: 'MAX', href: clientLinks.maxPrintUrl },
+  ].filter((link): link is { label: string, href: string } => Boolean(link.href))
 })
 
 onMounted(() => {
@@ -336,7 +351,7 @@ onMounted(() => {
             <button
               type="button"
               class="shrink-0 text-sm font-semibold text-blue-600 hover:underline"
-              @click="step = 'point'; showPointPicker = true"
+              @click="openPointPicker"
             >
               Изменить
             </button>
@@ -345,7 +360,7 @@ onMounted(() => {
             v-else
             type="button"
             class="mt-4 w-full rounded-xl border border-dashed border-gray-300 px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
-            @click="step = 'point'; showPointPicker = true"
+            @click="openPointPicker"
           >
             Выбрать точку печати
           </button>
@@ -464,46 +479,61 @@ onMounted(() => {
         </div>
 
         <div
-          v-if="showPointPicker || step === 'point'"
-          class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm"
+          v-if="mode === 'site' && messengerLinks.length"
+          class="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600"
         >
-          <div class="mb-3 flex items-center justify-between">
-            <h2 class="text-sm font-semibold text-gray-900">
-              Выберите точку
-            </h2>
-            <button
-              v-if="print.batch?.orders?.length"
-              type="button"
-              class="text-sm text-gray-500 hover:text-gray-800"
-              @click="showPointPicker = false; step = 'files'"
+          <p class="font-medium text-gray-900">
+            Удобнее в мессенджере?
+          </p>
+          <div class="mt-3 flex flex-wrap gap-2">
+            <a
+              v-for="link in messengerLinks"
+              :key="link.label"
+              :href="link.href"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-flex min-h-10 items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-900 hover:bg-gray-50"
             >
-              Закрыть
+              Открыть в {{ link.label }}
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <div
+        v-if="showPointPicker"
+        class="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4"
+        @click.self="closePointPicker"
+      >
+        <div class="max-h-[92vh] w-full overflow-y-auto rounded-t-3xl bg-white p-5 shadow-xl sm:max-w-6xl sm:rounded-3xl">
+          <div class="mb-4 flex items-start justify-between gap-3">
+            <div>
+              <h2 class="text-xl font-semibold text-gray-900">
+                Выберите точку печати
+              </h2>
+              <p class="mt-1 text-sm text-gray-600">
+                Выберите точку списком или на карте. После выбора вернёмся к оформлению печати.
+              </p>
+            </div>
+            <button
+              type="button"
+              class="rounded-full p-2 text-gray-500 hover:bg-gray-100"
+              aria-label="Закрыть"
+              @click="closePointPicker"
+            >
+              ✕
             </button>
           </div>
+
           <PointPickerLayout
-            :city-slug="citySlug"
+            :city-slug="pointPickerCitySlug"
             mode="miniapp"
             title="Точки печати"
-            subtitle="Нажмите на точку, чтобы печатать здесь."
+            subtitle="Нажмите на точку в списке или на карте."
             @select="onPointSelected"
           />
         </div>
-
-        <div
-          v-if="mode === 'site' && messengerFallbackUrl"
-          class="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600"
-        >
-          Удобнее в мессенджере?
-          <a
-            :href="messengerFallbackUrl"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="font-semibold text-blue-600 hover:underline"
-          >
-            Открыть бота
-          </a>
-        </div>
-      </section>
+      </div>
 
       <!-- Payment step -->
       <section

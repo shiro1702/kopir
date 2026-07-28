@@ -7,7 +7,6 @@ const props = withDefaults(defineProps<{
   title?: string
   subtitle?: string
 }>(), {
-  citySlug: 'ulan-ude',
   mode: 'site',
   title: 'Где забрать распечатку',
   subtitle: 'Выберите точку печати на карте или в списке. После выбора откроется страница печати на сайте.',
