@@ -15,7 +15,11 @@ export type PointScheduleStatus = {
 type Interval = { openMin: number, closeMin: number }
 
 function parseInterval(raw: string): Interval | null {
-  const match = raw.trim().match(/^(\d{1,2}):(\d{2})-(\d{1,2}):(\d{2})$/)
+  // Admin може вводить разделитель как en-dash (–) или em-dash (—),
+  // например: "09:00–18:00". Парсер ожидает обычный '-'.
+  const normalized = raw.trim()
+    .replace(/[–—]/g, '-')
+  const match = normalized.match(/^(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})$/)
   if (!match) {
     return null
   }

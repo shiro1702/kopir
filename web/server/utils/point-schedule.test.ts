@@ -13,6 +13,17 @@ describe('getPointScheduleStatus', () => {
     assert.match(status.statusText, /Открыто до/)
   })
 
+  it('parses en-dash time separator', () => {
+    const monday10am = new Date('2026-07-20T02:00:00.000Z') // 10:00 Asia/Irkutsk Monday
+    const dash = '\u2013' // en-dash
+    const status = getPointScheduleStatus({
+      timezone: 'Asia/Irkutsk',
+      openingHours: { weekdays: `09:00${dash}19:00`, saturday: null, sunday: null },
+    }, monday10am)
+    assert.equal(status.isOpenNow, true)
+    assert.match(status.statusText, /Открыто до/)
+  })
+
   it('returns closed outside hours', () => {
     const monday8pm = new Date('2026-07-20T12:00:00.000Z') // 20:00 Asia/Irkutsk Monday
     const status = getPointScheduleStatus({
