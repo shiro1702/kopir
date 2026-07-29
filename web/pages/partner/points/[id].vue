@@ -43,6 +43,7 @@ const error = ref('')
 const saving = ref(false)
 const saveMessage = ref('')
 const period = ref<'day' | 'week' | 'month'>('day')
+let refreshTimer: ReturnType<typeof setInterval> | null = null
 
 const priceRub = ref('')
 const methods = ref<string[]>([])
@@ -112,6 +113,16 @@ watch(period, () => {
 
 onMounted(() => {
   void load()
+  refreshTimer = setInterval(() => {
+    void load()
+  }, 15_000)
+})
+
+onUnmounted(() => {
+  if (refreshTimer) {
+    clearInterval(refreshTimer)
+    refreshTimer = null
+  }
 })
 </script>
 

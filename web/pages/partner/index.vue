@@ -13,9 +13,20 @@ useHead({
 
 const { me, loading, error, fetchMe } = usePartnerSession()
 const partnerLinks = usePartnerBotLinks()
+let refreshTimer: ReturnType<typeof setInterval> | null = null
 
 onMounted(() => {
   void fetchMe()
+  refreshTimer = setInterval(() => {
+    void fetchMe()
+  }, 15_000)
+})
+
+onUnmounted(() => {
+  if (refreshTimer) {
+    clearInterval(refreshTimer)
+    refreshTimer = null
+  }
 })
 </script>
 

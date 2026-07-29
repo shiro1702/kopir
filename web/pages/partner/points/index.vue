@@ -12,9 +12,20 @@ useHead({
 })
 
 const { me, loading, fetchMe } = usePartnerSession()
+let refreshTimer: ReturnType<typeof setInterval> | null = null
 
 onMounted(() => {
   void fetchMe()
+  refreshTimer = setInterval(() => {
+    void fetchMe()
+  }, 15_000)
+})
+
+onUnmounted(() => {
+  if (refreshTimer) {
+    clearInterval(refreshTimer)
+    refreshTimer = null
+  }
 })
 </script>
 
