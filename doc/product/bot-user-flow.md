@@ -47,7 +47,7 @@
 | `/bind` (staff) | ✅ | 2 | Токен из админки `/admin/points` |
 | Сбор нескольких файлов (batch) | ✅ | 0.2 | До 5 файлов; в UI: «Файлов: N из 5», «Отменить всё» |
 | PDF + Word (.doc/.docx) | ✅ | 0.1 | Word → `CALCULATING` на агенте |
-| Reply-клавиатура «Оплатить» / «Отменить всё» | ✅ | 0.2 | TG: reply; MAX: inline callback |
+| Reply-клавиатура «Оплатить» / «Отменить всё» | ✅ | 0.2 | TG: reply **+ inline** на карточке файла; MAX: inline callback |
 | Удаление файла из списка | ✅ | 1 | Inline `batch_remove:*` |
 | Статусные сообщения (edit + typing) | ✅ | 1 | Один messageId на файл |
 | Выбор способа оплаты | ✅ | 1 | Перевод / на месте |
@@ -120,8 +120,8 @@ flowchart LR
 | `/partner_help` | Partner | всегда | Подсказка по командам партнёра | ✅ |
 | `/partner bind_<token>` | Partner | токен из админки | Привязка `Partner` + `Point.partnerId` | ✅ |
 | `/partner phone <pointId> <номер>` | Partner | владелец точки | Обновить `transferPhone` | ✅ |
-| Текст `✅ Оплатить` | Клиент | TG only; есть пачка `COLLECTING`; режим `ready` | `finalizeBatch` → выбор оплаты | ✅ |
-| Текст `❌ Отменить всё` | Клиент | TG; есть batch `COLLECTING` | `cancelBatch` | ✅ |
+| Текст `✅ Оплатить` | Клиент | TG reply **или** inline `batch_finalize`; есть пачка `COLLECTING`; режим `ready` | `finalizeBatch` → выбор оплаты | ✅ |
+| Текст `❌ Отменить всё` | Клиент | TG reply **или** inline `batch_cancel`; есть batch `COLLECTING` | `cancelBatch` | ✅ |
 
 ### Reply-клавиатура (Telegram)
 
@@ -132,14 +132,15 @@ flowchart LR
 | `✅ Оплатить` | `getBatchKeyboardMode === 'ready'` (нет файлов в `CALCULATING`) | `calculating` или batch нет |
 | `❌ Отменить всё` | Всегда, пока batch `COLLECTING` | После finalize / cancel |
 
-MAX: команды — inline `client_cmd:*` и `partner_cmd:*`; пачка — `batch_finalize` / `batch_cancel`.
+MAX: команды — inline `client_cmd:*` и `partner_cmd:*`; пачка — `batch_finalize` / `batch_cancel`.  
+Telegram: те же `batch_finalize` / `batch_cancel` дублируются **inline на карточке файла** (reply-клавиатура легко сбивается меню команд).
 
 ### Inline-кнопки клиента (callback)
 
 | Payload | Экран / контекст | Условие | Статус |
 |---------|------------------|---------|--------|
-| `batch_finalize` | Сбор файлов | MAX; batch `COLLECTING`, mode `ready` | ✅ |
-| `batch_cancel` | Сбор файлов | batch `COLLECTING` | ✅ |
+| `batch_finalize` | Сбор файлов | TG + MAX; batch `COLLECTING`, mode `ready` | ✅ |
+| `batch_cancel` | Сбор файлов | TG + MAX; batch `COLLECTING` | ✅ |
 | `batch_remove:{orderId}` | Сообщение файла | batch `COLLECTING`; order не `CALCULATING` | ✅ |
 | `batch_remove_confirm:{orderId}` | Подтверждение удаления | После «Удалить» | ✅ |
 | `batch_remove_cancel:{orderId}` | Отмена удаления | На экране confirm | ✅ |

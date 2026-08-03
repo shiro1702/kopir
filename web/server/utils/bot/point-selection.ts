@@ -143,6 +143,7 @@ async function refreshBatchFileCards(
       keyboardMode,
       withCopies: copiesOpts,
       copies: order.copies,
+      withBatchActions: platform === 'telegram',
     })
     if (order.clientMessageId && order.clientMessageChatId) {
       try {
@@ -230,6 +231,7 @@ async function sendBatchPointSelectedConfirmation(
       keyboardMode,
       withCopies: lastOrder.status === OrderStatus.AWAITING_PAYMENT,
       copies: lastOrder.copies,
+      withBatchActions: target.platform === 'telegram',
     }),
     batchKeyboard: keyboardMode,
   }
@@ -410,6 +412,7 @@ export async function handlePointBack(
       keyboardMode,
       withCopies: lastOrder.status === OrderStatus.AWAITING_PAYMENT,
       copies: lastOrder.copies,
+      withBatchActions: target.platform === 'telegram',
     }),
     batchKeyboard: keyboardMode,
   })

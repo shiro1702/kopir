@@ -121,14 +121,26 @@ function createTelegramAdapter(): MessengerAdapterWithCallbacks {
   return {
     platform: 'telegram',
     async sendText(target: MessengerReplyTarget, text: string, options?) {
+      const { clearLastBatchKeyboardMode, setLastBatchKeyboardMode } = await import('../bot/preferences')
+
       if (options?.inlineKeyboard) {
         await sendTelegramStatusMessage(Number(target.chatId), text, {
           inlineKeyboard: options.inlineKeyboard,
         })
+        // Inline markup cannot update the reply keyboard. Invalidate cache so the
+        // next syncBatchReplyKeyboard / file upload can restore «Оплатить».
+        if (options.batchKeyboard || options.clientMenu || options.partnerMenu) {
+          clearLastBatchKeyboardMode('telegram', target.chatId)
+        }
         return
       }
       const bot = getBot()
       const replyMarkup = resolveTelegramReplyMarkup(options)
+      if (options?.batchKeyboard) {
+        setLastBatchKeyboardMode('telegram', target.chatId, options.batchKeyboard)
+      } else if (options?.clientMenu || options?.partnerMenu) {
+        clearLastBatchKeyboardMode('telegram', target.chatId)
+      }
       await bot.api.sendMessage(Number(target.chatId), text, replyMarkup
         ? { reply_markup: replyMarkup }
         : undefined)

@@ -34,6 +34,16 @@ export async function routeClientCallback(
   callbackCtx: CallbackContext,
   message?: SentMessage,
 ): Promise<ClientCallbackResult> {
+  if (data === 'batch_finalize' || data === 'batch_cancel') {
+    const { handleBatchAction } = await import('./core')
+    const { MSG_BATCH_FINALIZING, MSG_BATCH_BATCH_CANCELLED_ACTION } = await import('./messages')
+    const action = data === 'batch_finalize' ? 'finalize' : 'cancel'
+    await handleBatchAction(target.platform, target, user, action, adapter)
+    return {
+      toast: action === 'finalize' ? MSG_BATCH_FINALIZING : MSG_BATCH_BATCH_CANCELLED_ACTION,
+    }
+  }
+
   const orderIdFromRemove = parseBatchRemoveOrderId(data)
   if (orderIdFromRemove) {
     const { handleBatchRemoveRequest } = await import('./core')

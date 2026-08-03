@@ -237,6 +237,8 @@ function orderStatusOptions(
       hasOtherPoints,
       withCopies,
       copies,
+      // Telegram reply keyboard is often overwritten by /print|/help; keep pay inline.
+      withBatchActions: platform === 'telegram',
     })
     if (inline.length > 0) {
       opts.inlineKeyboard = inline
@@ -245,6 +247,7 @@ function orderStatusOptions(
     opts.inlineKeyboard = fileStatusKeyboard(orderId, {
       withRemove: true,
       keyboardMode: 'ready',
+      withBatchActions: platform === 'telegram',
     })
   }
   if (platform === 'max' && keyboardMode) {
@@ -821,7 +824,7 @@ export async function handleDocument(
       await adapter.sendText(target, statusText, statusOpts)
     }
 
-    await syncBatchReplyKeyboard(platform, target, adapter, batchId, keyboardMode)
+    await syncBatchReplyKeyboard(platform, target, adapter, batchId, keyboardMode, { force: true })
   } catch (error) {
     console.error('[bot] document upload failed:', orderId, error)
     await prisma.order.update({
@@ -881,6 +884,10 @@ export async function handleBatchAction(
   try {
     const { batch: finalized } = await finalizeBatch(batch.id)
     clearLastBatchKeyboardMode(platform, target.chatId)
+    // Drop stale «Оплатить» reply keyboard before payment method buttons.
+    if (platform === 'telegram') {
+      await adapter.sendText(target, messages.MSG_BATCH_FINALIZING, { clientMenu: true })
+    }
     const { sendPaymentMethodChoiceForBatch } = await import('./payment-handlers')
     await sendPaymentMethodChoiceForBatch(target, adapter, finalized, user.externalId)
   } catch (error) {

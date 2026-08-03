@@ -167,7 +167,7 @@ export async function sendTelegramBatchMessage(
 ): Promise<void> {
   const { getInitializedBot } = await import('./bot')
   const bot = await getInitializedBot()
-  const { BTN_CANCEL_BATCH, BTN_FINALIZE_BATCH } = await import('../bot/messages')
+  const { BTN_CANCEL_BATCH, BTN_FINALIZE_BATCH, MSG_BATCH_CONTROLS } = await import('../bot/messages')
   const { Keyboard } = await import('grammy')
 
   const keyboard = new Keyboard()
@@ -176,7 +176,8 @@ export async function sendTelegramBatchMessage(
   }
   keyboard.text(BTN_CANCEL_BATCH).resized()
 
-  await bot.api.sendMessage(chatId, text, { reply_markup: keyboard })
+  const messageText = text.trim() ? text : MSG_BATCH_CONTROLS
+  await bot.api.sendMessage(chatId, messageText, { reply_markup: keyboard })
 }
 
 export async function downloadTelegramFile(filePath: string): Promise<Buffer> {

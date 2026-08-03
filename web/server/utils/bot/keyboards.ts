@@ -238,6 +238,8 @@ export function fileStatusKeyboard(
     hasOtherPoints?: boolean
     withCopies?: boolean
     copies?: number
+    /** Telegram: pay/cancel as inline (reply keyboard is easy to lose). */
+    withBatchActions?: boolean
   },
 ): InlineKeyboardButton[][] {
   const rows: InlineKeyboardButton[][] = []
@@ -258,6 +260,20 @@ export function fileStatusKeyboard(
   }
   if (options.withRemove) {
     rows.push([{ text: BTN_REMOVE_FILE, callbackData: batchRemovePayload(orderId) }])
+  }
+  if (options.withBatchActions) {
+    if (options.keyboardMode === 'ready') {
+      rows.push([
+        { text: BTN_FINALIZE_BATCH, callbackData: 'batch_finalize' },
+        { text: BTN_CANCEL_BATCH, callbackData: 'batch_cancel' },
+      ])
+    } else if (
+      options.keyboardMode === 'calculating'
+      || options.keyboardMode === 'needs_point'
+      || options.keyboardMode === 'point_offline'
+    ) {
+      rows.push([{ text: BTN_CANCEL_BATCH, callbackData: 'batch_cancel' }])
+    }
   }
   return rows
 }
