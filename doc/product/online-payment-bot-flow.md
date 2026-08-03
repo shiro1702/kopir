@@ -13,7 +13,7 @@
 
 | Платформа | Кнопки «СБП» / «карта» на экране выбора | Открытие оплаты | После оплаты |
 |-----------|----------------------------------------|----------------|--------------|
-| **Telegram** | callback (не URL) | сразу при тапе (`answerCallbackQuery` + `url`) | сообщение + «Проверить» / «← Назад»; webhook тоже подтверждает |
+| **Telegram** | callback (не URL) | сообщение с кнопкой **«Открыть оплату»** (url) | «Проверить» / «← Назад»; webhook тоже подтверждает |
 | **MAX** | прямые ссылки на Т-Банк (`pay.tbank.ru/…`) | при тапе по ссылке | webhook; «Проверить» на экране выбора способа |
 
 Оба мессенджера используют один backend: `initPayment` → Т-Банк Init/GetQr → webhook `POST /api/payments/webhook/tbank` → печать.
@@ -74,9 +74,9 @@ sequenceDiagram
 
   C->>B: тап «карта» (callback)
   B->>B: selectPaymentMethod + initPayment
-  B->>TG: answerCallbackQuery(url=pay.tbank.ru/…)
-  TG->>T: открывает страницу оплаты
-  B->>C: «Подтвердите в банке…» + [Проверить][← Назад]
+  B->>TG: answerCallbackQuery (toast, без url)
+  B->>C: «Нажмите Открыть оплату…» + [Открыть оплату][Проверить][← Назад]
+  C->>T: тап «Открыть оплату» (url pay.tbank.ru)
 
   C->>T: оплата
   T->>B: webhook CONFIRMED
@@ -94,13 +94,13 @@ sequenceDiagram
 2. **Тап по СБП/карта** — сервер:
    - `selectPaymentMethod`
    - `initPayment` (канал `sbp` или `card`)
-   - `answerCallbackQuery` с `url` = прямой `payUrl` Т-Банка
-   - новое сообщение с текстом «Подтвердите оплату в банке…» и кнопками **«Проверить»** / **«← Назад»**
+   - `answerCallbackQuery` **без** `url` (иначе Telegram отвечает `URL_INVALID` на ссылки Т-Банка)
+   - новое сообщение с кнопкой **«Открыть оплату»** (`url` = `payUrl`) + **«Проверить»** / **«← Назад»**
 3. **Подтверждение** — в первую очередь **webhook** Т-Банка; кнопка «Проверить» (`pay_check_status:{paymentId}`) — запасной polling через `GetState`.
 
-### Почему не прямые URL в кнопках на первом экране
+### Почему не `answerCallbackQuery.url`
 
-В Telegram можно вставить `url` в inline-кнопку, но тогда **не вызывается callback** — нельзя одновременно выбрать способ в БД и открыть оплату без pre-init. Текущая схема: **один тап** через `answerCallbackQuery.url` — UX эквивалентен прямой ссылке.
+Telegram часто возвращает `400 URL_INVALID` для внешних payment-ссылок (Т-Банк / NSPK), даже если это валидный `https://`. Надёжный UX: callback выбирает метод → в следующем сообщении обычная **inline url-кнопка**.
 
 ---
 

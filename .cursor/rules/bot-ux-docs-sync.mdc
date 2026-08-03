@@ -43,8 +43,8 @@ alwaysApply: false
 
 ## Онлайн-оплата (кратко для диаграмм)
 
-- **Telegram:** callback СБП/карта → `answerCallbackQuery.url` → сообщение «Проверить»
-- **MAX:** при показе способа — прямые URL Т-Банка в кнопках, без «Проверить»
+- **Telegram:** callback СБП/карта → сообщение с url-кнопкой «Открыть оплату» (не `answerCallbackQuery.url` — `URL_INVALID`)
+- **MAX:** при показе способа — прямые URL Т-Банка в кнопках, без «Проверить» на первом шаге после init
 - **Оба:** webhook `POST /api/payments/webhook/tbank` → печать
 
 Подробности: `doc/product/online-payment-bot-flow.md`.

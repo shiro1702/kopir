@@ -164,17 +164,18 @@ async function sendTbankPaymentUi(
   init: Awaited<ReturnType<typeof initPayment>>,
 ): Promise<ClientCallbackResult> {
   const isCard = init.channel === 'card'
+  // Do not use answerCallbackQuery.url — Telegram returns URL_INVALID for T-Bank links.
+  // Open via an inline url button instead (same pattern as MAX).
   const text = isCard
-    ? messages.formatOnlineCardAfterOpen(amountKopeks, shortId)
-    : messages.formatOnlineSbpAfterOpen(amountKopeks, shortId)
+    ? messages.formatOnlineCardWithLink(amountKopeks, shortId)
+    : messages.formatOnlineSbpWithLink(amountKopeks, shortId)
 
   await adapter.sendText(target, text, {
-    inlineKeyboard: onlinePaymentCheckKeyboard(entityId, init.paymentId),
+    inlineKeyboard: onlinePaymentCheckKeyboard(entityId, init.paymentId, init.payUrl),
   })
 
   return {
-    toast: isCard ? 'Открываем оплату картой' : 'Открываем СБП',
-    callbackAnswer: { url: init.payUrl },
+    toast: 'Нажмите «Открыть оплату»',
   }
 }
 

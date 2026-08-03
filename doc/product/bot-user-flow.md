@@ -51,7 +51,7 @@
 | Удаление файла из списка | ✅ | 1 | Inline `batch_remove:*` |
 | Статусные сообщения (edit + typing) | ✅ | 1 | Один messageId на файл |
 | Выбор способа оплаты | ✅ | 1 | Перевод / на месте |
-| Т-Банк СБП + карта онлайн | ✅ | 3 | TG: callback + auto-open; MAX: прямые URL; см. [online-payment-bot-flow.md](./online-payment-bot-flow.md) |
+| Т-Банк СБП + карта онлайн | ✅ | 3 | TG: callback → кнопка «Открыть оплату»; MAX: прямые URL; см. [online-payment-bot-flow.md](./online-payment-bot-flow.md) |
 | «Готово!» после печати | 🟡 | 1 | Код частично; UX-10 не закрыт |
 | Блокировка offline-точки | ⬜ | 1 | MON-02 |
 | Повтор печати клиентом | ✅ | 1 | `order_retry:*` при сбое |

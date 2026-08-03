@@ -311,6 +311,7 @@ export const BTN_PAY_ONLINE_CARD = 'карта'
 export const BTN_PAY_CLAIMED = 'Я оплатил'
 export const BTN_PAY_CHECK_STATUS = 'Проверить'
 export const BTN_PAY_CHANGE_METHOD = '← Назад'
+export const BTN_PAY_OPEN = 'Открыть оплату'
 
 export type PayMethodCallback =
   | 'sbp_transfer'
@@ -393,11 +394,17 @@ export function onSitePaymentKeyboard(entityId: string): InlineKeyboardButton[][
 export function onlinePaymentCheckKeyboard(
   entityId: string,
   paymentId: string,
+  payUrl?: string,
 ): InlineKeyboardButton[][] {
-  return [[
+  const rows: InlineKeyboardButton[][] = []
+  if (payUrl && /^https?:\/\//i.test(payUrl)) {
+    rows.push([{ text: BTN_PAY_OPEN, url: payUrl }])
+  }
+  rows.push([
     { text: BTN_PAY_CHECK_STATUS, callbackData: payCheckStatusPayload(paymentId) },
     { text: BTN_PAY_CHANGE_METHOD, callbackData: payChangeMethodPayload(entityId) },
-  ]]
+  ])
+  return rows
 }
 
 export function isPaymentClientCallbackPayload(payload: string): boolean {

@@ -20,6 +20,7 @@ export interface TbankInitResult {
   paymentId: string
   merchantOrderId: string
   externalPaymentId: string
+  /** Prefer for opening in browsers / Telegram url buttons (always http(s) when possible). */
   payUrl: string
   channel: TbankPayChannel
   amountKopeks: number
@@ -130,8 +131,9 @@ export async function initPayment(
   }
 
   let payUrl: string | undefined
+  const paymentPageUrl = initResult.PaymentURL?.trim() || undefined
   if (channel === 'card') {
-    payUrl = initResult.PaymentURL?.trim()
+    payUrl = paymentPageUrl
     if (!payUrl) {
       throw createError({
         statusCode: 502,
@@ -140,11 +142,21 @@ export async function initPayment(
     }
   } else {
     const qrResult = await tbankGetQr(externalPaymentId, 'PAYLOAD')
-    payUrl = qrResult.Data?.trim()
-    if (!payUrl) {
+    const qrPayload = qrResult.Data?.trim()
+    if (!qrPayload) {
       throw createError({
         statusCode: 502,
         data: { error: 'T-Bank GetQr did not return payload', code: 'TBANK_GETQR_FAILED' },
+      })
+    }
+    // Prefer http(s) for Telegram/MAX url buttons; fall back to Init PaymentURL.
+    payUrl = /^https?:\/\//i.test(qrPayload)
+      ? qrPayload
+      : (paymentPageUrl && /^https?:\/\//i.test(paymentPageUrl) ? paymentPageUrl : qrPayload)
+    if (!/^https?:\/\//i.test(payUrl)) {
+      throw createError({
+        statusCode: 502,
+        data: { error: 'T-Bank did not return an http(s) payment URL', code: 'TBANK_GETQR_FAILED' },
       })
     }
   }

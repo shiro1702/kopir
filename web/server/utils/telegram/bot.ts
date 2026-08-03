@@ -156,11 +156,33 @@ function createTelegramAdapter(): MessengerAdapterWithCallbacks {
     },
     async answerCallback(ctx: CallbackContext, text?: string, options?) {
       const bot = getBot()
-      await bot.api.answerCallbackQuery(ctx.callbackId, {
+      const payload: {
+        text: string
+        show_alert: boolean
+        url?: string
+      } = {
         text: text ?? options?.text ?? '',
         show_alert: options?.showAlert ?? false,
-        url: options?.url,
-      })
+      }
+      // Telegram only accepts http(s) here; T-Bank / game-less bots often get URL_INVALID.
+      const url = options?.url?.trim()
+      if (url && /^https?:\/\//i.test(url)) {
+        payload.url = url
+      }
+      try {
+        await bot.api.answerCallbackQuery(ctx.callbackId, payload)
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        if (payload.url && /URL_INVALID/i.test(message)) {
+          console.error('[telegram] answerCallbackQuery URL_INVALID, retry without url:', url)
+          await bot.api.answerCallbackQuery(ctx.callbackId, {
+            text: payload.text || 'Готово',
+            show_alert: payload.show_alert,
+          })
+          return
+        }
+        throw error
+      }
     },
   }
 }
