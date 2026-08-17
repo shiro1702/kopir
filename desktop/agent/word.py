@@ -1,9 +1,13 @@
+import os
 import sys
 import threading
 import time
 from pathlib import Path
 
 _word_lock = threading.Lock()
+
+COUNT_PAGES_TIMEOUT_SEC = 60
+PRINT_TIMEOUT_SEC = 180
 
 
 class WordError(Exception):
@@ -14,6 +18,7 @@ class _WordSession:
     def __init__(self) -> None:
         self.word = None
         self.doc = None
+        self.pid = 0
 
 
 def _require_win32():
@@ -37,35 +42,95 @@ def _open_document(word, file_path: str, *, read_only: bool = True):
     )
 
 
-def _run_word_action(action) -> int:
-    _require_win32()
-    import pythoncom
-    import win32com.client
+def _word_pid(word) -> int:
+    try:
+        import win32process
 
-    with _word_lock:
+        hwnd = int(word.Hwnd)
+        _, pid = win32process.GetWindowThreadProcessId(hwnd)
+        return int(pid)
+    except Exception:
+        return 0
+
+
+def _kill_pid(pid: int) -> None:
+    if sys.platform != "win32" or pid <= 0:
+        return
+    try:
+        import ctypes
+
+        handle = ctypes.windll.kernel32.OpenProcess(1, False, pid)
+        if handle:
+            ctypes.windll.kernel32.TerminateProcess(handle, 1)
+            ctypes.windll.kernel32.CloseHandle(handle)
+    except Exception:
+        try:
+            os.kill(pid, 9)
+        except Exception:
+            pass
+
+
+def _cleanup_session(session: _WordSession) -> None:
+    if session.doc is not None:
+        try:
+            session.doc.Close(False)
+        except Exception:
+            pass
+        session.doc = None
+    if session.word is not None:
+        try:
+            session.word.Quit()
+        except Exception:
+            pass
+        session.word = None
+    try:
+        import pythoncom
+
+        pythoncom.CoUninitialize()
+    except Exception:
+        pass
+
+
+def _run_word_action(action, *, timeout_sec: int) -> int:
+    _require_win32()
+
+    result: list[int] = []
+    error: list[BaseException] = []
+    session = _WordSession()
+
+    def worker() -> None:
+        import pythoncom
+        import win32com.client
+
         pythoncom.CoInitialize()
-        session = _WordSession()
         try:
             session.word = win32com.client.DispatchEx("Word.Application")
+            session.pid = _word_pid(session.word)
             session.word.Visible = False
             session.word.DisplayAlerts = 0
             session.word.ScreenUpdating = False
-            return action(session)
+            result.append(action(session))
+        except BaseException as exc:
+            error.append(exc)
         finally:
-            if session.doc is not None:
-                try:
-                    session.doc.Close(False)
-                except Exception:
-                    pass
-            if session.word is not None:
-                try:
-                    session.word.Quit()
-                except Exception:
-                    pass
-            try:
-                pythoncom.CoUninitialize()
-            except Exception:
-                pass
+            _cleanup_session(session)
+
+    with _word_lock:
+        thread = threading.Thread(target=worker, daemon=True)
+        thread.start()
+        thread.join(timeout_sec)
+        if thread.is_alive():
+            _kill_pid(session.pid)
+            thread.join(5)
+            raise WordError(f"Word timed out after {timeout_sec}s")
+        if error:
+            exc = error[0]
+            if isinstance(exc, WordError):
+                raise exc
+            raise WordError(str(exc)) from exc
+        if not result:
+            raise WordError("Word returned no result")
+        return result[0]
 
 
 def count_pages(path: str) -> int:
@@ -81,7 +146,7 @@ def count_pages(path: str) -> int:
         return pages
 
     try:
-        return _run_word_action(run)
+        return _run_word_action(run, timeout_sec=COUNT_PAGES_TIMEOUT_SEC)
     except WordError:
         raise
     except Exception as exc:
@@ -159,7 +224,7 @@ def print_document(path: str, *, printer_name: str = "", copies: int = 1) -> Non
         return 0
 
     try:
-        _run_word_action(run)
+        _run_word_action(run, timeout_sec=PRINT_TIMEOUT_SEC)
     except WordError:
         raise
     except Exception as exc:

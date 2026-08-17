@@ -246,6 +246,26 @@ function batchLog(batchId: string, message: string, extra?: unknown) {
   }
 }
 
+export function resolveBatchKeyboardMode(input: {
+  calculatingCount: number
+  hasPoint: boolean
+  agentOnline: boolean
+  hasActiveOrders: boolean
+}): BatchKeyboardMode {
+  // Word is CALCULATING before a point is bound — still allow choosing a point,
+  // otherwise the file never reaches any agent.
+  if (!input.hasPoint && input.hasActiveOrders) {
+    return 'needs_point'
+  }
+  if (input.calculatingCount > 0) {
+    return 'calculating'
+  }
+  if (input.hasPoint && !input.agentOnline) {
+    return 'point_offline'
+  }
+  return 'ready'
+}
+
 export async function getBatchKeyboardMode(batchId: string): Promise<BatchKeyboardMode> {
   const batch = await prisma.orderBatch.findUnique({
     where: { id: batchId },
@@ -253,16 +273,12 @@ export async function getBatchKeyboardMode(batchId: string): Promise<BatchKeyboa
   })
   const active = await getActiveBatchOrders(batchId)
   const calculating = active.filter((o) => o.status === OrderStatus.CALCULATING)
-  if (calculating.length > 0) {
-    return 'calculating'
-  }
-  if (!batch?.pointId && active.length > 0) {
-    return 'needs_point'
-  }
-  if (batch?.pointId && batch.point && !isPointAgentOnline(batch.point)) {
-    return 'point_offline'
-  }
-  return 'ready'
+  return resolveBatchKeyboardMode({
+    calculatingCount: calculating.length,
+    hasPoint: Boolean(batch?.pointId),
+    agentOnline: Boolean(batch?.point && isPointAgentOnline(batch.point)),
+    hasActiveOrders: active.length > 0,
+  })
 }
 
 export async function recalculateBatchTotals(batchId: string): Promise<OrderBatch> {

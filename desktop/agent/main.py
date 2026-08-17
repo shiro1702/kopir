@@ -36,6 +36,11 @@ def report_order_failed(client: ApiClient, order_id: str, error_message: str) ->
     log(f"Giving up reporting failure for order {order_id}")
 
 
+def _is_file_not_ready(exc: Exception) -> bool:
+    message = str(exc)
+    return "FILE_NOT_READY" in message or "FILE_PATH_MISSING" in message
+
+
 def _submit_calculation_error(client: ApiClient, order_id: str, error_message: str) -> None:
     try:
         client.submit_calculation(order_id, error_message=error_message)
@@ -49,6 +54,7 @@ def _submit_calculation_error(client: ApiClient, order_id: str, error_message: s
 
 def process_calculation(client: ApiClient, config, order: dict) -> None:
     order_id = order["id"]
+    log(f"Calculating {order.get('fileName', 'file')} order {order_id}")
 
     if not config.use_word:
         log("Word calculation disabled: USE_WORD=false")
@@ -73,6 +79,9 @@ def process_calculation(client: ApiClient, config, order: dict) -> None:
         log(f"Calculation failed for order {order_id}: {exc}")
         _submit_calculation_error(client, order_id, reportable_error(exc, phase="calculation"))
     except Exception as exc:
+        if _is_file_not_ready(exc):
+            log(f"File not ready for calculation {order_id}, will retry")
+            return
         log(f"Error calculating order {order_id}: {exc}")
         traceback.print_exc()
         _submit_calculation_error(client, order_id, reportable_error(exc, phase="calculation"))
@@ -146,21 +155,31 @@ def main() -> None:
         log("Check SERVER_URL in desktop/.env, internet, and firewall on this PC")
 
     while True:
-        try:
-            calc_orders = client.get_queue(kind="calculate")
-            for order in calc_orders:
-                process_calculation(client, config, order)
+        calc_orders: list = []
+        print_orders: list = []
 
+        try:
             print_orders = client.get_queue(kind="print")
-            if not calc_orders and not print_orders:
-                log("idle")
-            else:
-                for order in print_orders:
-                    process_order(client, config, order)
         except Exception as exc:
-            log(f"Poll error: {exc}")
+            log(f"Print poll error: {exc}")
             if not _is_connection_poll_error(exc):
                 traceback.print_exc()
+
+        try:
+            calc_orders = client.get_queue(kind="calculate")
+        except Exception as exc:
+            log(f"Calculate poll error: {exc}")
+            if not _is_connection_poll_error(exc):
+                traceback.print_exc()
+
+        if not calc_orders and not print_orders:
+            log("idle")
+        else:
+            # Paid jobs first so a stuck Word count cannot freeze the printer.
+            for order in print_orders:
+                process_order(client, config, order)
+            for order in calc_orders:
+                process_calculation(client, config, order)
 
         time.sleep(config.poll_interval_sec)
 

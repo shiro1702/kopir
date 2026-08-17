@@ -1,6 +1,7 @@
 import { OrderStatus } from '@prisma/client'
 import { assertAgentAuth } from '../../../../utils/agent-auth'
 import { downloadOrderFile } from '../../../../utils/blob'
+import { isCalculationFileReady } from '../../../../utils/calculation'
 import { contentDispositionAttachment } from '../../../../utils/file-types'
 import { prisma } from '../../../../utils/prisma'
 import { touchPointAgentSeen } from '../../../../utils/points'
@@ -34,6 +35,13 @@ export default defineEventHandler(async (event) => {
     throw createError({
       statusCode: 400,
       data: { error: 'Order is not available for download', code: 'INVALID_STATUS' },
+    })
+  }
+
+  if (!isCalculationFileReady(order.filePath)) {
+    throw createError({
+      statusCode: 409,
+      data: { error: 'Order file is not uploaded yet', code: 'FILE_NOT_READY' },
     })
   }
 

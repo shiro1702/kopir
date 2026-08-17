@@ -60,20 +60,27 @@ class ApiClient:
                 return response
             except requests.HTTPError as exc:
                 last_error = exc
+                status_code = exc.response.status_code if exc.response is not None else 0
                 detail = ""
+                error_code = ""
                 if exc.response is not None:
                     try:
                         payload = exc.response.json()
                         data = payload.get("data") or {}
                         detail = data.get("error") or payload.get("statusMessage") or ""
+                        error_code = str(data.get("code") or "")
                     except ValueError:
                         detail = exc.response.text[:500]
                 if detail:
+                    suffix = f" [{error_code}]" if error_code else ""
                     last_error = RuntimeError(
-                        f"{method} {path} -> HTTP {exc.response.status_code}: {detail}"
+                        f"{method} {path} -> HTTP {status_code}: {detail}{suffix}"
                     )
-                if attempt < retries - 1:
+                retryable = status_code >= 500 or status_code in {408, 429}
+                if retryable and attempt < retries - 1:
                     time.sleep(2 ** attempt)
+                    continue
+                break
             except requests.RequestException as exc:
                 last_error = RuntimeError(self._connection_error_message(exc))
                 if attempt < retries - 1:

@@ -19,6 +19,11 @@ export function getCalculationTimeoutSec(): number {
   return Number.isFinite(value) && value > 0 ? value : 300
 }
 
+/** Word jobs are created before the blob upload finishes — skip until filePath is set. */
+export function isCalculationFileReady(filePath: string | null | undefined): boolean {
+  return Boolean(filePath?.trim())
+}
+
 const CALCULATION_TIMEOUT_MESSAGE = 'Превышено время подсчёта страниц'
 
 export async function expireStaleCalculations(pointId?: string): Promise<void> {

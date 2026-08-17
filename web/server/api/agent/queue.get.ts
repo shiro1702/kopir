@@ -58,6 +58,7 @@ export default defineEventHandler(async (event) => {
       where: {
         pointId: point.id,
         status: OrderStatus.CALCULATING,
+        NOT: { filePath: '' },
       },
       orderBy: { createdAt: 'asc' },
       select: {
