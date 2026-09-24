@@ -16,6 +16,7 @@
 | [point-availability.md](./point-availability.md) | Sprint 1–5 | Статусы точки, блокировка offline, автопереключение |
 | [bot-support-flow.md](./bot-support-flow.md) | Sprint 5+ | Поддержка, автовозврат, TG-группа админов |
 | [staff-refund-in-chat.md](./staff-refund-in-chat.md) | 💡 backlog | Возврат Т-Банк из staff-чата (TG/MAX) |
+| [point-templates.md](./point-templates.md) | 🔵 spike | Готовые бланки на точке (UX-16) |
 
 ## DOCX — три этапа
 

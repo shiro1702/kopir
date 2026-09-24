@@ -283,6 +283,7 @@ Backlog        WebSocket, VPS hub, Redis — когда понадобится �
 - DOCX → PDF на VPS, JPG→PDF, PWA
 - Viber-бот (WEB-17)
 - Partner landing v2 (калькулятор дохода)
+- **UX-16 Готовые бланки точки** — spike вне спринта: seed + кнопка в боте; [point-templates.md](../product/point-templates.md)
 
 ---
 
