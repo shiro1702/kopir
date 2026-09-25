@@ -88,7 +88,7 @@
 | ⬜ todo | UX-13 | Выбор тарифа «наша / своя бумага» в боте | ⏸ deferred | BOX-10 |
 | ✅ done | UX-14 | Удаление файла из пачки до оплаты | 1 | inline на сообщении файла; см. batch-edit-flow.md |
 | ✅ done | UX-15 | Статусные сообщения бота (edit + typing) | 1 | «Принимаю…» → edit; см. задача 15 |
-| 🔵 in_progress | UX-16 | Готовые бланки точки (каталог PDF) | 3–5 | Spike: seed + бот; [point-templates.md](../product/point-templates.md) |
+| 🔵 in_progress | UX-16 | Готовые бланки точки (каталог PDF) | 3–5 | Spike код ✅; seed CLI; E2E pending · [point-templates.md](../product/point-templates.md) |
 
 ---
 

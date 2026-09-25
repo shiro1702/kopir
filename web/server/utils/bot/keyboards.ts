@@ -15,6 +15,7 @@ import {
   BTN_SELECT_POINT,
   BTN_CHANGE_POINT,
   BTN_SELECT_OTHER_POINT,
+  BTN_TEMPLATES,
 } from './messages'
 import { isPointAgentOnline } from '../points'
 import type { InlineKeyboardButton } from './types'
@@ -167,6 +168,38 @@ export function isPointClientCallbackPayload(payload: string): boolean {
     || payload === 'point_geo'
     || payload.startsWith(POINT_LIST_PAGE_PREFIX)
     || payload === 'point_back'
+}
+
+export const TEMPLATE_SELECT_PREFIX = 'template_select:'
+
+export function templateSelectPayload(templateId: string): string {
+  return `${TEMPLATE_SELECT_PREFIX}${templateId}`
+}
+
+export function parseTemplateSelectPayload(payload: string): string | null {
+  if (!payload.startsWith(TEMPLATE_SELECT_PREFIX)) return null
+  return payload.slice(TEMPLATE_SELECT_PREFIX.length) || null
+}
+
+export function isTemplateClientCallbackPayload(payload: string): boolean {
+  return payload === 'template_list'
+    || payload === 'template_back'
+    || payload.startsWith(TEMPLATE_SELECT_PREFIX)
+}
+
+export function templateListKeyboard(
+  templates: { id: string, title: string }[],
+): InlineKeyboardButton[][] {
+  const rows: InlineKeyboardButton[][] = templates.map((template, index) => [{
+    text: `${index + 1}. ${template.title}`.slice(0, 64),
+    callbackData: templateSelectPayload(template.id),
+  }])
+  rows.push([{ text: BTN_POINT_BACK, callbackData: 'template_back' }])
+  return rows
+}
+
+export function templatesEntryKeyboard(): InlineKeyboardButton[][] {
+  return [[{ text: BTN_TEMPLATES, callbackData: 'template_list' }]]
 }
 
 export interface PointListItem {

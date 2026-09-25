@@ -357,6 +357,8 @@ export async function handlePointSelect(
     data: { lastPointId: point.id },
   })
   await adapter.sendText(target, messages.formatStartWithPoint(formatPointLabel(point)))
+  const { maybeOfferTemplatesAfterPointSelect } = await import('./point-templates')
+  await maybeOfferTemplatesAfterPointSelect(target, point.id, adapter)
   return messages.MSG_POINT_SELECTED(formatPointLabel(point))
 }
 

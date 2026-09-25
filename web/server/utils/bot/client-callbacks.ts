@@ -14,6 +14,7 @@ import {
   parseOrderCopiesPayload,
   parsePointListPagePayload,
   parsePointSelectPayload,
+  parseTemplateSelectPayload,
 } from './keyboards'
 import { parseClientCommandCallback } from './client-commands'
 import { parsePartnerCommandCallback } from './partner-commands'
@@ -170,6 +171,22 @@ export async function routeClientCallback(
   if (data === 'point_back') {
     const { handlePointBack } = await import('./point-selection')
     return { toast: await handlePointBack(target, user, adapter) }
+  }
+
+  if (data === 'template_list') {
+    const { handleTemplateList } = await import('./point-templates')
+    return { toast: await handleTemplateList(target.platform, target, user, adapter) }
+  }
+
+  const templateId = parseTemplateSelectPayload(data)
+  if (templateId) {
+    const { handleTemplateSelect } = await import('./point-templates')
+    return { toast: await handleTemplateSelect(target.platform, target, user, templateId, adapter) }
+  }
+
+  if (data === 'template_back') {
+    const { handleTemplateBack } = await import('./point-templates')
+    return { toast: await handleTemplateBack(target, adapter) }
   }
 
   const clientCommand = parseClientCommandCallback(data)

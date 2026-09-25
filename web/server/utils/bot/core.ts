@@ -494,6 +494,8 @@ export async function handleStart(
       )
     } else {
       await adapter.sendText(target, messages.formatStartWithPoint(pointLabel), { clientMenu: true })
+      const { maybeOfferTemplatesAfterPointSelect } = await import('./point-templates')
+      await maybeOfferTemplatesAfterPointSelect(target, resolvedPoint.id, adapter)
     }
     return
   }
@@ -702,7 +704,6 @@ export async function handleDocument(
 
   const mimeType = document.mimeType || mimeTypeForKind(kind, fileName)
   const isWord = kind === 'word'
-  const maxFiles = getBatchMaxFiles()
   const copies = 1
 
   let pageCount = 1
@@ -721,13 +722,67 @@ export async function handleDocument(
     }
   }
 
+  await addPreparedFileToCollectingBatch({
+    platform,
+    target,
+    user,
+    adapter,
+    dbUserId: dbUser.id,
+    pointId: autoPointId,
+    fileName,
+    mimeType,
+    pageCount,
+    copies,
+    isWord,
+    buffer,
+    kind,
+  })
+}
+
+export interface AddPreparedFileInput {
+  platform: MessengerPlatform
+  target: MessengerReplyTarget
+  user: BotUser
+  adapter: MessengerAdapter
+  dbUserId: string
+  pointId: string | null
+  fileName: string
+  mimeType: string
+  pageCount: number
+  copies: number
+  isWord: boolean
+  buffer: Buffer
+  kind: 'pdf' | 'word'
+}
+
+/** Shared path: reserve order in COLLECTING batch, upload buffer to Blob, show file card. */
+export async function addPreparedFileToCollectingBatch(
+  input: AddPreparedFileInput,
+): Promise<'ok' | 'batch_limit'> {
+  const {
+    platform,
+    target,
+    user,
+    adapter,
+    dbUserId,
+    pointId,
+    fileName,
+    mimeType,
+    pageCount,
+    copies,
+    isWord,
+    buffer,
+    kind,
+  } = input
+  const maxFiles = getBatchMaxFiles()
+
   let batchId: string
   let batchIndex: number
   let orderId: string
   try {
     const reserved = await withUserBatchLock(platform, user.externalId, () => createOrderInCollectingBatch({
-      userId: dbUser.id,
-      pointId: autoPointId,
+      userId: dbUserId,
+      pointId,
       fileName,
       mimeType,
       pageCount,
@@ -739,12 +794,12 @@ export async function handleDocument(
     orderId = reserved.order.id
   } catch (error) {
     if (error instanceof BatchLimitReachedError) {
-      const collectingBatch = await getActiveCollectingBatch(dbUser.id)
+      const collectingBatch = await getActiveCollectingBatch(dbUserId)
       const keyboardMode = collectingBatch
         ? await getBatchKeyboardMode(collectingBatch.id)
         : 'needs_point'
       await adapter.sendText(target, messages.MSG_BATCH_LIMIT, { batchKeyboard: keyboardMode })
-      return
+      return 'batch_limit'
     }
     throw error
   }
@@ -775,7 +830,7 @@ export async function handleDocument(
     const keyboardMode = await getBatchKeyboardMode(batchId)
     const freshOrder = await prisma.order.findUnique({ where: { id: orderId } })
     if (!freshOrder) {
-      return
+      return 'ok'
     }
 
     const freshBatch = await prisma.orderBatch.findUnique({
@@ -825,6 +880,7 @@ export async function handleDocument(
     }
 
     await syncBatchReplyKeyboard(platform, target, adapter, batchId, keyboardMode, { force: true })
+    return 'ok'
   } catch (error) {
     console.error('[bot] document upload failed:', orderId, error)
     await prisma.order.update({
@@ -851,6 +907,7 @@ export async function handleDocument(
     } else {
       await adapter.sendText(target, messages.MSG_UPLOAD_FAILED, { batchKeyboard: keyboardMode })
     }
+    return 'ok'
   }
 }
 

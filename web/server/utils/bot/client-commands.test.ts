@@ -11,6 +11,7 @@ describe('client-commands', () => {
     assert.equal(parseClientCommandText('/help'), 'help')
     assert.equal(parseClientCommandText('/print'), 'print')
     assert.equal(parseClientCommandText('/point'), 'point')
+    assert.equal(parseClientCommandText('/templates'), 'templates')
     assert.equal(parseClientCommandText('/files'), 'files')
     assert.equal(parseClientCommandText('/my_files'), 'files')
     assert.equal(parseClientCommandText('/help@KopirBot'), 'help')
@@ -19,10 +20,12 @@ describe('client-commands', () => {
   it('parses reply keyboard labels', () => {
     assert.equal(parseClientCommandText('❓ Помощь'), 'help')
     assert.equal(parseClientCommandText('📄 Печать'), 'print')
+    assert.equal(parseClientCommandText('📄 Готовые бланки'), 'templates')
   })
 
   it('parses client command callbacks', () => {
     assert.equal(parseClientCommandCallback('client_cmd:help'), 'help')
+    assert.equal(parseClientCommandCallback('client_cmd:templates'), 'templates')
     assert.equal(parseClientCommandCallback('client_cmd:unknown'), null)
   })
 
@@ -31,6 +34,7 @@ describe('client-commands', () => {
     assert.match(text, /\/print/)
     assert.match(text, /\/files/)
     assert.match(text, /\/point/)
+    assert.match(text, /\/templates/)
     assert.match(text, /\/help/)
   })
 })

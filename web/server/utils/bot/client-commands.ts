@@ -21,6 +21,7 @@ export const CLIENT_COMMAND_DEFINITIONS = [
   { command: 'print', description: 'Начать печать' },
   { command: 'files', description: 'Мои файлы' },
   { command: 'point', description: 'Выбрать точку' },
+  { command: 'templates', description: 'Готовые бланки' },
   { command: 'help', description: 'Помощь' },
 ] as const
 
@@ -42,7 +43,13 @@ export function parseClientCommandCallback(payload: string): ClientCommandName |
     return null
   }
   const name = payload.slice(CLIENT_CMD_CALLBACK_PREFIX.length)
-  if (name === 'print' || name === 'files' || name === 'point' || name === 'help') {
+  if (
+    name === 'print'
+    || name === 'files'
+    || name === 'point'
+    || name === 'templates'
+    || name === 'help'
+  ) {
     return name
   }
   return null
@@ -71,13 +78,14 @@ export function formatClientCommandList(): string {
     '/print - начать печать',
     '/files - мои файлы',
     '/point - выбрать точку',
+    '/templates - готовые бланки',
     '/help - помощь',
   ].join('\n')
 }
 
 export function parseClientCommandText(text: string): ClientCommandName | null {
   const trimmed = text.trim()
-  const slashMatch = trimmed.match(/^\/(print|files|point|help|my_files)(?:@\S+)?$/i)
+  const slashMatch = trimmed.match(/^\/(print|files|point|templates|help|my_files)(?:@\S+)?$/i)
   if (slashMatch) {
     const cmd = slashMatch[1]!.toLowerCase()
     return cmd === 'my_files' ? 'files' : cmd as ClientCommandName
@@ -94,6 +102,9 @@ export function parseClientCommandText(text: string): ClientCommandName | null {
   }
   if (trimmed === BTN_CMD_HELP) {
     return 'help'
+  }
+  if (trimmed === messages.BTN_TEMPLATES || trimmed === '/templates') {
+    return 'templates'
   }
 
   return null
@@ -169,6 +180,11 @@ export async function handleClientCommand(
     case 'point': {
       const { handlePointChangeMenu } = await import('./point-selection')
       await handlePointChangeMenu(target, adapter)
+      return
+    }
+    case 'templates': {
+      const { handleTemplateList } = await import('./point-templates')
+      await handleTemplateList(platform, target, user, adapter)
       return
     }
     case 'files': {

@@ -116,9 +116,26 @@ model Point {
   bindTokens             BindToken[]
   lastPointUsers         User[]                @relation("UserLastPoint")
   balanceEntries         PartnerBalanceEntry[]
+  templates              PointTemplate[]
 
   @@index([partnerId])
   @@index([citySlug, isActive])
+}
+
+model PointTemplate {
+  id        String   @id @default(cuid())
+  pointId   String
+  point     Point    @relation(fields: [pointId], references: [id], onDelete: Cascade)
+  title     String
+  filePath  String
+  fileName  String
+  pageCount Int
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([pointId, isActive, sortOrder])
 }
 
 model PartnerBalanceEntry {

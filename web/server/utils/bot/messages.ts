@@ -20,6 +20,7 @@ export const BTN_POINT_GEO = '📍 Найти ближайшую'
 export const BTN_POINT_MAP = '🗺 Выбрать на карте'
 export const BTN_POINT_BACK = '⬅️ Назад'
 export const BTN_POINT_SEND_LOCATION = '📍 Отправить геолокацию'
+export const BTN_TEMPLATES = '📄 Готовые бланки'
 
 export const MSG_POINT_NOT_FOUND = 'Точка не найдена. Проверьте код или выберите из списка.'
 export const MSG_POINT_OFFLINE =
@@ -62,6 +63,7 @@ export const MSG_START =
   + '/print — начать печать\n'
   + '/files — мои файлы\n'
   + '/point — выбрать точку\n'
+  + '/templates — готовые бланки точки\n'
   + '/help — помощь'
 
 export const MSG_HELP =
@@ -69,10 +71,12 @@ export const MSG_HELP =
   + '1. Отправьте файлы (PDF или Word) по одному\n'
   + '2. Выберите точку печати, если ещё не выбрана\n'
   + '3. Нажмите «Оплатить» и выберите способ оплаты\n\n'
+  + 'На некоторых точках есть готовые бланки — /templates.\n\n'
   + 'Команды:\n'
   + '/print — инструкция по печати\n'
   + '/files — текущие файлы\n'
   + '/point — выбрать или сменить точку\n'
+  + '/templates — готовые бланки точки\n'
   + '/help — эта справка'
 
 export const MSG_COMMANDS_SHORT =
@@ -80,7 +84,32 @@ export const MSG_COMMANDS_SHORT =
   + '/print — начать печать\n'
   + '/files — мои файлы\n'
   + '/point — выбрать точку\n'
+  + '/templates — готовые бланки\n'
   + '/help — помощь'
+
+export const MSG_TEMPLATES_NEED_POINT =
+  'Сначала выберите точку печати (/point), затем откройте готовые бланки.'
+
+export const MSG_TEMPLATES_EMPTY =
+  'На этой точке пока нет готовых бланков. Отправьте свой файл для печати.'
+
+export const MSG_TEMPLATES_NOT_FOUND =
+  'Бланк не найден или больше недоступен. Откройте список заново: /templates'
+
+export const MSG_TEMPLATES_POINT_MISMATCH =
+  'Этот бланк для другой точки. Завершите или отмените текущие файлы, '
+  + 'либо смените точку (/point).'
+
+export const MSG_TEMPLATES_HEADER = (pointLabel: string) =>
+  `📄 Готовые бланки — ${pointLabel}\n\nВыберите бланк:`
+
+export function formatTemplateListItem(
+  index: number,
+  title: string,
+  pageCount: number,
+): string {
+  return `${index}. ${title} (${pageCount} стр.)`
+}
 
 export const MSG_UNSUPPORTED_FILE =
   'Пока принимаем только PDF и Word (.doc, .docx). Отправьте файл в одном из этих форматов.'

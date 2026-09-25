@@ -42,8 +42,9 @@
 | Блок | Статус | Спринт | Примечание |
 |------|--------|--------|------------|
 | `/start`, deep link `point_*` | ✅ | 0 | Preference в БД (`User.preferredPointSlug`) |
-| Меню команд клиента (`/print`, `/files`, `/point`, `/help`) | ✅ | 5 | TG: Menu + reply; MAX: inline |
+| Меню команд клиента (`/print`, `/files`, `/point`, `/templates`, `/help`) | ✅ | 5 | TG: Menu + reply; MAX: inline; `/templates` — UX-16 |
 | Выбор точки без QR (список / код) | 🟡 | 5 P0 | `point_*` callbacks; DaData/гео — позже |
+| Готовые бланки точки | 🔵 | spike | UX-16 · [point-templates.md](./point-templates.md) |
 | `/bind` (staff) | ✅ | 2 | Токен из админки `/admin/points` |
 | Сбор нескольких файлов (batch) | ✅ | 0.2 | До 5 файлов; в UI: «Файлов: N из 5», «Отменить всё» |
 | PDF + Word (.doc/.docx) | ✅ | 0.1 | Word → `CALCULATING` на агенте |
@@ -109,6 +110,7 @@ flowchart LR
 | `/print` | Клиент | всегда | Инструкция `MSG_START` + меню | ✅ |
 | `/files` | Клиент | всегда | Список файлов в текущей пачке | ✅ |
 | `/point` | Клиент | всегда | Меню смены точки | ✅ |
+| `/templates` | Клиент | точка выбрана + есть бланки | Каталог готовых PDF точки | 🔵 UX-16 |
 | `/help` | Клиент | всегда | Справка `MSG_HELP` | ✅ |
 | `/start bind_<token>` | Staff / Partner | токен из админки | Staff: `StaffChannel`; Partner: `Point.partnerId` | ✅ |
 | `/start partner` | Partner | — | Меню ЛК или «не привязан» | ✅ |
@@ -149,6 +151,9 @@ Telegram: те же `batch_finalize` / `batch_cancel` дублируются **i
 | `point_list_page:{n}` | Пагинация списка | — | 🟡 |
 | `point_change` | Точка выбрана | batch `COLLECTING` | 🟡 |
 | `point_back` | Меню точки / список | — | 🟡 |
+| `template_list` | `/templates` или после выбора точки | Есть активные `PointTemplate` | 🔵 UX-16 |
+| `template_select:{id}` | Список бланков | Шаблон `isActive` | 🔵 UX-16 |
+| `template_back` | Список бланков | — | 🔵 UX-16 |
 | `pay_method:sbp_transfer:{id}` | После finalize | Метод в `paymentMethodsEnabled` + есть телефон | ✅ |
 | `pay_method:on_site:{id}` | После finalize | Метод включён на точке | ✅ |
 | `pay_method:tbank_sbp:{id}` | После finalize | Метод + Т-Банк; TG: callback→open; MAX: url в кнопке | ✅ |

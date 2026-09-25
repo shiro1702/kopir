@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Статус** | 🔵 spike (планирование 24.09.2026) |
+| **Статус** | 🔵 spike реализован (код 25.09.2026) |
 | **Feature** | UX-16 |
 | **Связано** | NIC-03 (МФЦ / госучреждения) · [bot-user-flow.md](./bot-user-flow.md) · [payment-flow.md](./payment-flow.md) |
 
@@ -126,10 +126,24 @@ model PointTemplate {
 
 ## Критерии успеха spike
 
-- [ ] На пилотной точке в боте видна кнопка и список ≥1 бланка
-- [ ] Заказ из бланка оплачивается и печатается как обычный PDF
-- [ ] Blob шаблона на месте после печати; у заказа — свой файл (удаляется как обычно)
-- [ ] На точке без шаблонов UX не меняется
+- [x] Модель `PointTemplate` + миграция + `uploadTemplateFile`
+- [x] `/templates` + callbacks `template_list` / `template_select:*` / `template_back` (TG + MAX)
+- [x] Копия Blob шаблона → `orders/{id}.pdf` через `addPreparedFileToCollectingBatch`
+- [x] После выбора точки /start — кнопка «Готовые бланки», если каталог непустой
+- [x] Seed CLI: `npm run db:seed-template -- --point-slug … --file … --title "…"`
+- [ ] E2E на пилотной точке (оплата → печать; шаблонный Blob на месте)
+
+### Seed на staging/prod
+
+```bash
+cd web
+# DATABASE_URL и BLOB_READ_WRITE_TOKEN из .env
+npx prisma migrate deploy
+npm run db:seed-template -- \
+  --point-slug <slug> \
+  --file ./blanks/report.pdf \
+  --title "Отчёт о выполнении программы соцадаптации"
+```
 
 ---
 

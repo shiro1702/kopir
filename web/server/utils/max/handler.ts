@@ -6,6 +6,7 @@ import {
   isPaymentClientCallbackPayload,
   isPointClientCallbackPayload,
   isPrintRetryClientCallbackPayload,
+  isTemplateClientCallbackPayload,
 } from '../bot/keyboards'
 import { isClientCommandCallback, parseClientCommandText } from '../bot/client-commands'
 import { isPartnerCommandCallback, parsePartnerCommandText } from '../bot/partner-commands'
@@ -272,6 +273,7 @@ export async function handleMaxUpdate(update: MaxUpdate): Promise<void> {
         && !isPaymentClientCallbackPayload(callback.payload)
         && !isPrintRetryClientCallbackPayload(callback.payload)
         && !isPointClientCallbackPayload(callback.payload)
+        && !isTemplateClientCallbackPayload(callback.payload)
         && !callback.payload.startsWith('batch_')
 
       if (callback.payload === 'batch_finalize' || callback.payload === 'batch_cancel') {
@@ -317,6 +319,7 @@ export async function handleMaxUpdate(update: MaxUpdate): Promise<void> {
         || isPaymentClientCallbackPayload(callback.payload)
         || isPrintRetryClientCallbackPayload(callback.payload)
         || isPointClientCallbackPayload(callback.payload)
+        || isTemplateClientCallbackPayload(callback.payload)
       )) {
         const chatId = update.message?.recipient?.chat_id ?? update.chat_id
         if (!chatId) {

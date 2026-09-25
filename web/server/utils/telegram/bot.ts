@@ -35,6 +35,7 @@ import {
   isPaymentClientCallbackPayload,
   isPointClientCallbackPayload,
   isPrintRetryClientCallbackPayload,
+  isTemplateClientCallbackPayload,
 } from '../bot/keyboards'
 import { isPartnerCallbackPayload, isPartnerPrintFailureAction } from '../bot/partner-keyboards'
 import { getPartnerByMessenger } from '../partner-auth'
@@ -519,6 +520,7 @@ function createBot(): Bot {
         && !isPaymentClientCallbackPayload(data)
         && !isPrintRetryClientCallbackPayload(data)
         && !isPointClientCallbackPayload(data)
+        && !isTemplateClientCallbackPayload(data)
 
       let result: { toast?: string, callbackAnswer?: import('../bot/types').CallbackAnswerOptions }
       if (isPartnerCallback) {

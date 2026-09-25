@@ -44,6 +44,21 @@ export async function uploadOrderFile(
   })
 }
 
+/** Permanent template PDF — never delete after order print. */
+export async function uploadTemplateFile(
+  pointId: string,
+  templateId: string,
+  data: Buffer | ArrayBuffer,
+) {
+  const pathname = `templates/${pointId}/${templateId}.pdf`
+  return put(pathname, data, {
+    ...getBlobAuthOptions(),
+    access: BLOB_ACCESS,
+    contentType: 'application/pdf',
+    addRandomSuffix: false,
+  })
+}
+
 /** @deprecated Use uploadOrderFile */
 export async function uploadOrderPdf(orderId: string, data: Buffer | ArrayBuffer) {
   return uploadOrderFile(orderId, data, {
